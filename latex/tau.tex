@@ -1,0 +1,159 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{placeins}
+\ifx\pdftexversion\undefined
+  \usepackage[dvips]{graphicx}
+\else
+  \usepackage[pdftex]{graphicx}
+\fi
+\usepackage{amssymb,amsfonts,amstext,amsmath}
+\usepackage{color}
+\usepackage{setspace}                % Produzir espaçamento entre linhas
+\usepackage{latexsym}
+\usepackage[portuguese,brazilian]{babel}
+\usepackage[utf8x]{inputenc}        % Para poder digitar os acentos da maneira usual:
+\usepackage{aecompl}
+\usepackage{graphicx}                % incluir figuras .bmp
+\usepackage{wrapfig}
+\usepackage{subfig}
+\usepackage{calc}
+\usepackage{mathrsfs}                % Fonte da densidade Hamiltoniana $\mathscr{H}$ e lagrengeana $\mathscr{L}$
+\usepackage{dsfont}                  % Fontes para cojuntos:Ex. naturais -\usepackage{rotating}
+\usepackage{float}
+\usepackage{textcomp}
+\usepackage{ctable}
+\usepackage[T1]{fontenc}
+\usepackage[round,authoryear]{natbib}
+\usepackage{geometry}
+\usepackage{authblk}
+
+\geometry{verbose,a4paper,tmargin=3cm,bmargin=2cm,lmargin=3cm,rmargin=2cm,headsep=5mm,footskip=0cm}
+%Formatar notas de rodape
+\usepackage[hang]{footmisc} 
+\setlength{\footnotemargin}{1em}
+\usepackage[colorlinks,linkcolor=blue,bookmarks=true,citecolor=blue]{hyperref} %cria os links nas referencias e citacoes!
+% Controlar linhas orfas e viuvas
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\newcommand{\meanL}[1]{\relax\ifmmode \langle #1 \rangle_L \else $\langle #1 \rangle_L$\xspace \fi}
+\newcommand{\mean}[1]{\relax\ifmmode \langle #1 \rangle \else $\langle #1 \rangle$\xspace \fi}
+%\title{xxx}
+
+\newcommand{\tauV}{\tau_{\mathrm{\textsc{v}}}}
+\newcommand{\tauVN}{\tau_{\mathrm{\textsc{v}}}^{\mathrm{\textsc{neb}}}}
+\newcommand{\Halpha}{\ifmmode \mathrm{H}\alpha \else H$\alpha$\xspace \fi}
+\newcommand{\WHa}{\ifmmode W_{\mathrm{H}\alpha} \else $W_{\mathrm{H}\alpha}$\xspace \fi}
+\newcommand{\Hbeta}{\ifmmode \mathrm{H}\beta \else H$\beta$\xspace \fi}
+\newcommand{\NII}{[N\thinspace\textsc{ii}] $\lambda 6584$\xspace} 
+\newcommand{\nII}{\ifmmode [\mathrm{N\,\textsc{ii}}] \else [N\thinspace\textsc{ii}]\xspace \fi}
+\newcommand{\WnII}{W_{\mathrm{[N\,\textsc{ii}]}}}
+\newcommand{\OIII}{[O\thinspace\textsc{iii}] $\lambda 5007$\xspace}
+\newcommand{\oIII}{\ifmmode [\mathrm{O\,\textsc{iii}}] \else [O\thinspace{\sc iii}]\xspace \fi}
+\newcommand{\del}[2]{\frac{\partial #1}{\partial #2}}
+
+\begin{document}
+
+Cálculo de $L_\lambda$ e do erro ($\epsilon (L_\lambda)$)
+
+\begin{eqnarray}
+	L_\lambda &=& 4 \pi d^2 F_\lambda \\
+	\epsilon (L_\lambda) &=& 4 \pi d^2 \epsilon (F_\lambda)
+\end{eqnarray}
+
+Cálculo de $L_{\Halpha}^{int}$ e $\tauVN$:
+ 
+\begin{eqnarray}
+	L_\lambda^{obs} &=& L_\lambda^{int} e^{-\tau_\lambda} \\
+	L_\lambda^{obs} &=& L_\lambda^{int} e^{-(\frac{\tau_\lambda}{\tauV}) \tauV} \\
+	\frac{\tau_\lambda}{\tauV} &=& q_\lambda \\
+	L_\lambda^{obs} &=& L_\lambda^{int} e^{-q_\lambda \tauV} \\
+	\frac{L_\lambda^{obs}}{L_{\lambda^\prime}^{obs}} &=& \
+\frac{L_\lambda^{int} e^{-q_\lambda \tauV}}{L_{\lambda^\prime}^{int} e^{-q_{\lambda^\prime} \tauV}} \\
+	\ln \left(\frac{L_\lambda^{obs}}{L_{\lambda^\prime}^{obs}}\right) &=& \
+\tauV (q_{\lambda^\prime} - q_\lambda) \ln \left(\frac{L_\lambda^{int}}{L_{\lambda^\prime}^{int}}\right) \\
+	\tauV &=& \frac{1}{(q_{\lambda^\prime} - q_\lambda)} \left[\ln \ 
+\left(\frac{L_\lambda^{obs}}{L_{\lambda^\prime}^{obs}}\right) - \
+\ln \left(\frac{L_\lambda^{int}}{L_{\lambda^\prime}^{int}}\right)\right] \\
+	\tauV &=& \frac{1}{(q_{\lambda^\prime} - q_\lambda)} \left[\ln \
+\left(\frac{F_\lambda^{obs}}{F_{\lambda^\prime}^{obs}}\right) - \
+\ln \left(\frac{F_\lambda^{int}}{F_{\lambda^\prime}^{int}}\right)\right] \\
+	\tauVN &=& \frac{1}{(q_{\Hbeta} - q_{\Halpha})} \ln \left( \frac{ F_{\Halpha}^{obs} / F_{\Hbeta}^{obs}}{F_{\Halpha}^{int} / F_{\Hbeta}^{int}} \right) \\
+	L_{\Halpha}^{int} &=& L_{\Halpha}^{obs} e^{(q_{\Halpha} \tauVN)} 
+\end{eqnarray}
+
+Propagação de erro no cálculo de $L_{\Halpha}^{int}$:
+
+\begin{eqnarray}
+	L_{\Halpha}^{int} &\equiv& L_{\Halpha}^{int}(L_{\Halpha}^{obs}, \tauVN) \
+\equiv L_{\Halpha}^{int}(L_{\Halpha}^{obs}, L_{\Hbeta}^{obs}) \\
+	\epsilon (L_{\Halpha}^{int}) &=& \sqrt{\left(\del{L_{\Halpha}^{int}}{L_{\Halpha}^{obs}}\right)^2 \
+\epsilon (L_{\Halpha}^{obs})^2 + \left(\del{L_{\Halpha}^{int}}{L_{\Hbeta}^{obs}}\right)^2 \
+\epsilon (L_{\Hbeta}^{obs})^2 } \\
+	\del{L_{\Halpha}^{int}}{L_{\Halpha}^{obs}} &=& e^{(q_{\Halpha} \tauVN)} \\
+	\del{L_{\Halpha}^{int}}{L_{\Hbeta}^{obs}} &=& \left(\del{L_{\Halpha}^{int}}{\tauVN}\right) \
+\left(\del{\tauVN}{L_{\Hbeta}^{obs}}\right) \\
+	\del{L_{\Halpha}^{int}}{\tauVN} &=& L_{\Halpha}^{obs} q_{\Halpha} e^{(q_{\Halpha} \tauVN)} \\
+	\del{\tauVN}{L_{\Hbeta}^{obs}} &=& - \frac{1}{L_{\Hbeta}^{obs} (q_{\Hbeta} - q_{\Halpha})} \\
+	\del{L_{\Halpha}^{int}}{L_{\Hbeta}^{obs}} &=& - \
+\left(\frac{q_{\Halpha}}{q_{\Hbeta} - q_{\Halpha}}\right) \
+\left(\frac{L_{\Halpha}^{obs}}{L_{\Hbeta}^{obs}}\right) \\	
+	\epsilon (L_{\Halpha}^{int}) &=& e^{(q_{\Halpha} \tauVN)} \ 
+\sqrt{\epsilon(L_{\Halpha}^{obs})^2 + \	
+\left(\frac{q_{\Halpha}}{q_{\Hbeta} - q_{\Halpha}}\right)^2 \ 
+\left(\frac{L_{\Halpha}^{obs}}{L_{\Hbeta}^{obs}}\right)^2 \
+\epsilon(L_{\Hbeta}^{obs})^2}
+\end{eqnarray}
+
+Propagação de erro no cálculo de $\tauVN$:
+\begin{eqnarray}
+	\tauVN &\equiv& \tauVN(L_{\Halpha}^{obs}, L_{\Hbeta}^{obs}) \\
+	\epsilon (\tauVN) &=& \sqrt{\left(\del{\tauVN}{L_{\Halpha}^{obs}}\right)^2 \
+\epsilon (L_{\Halpha}^{obs})^2 + \left(\del{\tauVN}{L_{\Hbeta}^{obs}}\right)^2 \
+\epsilon (L_{\Hbeta}^{obs})^2 } \\
+	\del{\tauVN}{L_{\Halpha}^{obs}} &=& \frac{1}{L_{\Halpha}^{obs} (q_{\Hbeta} - q_{\Halpha})} \\
+	\del{\tauVN}{L_{\Hbeta}^{obs}} &=& - \frac{1}{L_{\Hbeta}^{obs} (q_{\Hbeta} - q_{\Halpha})} \\
+	\epsilon (\tauVN) &=& \frac{1}{(q_{\Hbeta} - q_{\Halpha})} \
+\sqrt{\left(\frac{\epsilon (L_{\Halpha}^{obs})}{L_{\Halpha}^{obs}}\right)^2 + \
+\left(\frac{\epsilon (L_{\Hbeta}^{obs})}{L_{\Hbeta}^{obs}}\right)^2 }
+\end{eqnarray}
+
+Propagação do erro no cálculo de $F_{\Halpha}^{obs} / F_{\Hbeta}^{obs}$:
+\begin{eqnarray}
+	F_{Balmer}^{obs} &=& \frac{F_{\Halpha}^{obs}}{F_{\Hbeta}^{obs}} \\
+	F_{Balmer}^{obs} &\equiv& F_{Balmer}^{obs}(F_{\Halpha}^{obs}, F_{\Hbeta}^{obs}) \\
+	\epsilon(F_{Balmer}^{obs}) &=& \sqrt{\left(\del{F_{Balmer}^{obs}}{F_{\Halpha}^{obs}}\right)^2 \
+\epsilon(F_{\Halpha}^{obs})^2 + \left(\del{F_{Balmer}^{obs}}{F_{\Hbeta}^{obs}}\right)^2 \
+\epsilon(F_{\Hbeta}^{obs})^2} \\
+	\del{F_{Balmer}^{obs}}{F_{\Halpha}^{obs}} &=& \frac{1}{F_{\Hbeta}^{obs}} \\
+	\del{F_{Balmer}^{obs}}{F_{\Hbeta}^{obs}} &=& - \frac{F_{\Halpha}^{obs}}{F_{\Hbeta}^{obs}{}^2} \\
+	\epsilon(F_{Balmer}^{obs}) &=& \frac{1}{F_{\Hbeta}^{obs}} \sqrt{\epsilon(F_{\Halpha}^{obs})^2 + \
+\left(\frac{F_{\Halpha}^{obs}}{F_{\Hbeta}^{obs}}\right)^2 \epsilon(F_{\Hbeta}^{obs})^2} 
+\end{eqnarray}
+
+Cálculo de $O_3N_2$ e $\log Z_{neb}$:
+\begin{eqnarray}
+	O_3N_2 &=& \frac{F_{\oIII}^{int}}{F_{\nII}^{int}} = \
+\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}} e^{\tauVN (q_{\oIII} - q_{\nII})} \\
+	\log Z_{neb} &=& - 0.14 - 0.25 \log O_3N_2 \\
+\end{eqnarray}
+
+Propagação no erro de $O_3N_2$ e $\log Z_{neb}$:
+\begin{eqnarray}
+	O_3N_2 &\equiv& O_3N_2(F_{\oIII}^{obs}, F_{\nII}^{obs}, F_{\Halpha}^{obs}, F_{\Hbeta}^{obs}) \\
+	\del{O_3N_2}{F_{\oIII}^{obs}} &=& e^{\tauVN (q_{\oIII} - q_{\nII})}\left(\frac{1}{F_{\nII}^{obs}}\right) \\
+	\del{O_3N_2}{F_{\nII}^{obs}} &=& - e^{\tauVN (q_{\oIII} - q_{\nII})}\left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}{}^2}\right) \\
+	\del{O_3N_2}{F_{\Halpha}^{obs}} &=& e^{\tauVN (q_{\oIII} - q_{\nII})} \
+\left(\frac{q_{\oIII} - q_{\nII}}{q_{\Hbeta} - q_{\Halpha}}\right) \
+\left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs} F_{\Halpha}^{obs}}\right) \\
+	\del{O_3N_2}{F_{\Hbeta}^{obs}} &=& - e^{\tauVN (q_{\oIII} - q_{\nII})} \
+\left(\frac{q_{\oIII} - q_{\nII}}{q_{\Hbeta} - q_{\Halpha}}\right) \
+\left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs} F_{\Hbeta}^{obs}}\right) \\
+	\nonumber \epsilon(O_3N_2) &=& \frac{e^{\tauVN (q_{\oIII} - q_{\nII})}}{F_{\nII}^{obs}} \
+\sqrt{ \epsilon(F_{\oIII}^{obs})^2 + \left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}}\right)^2 \epsilon(F_{\nII}^{obs})^2 + ... } \\
+	&& \overline{... + \left(\frac{q_{\oIII} - q_{\nII}}{q_{\Hbeta} - q_{\Halpha}}\right)^2 \left[\left(\frac{F_{\oIII}^{obs}}{F_{\Halpha}^{obs}}\right)^2 + \left(\frac{F_{\oIII}^{obs}}{F_{\Hbeta}^{obs}}\right)^2 \right]} \\
+	\epsilon(\log Z_{neb}) &=& \sqrt{\del{\log Z_{neb}}{O_3N_2}^2 \epsilon(O_3N_2)^2} \\
+	\del{\log Z_{neb}}{O_3N_2} &=& \frac{0.25}{\ln(10)} \frac{1}{O_3N_2} \\
+	&=& \frac{0.25}{\ln(10)} \left(\frac{\epsilon(O_3N_2)}{O_3N_2}\right)
+\end{eqnarray}
+
+\end{document}
