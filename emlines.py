@@ -13,8 +13,8 @@ from matplotlib import pyplot as plt
 from get_morfologia import get_morfologia
 import os
 
-#plot = True
-plot = False
+plot = True
+#plot = False
 debug = False
 #debug = True
 
@@ -24,6 +24,7 @@ debug = False
 
 mpl.rcParams['font.size']       = 16
 mpl.rcParams['axes.labelsize']  = 22
+mpl.rcParams['axes.titlesize']  = 26
 mpl.rcParams['font.family']     = 'sans-serif'
 
 CALIFAWorkDir = '/Users/lacerda/CALIFA/'
@@ -56,10 +57,22 @@ listOfPrefixes  = f.readlines()
 f.close()
 
 if debug:
-    listOfPrefixes = listOfPrefixes[0:20]        # Q&D tests ...
-    #listOfPrefixes = ['K0026\n']
+    #listOfPrefixes = listOfPrefixes[0:20]        # Q&D tests ...
+    listOfPrefixes = ['K0026\n']
     
 N_gals = len(listOfPrefixes)
+
+# SFR-time-scale array (index __T)
+tSF__T = np.array([ 10.01 , 25.2 , 63.2, 100.1 , 158.6 , 199.6 , 1400.2 ]) * 1.e6
+N_T = len(tSF__T)
+
+mask_xOk = True
+
+# Def smallest light fraction (in the flag__t-ageMax age-range) deemed to be Ok for our stats ...
+xOkMin = 0.05
+
+# Minimum tauV to be taken seriously ...
+tauVOkMin = 0.05
 
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -306,8 +319,8 @@ def nebular_implot(K, tauVNeb__yx, err_tauVNeb__yx, f_obs_HaHb__yx, err_f_obs_Ha
     ax                  = axArr[0, 3]
     ax.set_axis_on()
     Lobn__yx            = K.zoneToYX(K.Lobn__z, extensive = True)
-    logZNeb__r          = radialProfileWeighted(logZNeb__yx, Lobn__yx, Rbin__r, K.HLR_pix, K.radialProfile)
-    #logZNeb__r          = K.radialProfile(logZNeb__yx, Rbin__r, rad_scale = K.HLR_pix)
+    #logZNeb__r          = radialProfileWeighted(logZNeb__yx, Lobn__yx, Rbin__r, K.HLR_pix, K.radialProfile)
+    logZNeb__r          = K.radialProfile(logZNeb__yx, Rbin__r, rad_scale = K.HLR_pix)
     ax.plot(RbinCenter__r, logZNeb__r, 'o-k')
     ax.set_title(r'$\langle \log\ Z_{neb}\rangle_L (HLR)$')
 
@@ -450,9 +463,56 @@ def plot_3din2d_scatter(x, y, z, xlabel, ylabel, zlabel, fname = None):
     else:
         f.show()
 
-#########################################################################        
-#########################################################################        
-#########################################################################        
+def plot_3din2d_scatter_age(x, y, z, xlabel, ylabel, zlabel, age, fname = None):
+    f       = plt.figure(dpi = 96)
+    f.set_size_inches(21.88,12.5)
+    ax      = f.gca()
+    scat    = ax.scatter(x, y, c = z, cmap = 'jet', edgecolor = 'none', alpha = 0.5)
+    
+    nBox        = 16
+    dxBox       = (x.max() - x.min()) / (nBox - 1.)
+    aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
+    xbinCenter  = aux[0]
+    xMedian     = aux[1]
+    xMean       = aux[2]
+    xStd        = aux[3]
+    yMedian     = aux[4]
+    yMean       = aux[5]
+    yStd        = aux[6]
+    nInBin      = aux[7]
+    ax.plot(xMean, yMean, 'ob-', lw = 2)
+    ax.errorbar(xMean, yMean, yerr = yStd, xerr = xStd, c = 'b')
+        
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # nPerBin     = len(x) / 350
+    # aux         = calcYofXStats_EqNumberBins(x, y, nPerBin)
+    # xMedian     = aux[0]
+    # xMean       = aux[1]
+    # xStd        = aux[2]
+    # yMedian     = aux[3]
+    # yMean       = aux[4]
+    # yStd        = aux[5]
+    # nInBin      = aux[6]
+    # #ax.plot(xMean, yMean, 'or-', lw = 2)
+    # #ax.errorbar(xMean, yMean, yerr = yStd, xerr = xStd, c = 'r')
+    # FWHM        = 0.4
+    # xS, yS      = gaussSmooth_YofX(xMedian, yMedian, FWHM)
+    # ax.plot(xS, yS, 'or--', lw = 0.5)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    
+    ax.grid()
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    cb = f.colorbar(ax = ax, mappable = scat)
+    cb.set_label(zlabel)
+    
+    ax.set_title(r'$%s$ Myr' % str(age / 1.e6))
+    
+    if fname:
+        f.savefig(fname)
+    else:
+        f.show()
+
 
 if __name__ == '__main__':
     #########################################################################        
@@ -462,6 +522,9 @@ if __name__ == '__main__':
     ALL_at_flux_GAL__g      = np.ma.zeros((N_gals))
     ALL_Mcor_GAL__g         = np.ma.zeros((N_gals))
     ALL_McorSD_GAL__g       = np.ma.zeros((N_gals))
+    
+    # SK-law *__Trg arrays
+
     #########################################################################        
     #########################################################################        
 
@@ -471,12 +534,26 @@ if __name__ == '__main__':
     _ALL_logZNeb__g             = []
     _ALL_logZNeb_mask__g        = []
     _ALL_err_tauVNeb__g         = []
+    _ALL_Lint_Ha__g             = []
+    _ALL_Lint_Ha_mask__g        = []
+    _ALL_SFR_Ha__g              = []
     _ALL_SFRSD_Ha__g            = []
     _ALL_tauVNeb2mu__g          = []
     _ALL_McorSD_GAL_zones__g    = []
     _ALL_morfType_GAL_zones__g  = []
     _ALL_WHa__g                 = []
     
+    _ALL_tauV__Tg               = []
+    _ALL_tauV_mask__Tg          = []
+    _ALL_SFR__Tg                = []
+    _ALL_SFRSD__Tg              = []
+
+    for iT in range(N_T):
+        _ALL_tauV__Tg.append([])
+        _ALL_tauV_mask__Tg.append([])
+        _ALL_SFR__Tg.append([])
+        _ALL_SFRSD__Tg.append([])
+        
     for iGal in np.arange(N_gals):
         galName         = listOfPrefixes[iGal][:-1]
 
@@ -527,13 +604,41 @@ if __name__ == '__main__':
         numerator__z   = K.Lobn__tZz.sum(axis=1).sum(axis=0) * K.at_flux__z
         denominator__z = K.Lobn__tZz.sum(axis=1).sum(axis=0)
         ALL_at_flux_GAL__g[iGal] = numerator__z.sum() / denominator__z.sum()
-
-        #########################################################################
-        #########################################################################
-        #########################################################################
+        
+        for iT,tSF in enumerate(tSF__T):
+            #--------------------------------------------------------------------------
+            # Define mask to pick only populations younger than the input tSF in the computation of SFR & SFRSD.
+            flag__t = K.ageBase <= tSF
+        
+            # SRFSD "raw" image
+            # Note that we are NOT dezonifying SFR__z, since it will be compared to the un-dezonifiable tauV!
+            aux         = K.Mini__tZz[flag__t,:,:].sum(axis=1).sum(axis=0) / tSF
+            SFR__z      = np.ma.masked_array(aux)
+            SFRSD__z    = SFR__z / K.zoneArea_pc2
             
-        tauV__z    = K.A_V / (2.5 * np.log10(np.exp(1.)))
-        _ALL_tauV__g.append(tauV__z)
+            tauV__z     = np.ma.masked_array(K.tau_V__z)
+                            
+            if mask_xOk:
+                # Compute xOk "raw" image
+                x__tZz  =  K.popx / K.popx.sum(axis=1).sum(axis=0)
+                xOk__z  = x__tZz[flag__t,:,:].sum(axis=1).sum(axis=0)
+                
+                maskNotOk__z = (xOk__z < xOkMin) | (tauV__z < tauVOkMin)
+
+                tauV__z[maskNotOk__z]   = np.ma.masked
+                SFR__z[maskNotOk__z]    = np.ma.masked
+                SFRSD__z[maskNotOk__z]  = np.ma.masked
+                
+            _ALL_tauV__Tg[iT].append(tauV__z.data)
+            _ALL_tauV_mask__Tg[iT].append(tauV__z.mask)
+            _ALL_SFR__Tg[iT].append(SFR__z)
+            _ALL_SFRSD__Tg[iT].append(SFRSD__z)
+                
+        #########################################################################
+        #########################################################################
+        #########################################################################
+        
+        _ALL_tauV__g.append(np.ma.masked_array(K.tau_V__z))
 
         f_obs__Lz       = read[0]
         err_f_obs__Lz   = read[1]
@@ -578,7 +683,7 @@ if __name__ == '__main__':
         f_obs_HaHb__yx      = K.zoneToYX(f_obs_HaHb__z, extensive = True)
         err_f_obs_HaHb__yx  = K.zoneToYX(err_f_obs_HaHb__z, extensive = True)
         
-        _ALL_tauVNeb__g.append(tauVNeb__z)
+        _ALL_tauVNeb__g.append(tauVNeb__z.data)
         _ALL_tauVNeb_mask__g.append(tauVNeb__z.mask)
         _ALL_err_tauVNeb__g.append(err_tauVNeb__z)
         
@@ -596,14 +701,18 @@ if __name__ == '__main__':
         Lint_Ha__yx     = K.zoneToYX(Lint_Ha__z, extensive = True)
         err_Lint_Ha__yx = K.zoneToYX(err_Lint_Ha__z, extensive = True)
         
+        _ALL_Lint_Ha__g.append(Lint_Ha__z.data)
+        _ALL_Lint_Ha_mask__g.append(Lint_Ha__z.mask)
+        
         # from Kennicutt et al. (1994) - http://adsabs.harvard.edu/abs/1994ApJ...435...22K
         # Salpeter IMF: SFR_Ha [M_\odot yr^-1] = 7.9e-42 * L_Ha [erg/s]
         # SFR_Ha [M_\odot yr^-1] = 3.02254 * L_Ha [L_\odot]
         
         #SFR_Ha__z       = 2.05 * Lint_Ha__z / (1.e8)
-        SFR_Ha__z       = 3.02254 * Lint_Ha__z / (1.e8)
+        SFR_Ha__z       = 3.02 * Lint_Ha__z / (1.e8)
         SFRSD_Ha__z     = SFR_Ha__z / K.zoneArea_pc2
         
+        _ALL_SFR_Ha__g.append(SFR_Ha__z)
         _ALL_SFRSD_Ha__g.append(SFRSD_Ha__z)
         
         aux                         = calc_logZNeb(K, f_obs__Lz, err_f_obs__Lz, tauVNeb__z, lines)
@@ -616,7 +725,7 @@ if __name__ == '__main__':
         O3N2__yx                    = K.zoneToYX(O3N2__z, extensive = True)
         err_O3N2__yx                = K.zoneToYX(err_O3N2__z, extensive = True)
         
-        _ALL_logZNeb__g.append(logZNeb__z)
+        _ALL_logZNeb__g.append(logZNeb__z.data)
         _ALL_logZNeb_mask__g.append(logZNeb__z.mask)
         
         if plot:
@@ -630,17 +739,33 @@ if __name__ == '__main__':
     aux                         = np.hstack(np.asarray(_ALL_tauVNeb__g))
     auxMask                     = np.hstack(np.asarray(_ALL_tauVNeb_mask__g))
     ALL_tauVNeb__g              = np.ma.masked_array(aux, mask = auxMask)
-    ALL_err_tauVNeb__g          = np.ma.masked_array(np.hstack(np.asarray(_ALL_err_tauVNeb__g)), mask = auxMask)
     ALL_tauV__g                 = np.ma.masked_array(np.hstack(np.asarray(_ALL_tauV__g)), mask = auxMask)
+    ALL_err_tauVNeb__g          = np.ma.masked_array(np.hstack(np.asarray(_ALL_err_tauVNeb__g)), mask = auxMask)
     ALL_WHa__g                  = np.ma.masked_array(np.hstack(np.asarray(_ALL_WHa__g)), mask = auxMask)
     
     aux                         = np.hstack(np.asarray(_ALL_logZNeb__g))
     auxMask                     = np.hstack(np.asarray(_ALL_logZNeb_mask__g))
     ALL_logZNeb__g              = np.ma.masked_array(aux, mask = auxMask)
+
+    aux                         = np.hstack(np.asarray(_ALL_Lint_Ha__g))
+    auxMask                     = np.hstack(np.asarray(_ALL_Lint_Ha_mask__g))
+    ALL_Lint_Ha__g              = np.ma.masked_array(aux, mask = auxMask)
+    ALL_SFR_Ha__g               = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR_Ha__g)), mask = auxMask)
     ALL_SFRSD_Ha__g             = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_Ha__g)), mask = auxMask)
     
     ALL_McorSD_GAL_zones__g     = np.ma.masked_array(np.hstack(np.asarray(_ALL_McorSD_GAL_zones__g)))
     ALL_morfType_GAL_zones__g   = np.ma.masked_array(np.hstack(np.asarray(_ALL_morfType_GAL_zones__g)))
+    
+    ALL_tauV__Tg     = []
+    ALL_SFR__Tg      = []
+    ALL_SFRSD__Tg    = []
+    
+    for iT in range(N_T):
+        aux     = np.hstack(np.asarray(_ALL_tauV__Tg[iT]))
+        auxMask = np.hstack(np.asarray(_ALL_tauV_mask__Tg[iT]))
+        ALL_tauV__Tg.append(np.ma.masked_array(aux, mask = auxMask))
+        ALL_SFR__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR__Tg[iT])), mask = auxMask))
+        ALL_SFRSD__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD__Tg[iT])), mask = auxMask))
 
     SKzero = np.log10(2.5e-4) # -3.60206
     SKslope = 1.4
@@ -693,6 +818,34 @@ if __name__ == '__main__':
                             r'$\tau_V$', r'$\tau_V^{neb}$', r'Morphology Type',
                             'tauV_tauVNeb_morphType.png')
         
+        for iT, tSF in enumerate(tSF__T):
+            print iT, tSF
+            m = (ALL_err_tauVNeb__g<0.15) & (ALL_tauVNeb__g >= tauVOkMin)
+            x = ALL_SFR_Ha__g
+            y = np.log10(ALL_SFR__Tg[iT])
+            z = 10. ** ALL_logZNeb__g
+            plot_3din2d_scatter_age(np.log10(x[m]), y[m], z[m],
+                                    r'$\log\ SFR_{neb}$', r'$\log\ SFR_\star$', r'$Z_{neb}\ [Z_\odot]$',
+                                    tSF, 'logSFRHa_logSFR_ZNeb_age_%d.png' % iT)
+
+            m &= (ALL_morfType_GAL_zones__g > 8.5)
+            z = ALL_morfType_GAL_zones__g
+            plot_3din2d_scatter_age(np.log10(x[m]), y[m], z[m],
+                                    r'$\log\ SFR_{neb}$', r'$\log\ SFR_\star$', r'Morphology Type',
+                                    tSF, 'logSFRHa_logSFR_morphType_age_%d.png' % iT)
+            
+            m = (ALL_err_tauVNeb__g<0.15) & (ALL_tauVNeb__g >= 0) & (ALL_tauV__Tg[iT] >= 0)
+            plot_3din2d_scatter_age(ALL_tauV__Tg[iT][m], ALL_tauVNeb__g[m], 10. ** ALL_logZNeb__g[m],
+                                    r'$\tau_V$', r'$\tau_V^{neb}$', r'$Z_{neb}\ [Z_\odot]$',
+                                    tSF, 'tauV_tauVNeb_ZNeb_age_%d.png' % iT)
+            plot_3din2d_scatter_age(ALL_tauV__Tg[iT][m], ALL_tauVNeb__g[m], np.log10(ALL_SFRSD_Ha__g[m]), 
+                                    r'$\tau_V$', r'$\tau_V^{neb}$', r'$\log\ \Sigma_{SFR}\ [M_\odot yr^{-1} pc^{-2}]$',
+                                    tSF, 'tauV_tauVNeb_logSFRSD_age_%d.png' % iT)
+            plot_3din2d_scatter_age(ALL_tauV__Tg[iT][m], ALL_tauVNeb__g[m], np.log10(ALL_WHa__g[m]), 
+                                    r'$\tau_V$', r'$\tau_V^{neb}$', r'$\log\ W_{H\alpha}\ [\AA]$',
+                                    tSF, 'tauV_tauVNeb_logWHa_age_%d.png' % iT)
+
+
 ##############################################################################################
 ##############################################################################################
 ##############################################################################################
