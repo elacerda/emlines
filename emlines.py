@@ -31,10 +31,10 @@ CALIFAWorkDir = '/Users/lacerda/CALIFA/'
     
 galaxiesListFile    = CALIFAWorkDir + 'listOf300GalPrefixes.txt'
 baseCode            = 'Bgsd6e'
-#versionSuffix       = 'px1_q043.d14a'
-versionSuffix       = 'v20_q043.d14a'
-#superFitsDir        = '/Volumes/SAMSUNG/CALIFA/superfits/' + versionSuffix + '/'
-superFitsDir        = CALIFAWorkDir + 'gal_fits/' + versionSuffix + '/'
+versionSuffix       = 'px1_q043.d14a'
+#versionSuffix       = 'v20_q043.d14a'
+superFitsDir        = '/Volumes/backupzeira/CALIFA/q043/px1/'
+#superFitsDir        = CALIFAWorkDir + 'gal_fits/' + versionSuffix + '/'
 
 #emLinesFitsDir      = CALIFAWorkDir + 'superfits/' + versionSuffix + '/'
 emLinesFitsDir      = CALIFAWorkDir + 'rgb-gas/' + versionSuffix + '/'
@@ -322,7 +322,8 @@ def nebular_implot(K, tauVNeb__yx, err_tauVNeb__yx, f_obs_HaHb__yx, err_f_obs_Ha
     #logZNeb__r          = radialProfileWeighted(logZNeb__yx, Lobn__yx, Rbin__r, K.HLR_pix, K.radialProfile)
     logZNeb__r          = K.radialProfile(logZNeb__yx, Rbin__r, rad_scale = K.HLR_pix)
     ax.plot(RbinCenter__r, logZNeb__r, 'o-k')
-    ax.set_title(r'$\langle \log\ Z_{neb}\rangle_L (HLR)$')
+    #ax.set_title(r'$\langle \log\ Z_{neb}\rangle_L (HLR)$')
+    ax.set_title(r'$\log\ Z_{neb}(HLR)$')
 
     ax                  = axArr[1, 1]
     ax.set_axis_on()
@@ -704,12 +705,8 @@ if __name__ == '__main__':
         _ALL_Lint_Ha__g.append(Lint_Ha__z.data)
         _ALL_Lint_Ha_mask__g.append(Lint_Ha__z.mask)
         
-        # from Kennicutt et al. (1994) - http://adsabs.harvard.edu/abs/1994ApJ...435...22K
-        # Salpeter IMF: SFR_Ha [M_\odot yr^-1] = 7.9e-42 * L_Ha [erg/s]
-        # SFR_Ha [M_\odot yr^-1] = 3.02254 * L_Ha [L_\odot]
-        
-        #SFR_Ha__z       = 2.05 * Lint_Ha__z / (1.e8)
-        SFR_Ha__z       = 3.02 * Lint_Ha__z / (1.e8)
+        # 3.17 M_sun/yr was calculated using BC03 + Padova1994 + Salpeter        
+        SFR_Ha__z       = 3.17 * Lint_Ha__z / (1.e8)
         SFRSD_Ha__z     = SFR_Ha__z / K.zoneArea_pc2
         
         _ALL_SFR_Ha__g.append(SFR_Ha__z)
