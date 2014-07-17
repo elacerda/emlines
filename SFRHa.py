@@ -22,8 +22,8 @@ for i, b in enumerate(bases):
     cmInAA  = 1e-8      # cm / AA
     
     lambda_Ha   = 6562.8                    # Angstrom
-    #max_yr      = base.ageBase[-1]
-    max_yr      = 100e6
+    max_yr      = base.ageBase[-1]
+    #max_yr      = 100e6
     mask        = base.l_ssp <= 912         # Angstrom
     mask_age    = base.ageBase <= max_yr
     
@@ -31,12 +31,12 @@ for i, b in enumerate(bases):
     l       = base.l_ssp[mask]
     
     if useTrapz:
-        qh = np.trapz(y = f_ssp * l * cmInAA * L_sun / (h * c), 
+        qh__Zt = np.trapz(y = f_ssp * l * cmInAA * L_sun / (h * c), 
                       x = l, axis = 2) # 1 / Msol
          
-        Nh = np.trapz(y = qh[:, mask_age], x = base.ageBase[mask_age], axis = 1) * yr_sec 
+        Nh__Z = np.trapz(y = qh__Zt[:, mask_age], x = base.ageBase[mask_age], axis = 1) * yr_sec 
          
-        k_SFR = 2.226 * lambda_Ha * L_sun * yr_sec / (Nh * h * c)
+        k_SFR__Z = 2.226 * lambda_Ha * L_sun * yr_sec / (Nh__Z * h * c)
     else:
         def create_dx(x):
             dx          = np.zeros_like(x)
@@ -52,10 +52,10 @@ for i, b in enumerate(bases):
         qh__Zt = (f_ssp * l * dl * cmInAA * L_sun / (h * c)).sum(axis = 2)
          
         d_age = create_dx(age)
-        Nh = (qh__Zt[:, mask_age] * d_age).sum(axis = 1) * yr_sec
+        Nh__Z = (qh__Zt[:, mask_age] * d_age).sum(axis = 1) * yr_sec
          
-        k_SFR = 2.226 * lambda_Ha * L_sun * yr_sec / (Nh * h * c) # M_sun / yr
+        k_SFR__Z = 2.226 * lambda_Ha * L_sun * yr_sec / (Nh__Z * h * c) # M_sun / yr
     
     print b + ':'
     for i, Z in enumerate(base.metBase):
-        print '\tZ=%.4f N_H=%e k_SFR=%.2f Msun/yr' % (Z, Nh[i], k_SFR[i])
+        print '\tZ=%.4f N_H=%e k_SFR=%.2f Msun/yr' % (Z, Nh__Z[i], k_SFR__Z[i])
