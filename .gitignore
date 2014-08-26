@@ -1,0 +1,15 @@
+syntax: glob
+.project
+.pydevproject
+.hgignore
+*.png
+*.log
+.settings
+SKlaw01.py
+latex/tau.aux
+latex/tau.bbl
+latex/tau.blg
+latex/tau.out
+latex/tau.synctex.gz
+emlines_backup.py
+teste.py
