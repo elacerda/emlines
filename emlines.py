@@ -2,12 +2,8 @@
 #
 # Lacerda@Saco - 23/Jun/2014
 #
-from rgbread import read_rgb_fits
-from morph_type import get_morph, morph_number
 import numpy as np
 from pycasso import fitsQ3DataCube
-import pyfits
-import sys
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from get_morfologia import get_morfologia
@@ -22,19 +18,23 @@ debug = False
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-mpl.rcParams['font.size']       = 16
-mpl.rcParams['axes.labelsize']  = 22
+mpl.rcParams['font.size']       = 24
+mpl.rcParams['axes.labelsize']  = 24
 mpl.rcParams['axes.titlesize']  = 26
-mpl.rcParams['font.family']     = 'sans-serif'
+mpl.rcParams['xtick.labelsize'] = 22
+mpl.rcParams['ytick.labelsize'] = 22 
+mpl.rcParams['font.family']     = 'serif'
+mpl.rcParams['font.serif']      = 'Times New Roman'
+
 
 CALIFAWorkDir = '/Users/lacerda/CALIFA/'
     
-galaxiesListFile    = CALIFAWorkDir + 'listOf300GalPrefixes.txt'
+galaxiesListFile    = CALIFAWorkDir + 'listDR2.txt'
 baseCode            = 'Bgsd6e'
-versionSuffix       = 'px1_q043.d14a'
-#versionSuffix       = 'v20_q043.d14a'
-superFitsDir        = '/Volumes/backupzeira/CALIFA/q043/px1/'
-#superFitsDir        = CALIFAWorkDir + 'gal_fits/' + versionSuffix + '/'
+#versionSuffix       = 'px1_q043.d14a'
+versionSuffix       = 'v20_q043.d14a'
+#superFitsDir        = '/Volumes/backupzeira/CALIFA/q043/px1/'
+superFitsDir        = CALIFAWorkDir + 'gal_fits/' + versionSuffix + '/'
 
 #emLinesFitsDir      = CALIFAWorkDir + 'superfits/' + versionSuffix + '/'
 emLinesFitsDir      = CALIFAWorkDir + 'rgb-gas/' + versionSuffix + '/'
@@ -48,9 +48,6 @@ qCCM = {
     '6563' : 0.81775,
     '6583' : 0.81466,
 }
-
-read_lines = ['4861', '5007', '6563', '6583']        
-read_lines = None        
 
 f               = open(galaxiesListFile, 'r')
 listOfPrefixes  = f.readlines()
@@ -463,6 +460,8 @@ def plot_3din2d_scatter(x, y, z, xlabel, ylabel, zlabel, fname = None):
         f.savefig(fname)
     else:
         f.show()
+        
+    plt.close(f)
 
 def plot_3din2d_scatter_age(x, y, z, xlabel, ylabel, zlabel, age, fname = None):
     f       = plt.figure(dpi = 96)
@@ -514,6 +513,7 @@ def plot_3din2d_scatter_age(x, y, z, xlabel, ylabel, zlabel, age, fname = None):
     else:
         f.show()
 
+    plt.close(f)
 
 if __name__ == '__main__':
     #########################################################################        
@@ -563,7 +563,11 @@ if __name__ == '__main__':
         emLinesSuffix   = '_synthesis_eBR_' + versionSuffix + '512.ps03.k1.mE.CCM.' + baseCode + '.EML.MC100.fits'
         emLinesFitsFile = emLinesFitsDir + galName + emLinesSuffix
         
-        if not os.path.isfile(CALIFAFitsFile):
+        if not (os.path.isfile(CALIFAFitsFile) and os.path.isfile(emLinesFitsFile)):
+            ALL_morfType_GAL__g[iGal]           = np.ma.masked
+            ALL_at_flux_GAL__g[iGal]            = np.ma.masked
+            ALL_Mcor_GAL__g[iGal]               = np.ma.masked
+            ALL_McorSD_GAL__g[iGal]             = np.ma.masked
             continue
         
         K = fitsQ3DataCube(CALIFAFitsFile)
@@ -574,14 +578,8 @@ if __name__ == '__main__':
         
         # read FITSFILE containing galaxy emission lines measured by R.G.B.
         # read_rgb_fits returns False if emLinesFitsFile does not exists.
-        read = read_rgb_fits(emLinesFitsFile, read_lines)
-        
-        if not read:
-            ALL_morfType_GAL__g[iGal]           = np.ma.masked
-            ALL_at_flux_GAL__g[iGal]            = np.ma.masked
-            ALL_Mcor_GAL__g[iGal]               = np.ma.masked
-            ALL_McorSD_GAL__g[iGal]             = np.ma.masked
-            continue
+        #read = read_rgb_fits(emLinesFitsFile, read_lines)
+        K.loadEmLinesDataCube(emLinesFitsFile)
         
         tipos, tipo, tipo_m, tipo_p = get_morfologia(galName)
         ALL_morfType_GAL__g[iGal] = tipo
@@ -641,12 +639,12 @@ if __name__ == '__main__':
         
         _ALL_tauV__g.append(np.ma.masked_array(K.tau_V__z))
 
-        f_obs__Lz       = read[0]
-        err_f_obs__Lz   = read[1]
-        fwhm__Lz        = read[2]
-        err_fwhm__Lz    = read[3]
-        ew__Lz          = read[4]
-        lines           = read[5]
+        f_obs__Lz       = K.EL.flux
+        err_f_obs__Lz   = K.EL.eflux
+        fwhm__Lz        = K.EL.fwhm
+        err_fwhm__Lz    = K.EL.efwhm
+        ew__Lz          = K.EL.EW
+        lines           = K.EL.lines
 
         ##################### MASK ######################
         # minimum value of f_lz / err_f_lz
@@ -816,7 +814,6 @@ if __name__ == '__main__':
                             'tauV_tauVNeb_morphType.png')
         
         for iT, tSF in enumerate(tSF__T):
-            print iT, tSF
             m = (ALL_err_tauVNeb__g<0.15) & (ALL_tauVNeb__g >= tauVOkMin)
             x = ALL_SFR_Ha__g
             y = np.log10(ALL_SFR__Tg[iT])
