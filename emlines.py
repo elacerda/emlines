@@ -18,11 +18,11 @@ debug = False
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-mpl.rcParams['font.size']       = 24
-mpl.rcParams['axes.labelsize']  = 24
-mpl.rcParams['axes.titlesize']  = 26
-mpl.rcParams['xtick.labelsize'] = 22
-mpl.rcParams['ytick.labelsize'] = 22 
+mpl.rcParams['font.size']       = 30
+mpl.rcParams['axes.labelsize']  = 30
+mpl.rcParams['axes.titlesize']  = 32
+mpl.rcParams['xtick.labelsize'] = 26
+mpl.rcParams['ytick.labelsize'] = 26 
 mpl.rcParams['font.family']     = 'serif'
 mpl.rcParams['font.serif']      = 'Times New Roman'
 
@@ -843,3 +843,51 @@ if __name__ == '__main__':
 ##############################################################################################
 ##############################################################################################
 ##############################################################################################
+
+def plot_scatter(x, y, xlabel, ylabel, fname = None):
+    f       = plt.figure(dpi = 96)
+    f.set_size_inches(21.88,12.5)
+    ax      = f.gca()
+    scat    = ax.scatter(x, y, color = 'k', s = 0.1)
+    
+    nBox        = 16
+    dxBox       = (x.max() - x.min()) / (nBox - 1.)
+    aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
+    xbinCenter  = aux[0]
+    xMedian     = aux[1]
+    xMean       = aux[2]
+    xStd        = aux[3]
+    yMedian     = aux[4]
+    yMean       = aux[5]
+    yStd        = aux[6]
+    nInBin      = aux[7]
+    ax.plot(xMean, yMean, 'ob-', lw = 2)
+    ax.errorbar(xMean, yMean, yerr = yStd, xerr = xStd, c = 'b')
+        
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # nPerBin     = len(x) / 350
+    # aux         = calcYofXStats_EqNumberBins(x, y, nPerBin)
+    # xMedian     = aux[0]
+    # xMean       = aux[1]
+    # xStd        = aux[2]
+    # yMedian     = aux[3]
+    # yMean       = aux[4]
+    # yStd        = aux[5]
+    # nInBin      = aux[6]
+    # #ax.plot(xMean, yMean, 'or-', lw = 2)
+    # #ax.errorbar(xMean, yMean, yerr = yStd, xerr = xStd, c = 'r')
+    # FWHM        = 0.4
+    # xS, yS      = gaussSmooth_YofX(xMedian, yMedian, FWHM)
+    # ax.plot(xS, yS, 'or--', lw = 0.5)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    
+    ax.grid()
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    
+    if fname:
+        f.savefig(fname)
+    else:
+        f.show()
+        
+    plt.close(f)
