@@ -9,6 +9,8 @@ from matplotlib import pyplot as plt
 from get_morfologia import get_morfologia
 import os
 
+#nebular_galaxy_plot = True
+nebular_galaxy_plot = False
 plot = True
 #plot = False
 debug = False
@@ -26,10 +28,9 @@ mpl.rcParams['ytick.labelsize'] = 26
 mpl.rcParams['font.family']     = 'serif'
 mpl.rcParams['font.serif']      = 'Times New Roman'
 
-
 CALIFAWorkDir = '/Users/lacerda/CALIFA/'
     
-galaxiesListFile    = CALIFAWorkDir + 'listDR2.txt'
+galaxiesListFile    = CALIFAWorkDir + 'listAll.txt'
 baseCode            = 'Bgsd6e'
 #versionSuffix       = 'px1_q043.d14a'
 versionSuffix       = 'v20_q043.d14a'
@@ -540,6 +541,7 @@ if __name__ == '__main__':
     _ALL_SFR_Ha__g              = []
     _ALL_SFRSD_Ha__g            = []
     _ALL_tauVNeb2mu__g          = []
+    _ALL_Mcor_GAL_zones__g      = []
     _ALL_McorSD_GAL_zones__g    = []
     _ALL_morfType_GAL_zones__g  = []
     _ALL_WHa__g                 = []
@@ -586,17 +588,17 @@ if __name__ == '__main__':
         aux = np.ones_like(K.Mcor__z) * ALL_morfType_GAL__g[iGal] 
         _ALL_morfType_GAL_zones__g.append(aux)
         
+        
         print '>>> Doing' , iGal , galName , 'hubtyp=', ALL_morfType_GAL__g[iGal], '|  Nzones=' , K.N_zone
         
         #########################################################################        
         ################################## CID ##################################
         ######################################################################### 
         # Compute galaxy-wide mu (cf eq 2 in GD14) - following Andre's tip.
-        ALL_McorSD_GAL__g[iGal] = (K.zoneToYX(K.Mcor__z, extensive=True)).mean()
+        ALL_McorSD_GAL__g[iGal] = K.McorSD__yx.mean()
         aux = np.ones_like(K.Mcor__z) * ALL_McorSD_GAL__g[iGal]
         _ALL_McorSD_GAL_zones__g.append(aux)
-
-        # Store galaxy mass & McorSD radial profile. OBS: The McorSD profile is never weighted!
+        _ALL_Mcor_GAL_zones__g.append(K.Mcor__z)
         ALL_Mcor_GAL__g[iGal]   = K.Mcor_tot.sum()
 
         # Compute & store galaxy-wide at_flux
@@ -659,8 +661,9 @@ if __name__ == '__main__':
         O3Ok = (f_obs__Lz[i_O3, :] / err_f_obs__Lz[i_O3, :]) >= minSNR
         HaOk = (f_obs__Lz[i_Ha, :] / err_f_obs__Lz[i_Ha, :]) >= minSNR
         N2Ok = (f_obs__Lz[i_N2, :] / err_f_obs__Lz[i_N2, :]) >= minSNR
+        N2HaOk = (np.log10(f_obs__Lz[i_N2, :] / f_obs__Lz[i_Ha, :]) <= -0.4)
         
-        maskOk = HbOk & O3Ok & HaOk & N2Ok
+        maskOk = HbOk & O3Ok & HaOk & N2Ok & N2HaOk
         
         f_obs__Lz[:, ~maskOk]       = np.ma.masked
         err_f_obs__Lz[:, ~maskOk]   = np.ma.masked
@@ -723,7 +726,7 @@ if __name__ == '__main__':
         _ALL_logZNeb__g.append(logZNeb__z.data)
         _ALL_logZNeb_mask__g.append(logZNeb__z.mask)
         
-        if plot:
+        if plot and nebular_galaxy_plot:
             nebular_implot(K, 
                            tauVNeb__yx, err_tauVNeb__yx, 
                            f_obs_HaHb__yx, err_f_obs_HaHb__yx, 
@@ -748,6 +751,7 @@ if __name__ == '__main__':
     ALL_SFR_Ha__g               = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR_Ha__g)), mask = auxMask)
     ALL_SFRSD_Ha__g             = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_Ha__g)), mask = auxMask)
     
+    ALL_Mcor_GAL_zones__g       = np.ma.masked_array(np.hstack(np.asarray(_ALL_Mcor_GAL_zones__g)))
     ALL_McorSD_GAL_zones__g     = np.ma.masked_array(np.hstack(np.asarray(_ALL_McorSD_GAL_zones__g)))
     ALL_morfType_GAL_zones__g   = np.ma.masked_array(np.hstack(np.asarray(_ALL_morfType_GAL_zones__g)))
     
@@ -760,9 +764,9 @@ if __name__ == '__main__':
         auxMask = np.hstack(np.asarray(_ALL_tauV_mask__Tg[iT]))
         ALL_tauV__Tg.append(np.ma.masked_array(aux, mask = auxMask))
         ALL_SFR__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR__Tg[iT])), mask = auxMask))
-        ALL_SFRSD__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD__Tg[iT])), mask = auxMask))
+        ALL_SFRSD__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD__Tg[iT])), mask = auxMask))\
 
-    SKzero = np.log10(2.5e-4) # -3.60206
+    SKzero = np.log10(1.6e-4)
     SKslope = 1.4
     Sigma_gas = (np.log10(ALL_SFRSD_Ha__g * 1.e6) - SKzero) / SKslope
     logO_H = ALL_logZNeb__g + np.log10(4.9e-4)
@@ -771,19 +775,23 @@ if __name__ == '__main__':
     logDGR = c + np.log10(ALL_tauVNeb__g) - Sigma_gas
 
     if plot:
-       
         #                    np.log10(ALL_McorSD_GAL_zones__g[m]),
         #                    r'$\log\ \mu^{galaxy}_\star\ [M_\odot pc^{-2}]$'
         #                    12 + logO_H[m],
         #                    r'$12 + \log\ ($O/H$)$',
         #                    np.log10(ALL_McorSD_GAL_zones__g[m]),
         #                    r'$\log\ \mu^{galaxy}_\star\ [M_\odot pc^{-2}]$',
-
         m = (ALL_err_tauVNeb__g<0.15) & (ALL_tauVNeb__g > 0) & (ALL_morfType_GAL_zones__g > 8.5)
         #m = (ALL_err_tauVNeb__g<0.15) & (ALL_tauVNeb__g > 0)
         plot_3din2d_scatter(ALL_logZNeb__g[m], logDGR[m], ALL_morfType_GAL_zones__g[m],
                             r'$\log\ Z_{neb}\ [Z_\odot]$', r'$\log\ \delta_{DGR}$', r'Morphology type',
                             'logZNeb_logDGR_morphType.png')
+
+        m = (ALL_err_tauVNeb__g<0.15) & (ALL_tauVNeb__g > 0) & (ALL_morfType_GAL_zones__g > 8.5)
+        #m = (ALL_err_tauVNeb__g<0.15) & (ALL_tauVNeb__g > 0)
+        plot_3din2d_scatter(np.log10(ALL_Mcor_GAL_zones__g[m]), logDGR[m], ALL_morfType_GAL_zones__g[m],
+                            r'$\log\ M_\star\ [M_\odot]$', r'$\log\ \delta_{DGR}$', r'Morphology type',
+                            'logMcor_logDGR_morphType.png')
 
         m = (ALL_err_tauVNeb__g<0.15) & (np.log10(ALL_tauVNeb__g) > -1) & (np.log10(ALL_tauV__g) > -1)
         #& (ALL_morfType_GAL_zones__g > 8.5)
@@ -796,7 +804,7 @@ if __name__ == '__main__':
         plot_3din2d_scatter(ALL_logZNeb__g[m], logDGR[m], np.log10(ALL_WHa__g[m]),
                             r'$\log\ Z_{neb}\ [Z_\odot]$', r'$\log\ \delta_{DGR}$', r'$\log\ W_{H\alpha}\ [\AA]$',
                             'logZNeb_logDGR_logWHa.png')
-        
+
         m &= (ALL_tauV__g >= 0)
         plot_3din2d_scatter(ALL_tauVNeb__g[m], ALL_tauV__g[m], 10. ** ALL_logZNeb__g[m],
                             r'$\tau_V$', r'$\tau_V^{neb}$', r'$Z_{neb}\ [Z_\odot]$',
@@ -838,56 +846,3 @@ if __name__ == '__main__':
             plot_3din2d_scatter_age(ALL_tauV__Tg[iT][m], ALL_tauVNeb__g[m], np.log10(ALL_WHa__g[m]), 
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$\log\ W_{H\alpha}\ [\AA]$',
                                     tSF, 'tauV_tauVNeb_logWHa_age_%d.png' % iT)
-
-
-##############################################################################################
-##############################################################################################
-##############################################################################################
-
-def plot_scatter(x, y, xlabel, ylabel, fname = None):
-    f       = plt.figure(dpi = 96)
-    f.set_size_inches(21.88,12.5)
-    ax      = f.gca()
-    scat    = ax.scatter(x, y, color = 'k', s = 0.1)
-    
-    nBox        = 16
-    dxBox       = (x.max() - x.min()) / (nBox - 1.)
-    aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
-    xbinCenter  = aux[0]
-    xMedian     = aux[1]
-    xMean       = aux[2]
-    xStd        = aux[3]
-    yMedian     = aux[4]
-    yMean       = aux[5]
-    yStd        = aux[6]
-    nInBin      = aux[7]
-    ax.plot(xMean, yMean, 'ob-', lw = 2)
-    ax.errorbar(xMean, yMean, yerr = yStd, xerr = xStd, c = 'b')
-        
-    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    # nPerBin     = len(x) / 350
-    # aux         = calcYofXStats_EqNumberBins(x, y, nPerBin)
-    # xMedian     = aux[0]
-    # xMean       = aux[1]
-    # xStd        = aux[2]
-    # yMedian     = aux[3]
-    # yMean       = aux[4]
-    # yStd        = aux[5]
-    # nInBin      = aux[6]
-    # #ax.plot(xMean, yMean, 'or-', lw = 2)
-    # #ax.errorbar(xMean, yMean, yerr = yStd, xerr = xStd, c = 'r')
-    # FWHM        = 0.4
-    # xS, yS      = gaussSmooth_YofX(xMedian, yMedian, FWHM)
-    # ax.plot(xS, yS, 'or--', lw = 0.5)
-    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    
-    ax.grid()
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    
-    if fname:
-        f.savefig(fname)
-    else:
-        f.show()
-        
-    plt.close(f)
