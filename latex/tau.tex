@@ -53,15 +53,57 @@
 
 \begin{document}
 
-Cálculo de $L_\lambda$ e do erro ($\epsilon (L_\lambda)$)
+\section{Initial outtakes about emission lines measurements}
 
+Rub\'en words:
+
+\begin{verbatim}
+Tal y como están hechos los ajustes ahora, todo los resultados se guardan. 
+Pero seguro que hay resultados que no son buenos. Un primer check sería 
+ver si "pos", la longitud de onda central, está cerca del valor esperado 
+(en reposo). Hay algunas veces que no hay linea, por ejemplo de [OII], 
+pero cerca hay algún glitch o cualquier otra cosa y el programa lo mide. 
+Poniendo una tolerancia de, digamos 2 o 3 Angtroms, eliminaría las líneas 
+que se desvian de la posición central "teórica" fuera de esa tolerancia. 
+Otro método de limpieza quizás serían FHWM absurdamente grandes, o EW. 
+Pero creo que uno muy fiable a priori es el de la posición central de la 
+línea''
+\end{verbatim}
+
+This kind of filter was not applied to this results. Maybe this has to be the next thing to do and do not appear to be a heavy thing to code, given a central lambda table. 
+
+Only zones with H$\alpha$, H$\beta$, [O\thinspace{\sc iii}] and [N\thinspace{\sc ii}] signal to noise ratio $\leq$ 3 are used.
+
+\section{The morphologic types}
+The morphologic types used are evaluated using \texttt{get\_morfologia()} by ES.Enrique:
+
+\begin{verbatim}
+[‘E0','E1','E2','E3','E4','E5','E6','E7','S0','S0a','Sa','Sab','Sb',
+[   0,   1,   2,   3,   4,   5,   6,   7,   8,  8.5,   9,  9.5,  10,  
+'Sbc','Sc','Scd','Sd','Sdm','Sm','Ir']
+ 10.5,  11, 11.5,  12, 12.5,  13,  14]
+\end{verbatim}
+
+\section{Age range}
+The ages used to stellar $\tau_V^{\star}$, SFR${}^\star$ and $\Sigma^\star$ calculations are: \
+
+$\left( 10.01 , 25.2 , 63.2, 100.1 , 158.6 , 199.6 , 1400.2 \right) * 10^6$ years
+
+The smallest light fraction (in the $flag_t$-ageMax age range) deemed to be OK for our stats is 0.05. Also the minimum $\tau_V^\star$ to be taken seriously: 0.05.
+
+\section{Calculations}
+
+\textbf{ALL THE CALCULATIONS ARE BY ZONE!! ZERO calculations are made by radius whatsoever.}
+\\
+
+$L_\lambda$ and $\epsilon (L_\lambda)$:
 \begin{eqnarray}
 	L_\lambda &=& 4 \pi d^2 F_\lambda \\
 	\epsilon (L_\lambda) &=& 4 \pi d^2 \epsilon (F_\lambda)
 \end{eqnarray}
+\\
 
-Cálculo de $L_{\Halpha}^{int}$ e $\tauVN$:
- 
+$L_{\Halpha}^{int}$ and $\tauVN$: 
 \begin{eqnarray}
 	L_\lambda^{obs} &=& L_\lambda^{int} e^{-\tau_\lambda} \\
 	L_\lambda^{obs} &=& L_\lambda^{int} e^{-(\frac{\tau_\lambda}{\tauV}) \tauV} \\
@@ -80,9 +122,9 @@ Cálculo de $L_{\Halpha}^{int}$ e $\tauVN$:
 	\tauVN &=& \frac{1}{(q_{\Hbeta} - q_{\Halpha})} \ln \left( \frac{ F_{\Halpha}^{obs} / F_{\Hbeta}^{obs}}{F_{\Halpha}^{int} / F_{\Hbeta}^{int}} \right) \\
 	L_{\Halpha}^{int} &=& L_{\Halpha}^{obs} e^{(q_{\Halpha} \tauVN)} 
 \end{eqnarray}
+\\
 
-Propagação de erro no cálculo de $L_{\Halpha}^{int}$:
-
+$\epsilon(L_{\Halpha}^{int})$ error propagation:
 \begin{eqnarray}
 	L_{\Halpha}^{int} &\equiv& L_{\Halpha}^{int}(L_{\Halpha}^{obs}, \tauVN) \
 \equiv L_{\Halpha}^{int}(L_{\Halpha}^{obs}, L_{\Hbeta}^{obs}) \\
@@ -103,8 +145,9 @@ Propagação de erro no cálculo de $L_{\Halpha}^{int}$:
 \left(\frac{L_{\Halpha}^{obs}}{L_{\Hbeta}^{obs}}\right)^2 \
 \epsilon(L_{\Hbeta}^{obs})^2}
 \end{eqnarray}
+\\
 
-Propagação de erro no cálculo de $\tauVN$:
+$\tauVN$ error propagation:
 \begin{eqnarray}
 	\tauVN &\equiv& \tauVN(L_{\Halpha}^{obs}, L_{\Hbeta}^{obs}) \\
 	\epsilon (\tauVN) &=& \sqrt{\left(\del{\tauVN}{L_{\Halpha}^{obs}}\right)^2 \
@@ -116,8 +159,9 @@ Propagação de erro no cálculo de $\tauVN$:
 \sqrt{\left(\frac{\epsilon (L_{\Halpha}^{obs})}{L_{\Halpha}^{obs}}\right)^2 + \
 \left(\frac{\epsilon (L_{\Hbeta}^{obs})}{L_{\Hbeta}^{obs}}\right)^2 }
 \end{eqnarray}
+\\
 
-Propagação do erro no cálculo de $F_{\Halpha}^{obs} / F_{\Hbeta}^{obs}$:
+$F_{\Halpha}^{obs} / F_{\Hbeta}^{obs}$ error propagation:
 \begin{eqnarray}
 	F_{Balmer}^{obs} &=& \frac{F_{\Halpha}^{obs}}{F_{\Hbeta}^{obs}} \\
 	F_{Balmer}^{obs} &\equiv& F_{Balmer}^{obs}(F_{\Halpha}^{obs}, F_{\Hbeta}^{obs}) \\
@@ -129,31 +173,47 @@ Propagação do erro no cálculo de $F_{\Halpha}^{obs} / F_{\Hbeta}^{obs}$:
 	\epsilon(F_{Balmer}^{obs}) &=& \frac{1}{F_{\Hbeta}^{obs}} \sqrt{\epsilon(F_{\Halpha}^{obs})^2 + \
 \left(\frac{F_{\Halpha}^{obs}}{F_{\Hbeta}^{obs}}\right)^2 \epsilon(F_{\Hbeta}^{obs})^2} 
 \end{eqnarray}
+\\
 
-Cálculo de $O_3N_2$ e $\log Z_{neb}$:
+$O3N2$ ([O\thinspace{\sc iii}]/[N\thinspace{\sc ii}]) and $\log Z_{neb}$:
 \begin{eqnarray}
-	O_3N_2 &=& \frac{F_{\oIII}^{int}}{F_{\nII}^{int}} = \
+	O3N2 &=& \frac{F_{\oIII}^{int}}{F_{\nII}^{int}} = \
 \frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}} e^{\tauVN (q_{\oIII} - q_{\nII})} \\
-	\log Z_{neb} &=& - 0.14 - 0.25 \log O_3N_2 \\
+	\log Z_{neb} &=& - 0.14 - 0.25 \log O3N2 \\
 \end{eqnarray}
+\\
 
-Propagação no erro de $O_3N_2$ e $\log Z_{neb}$:
+$O3N2$ and $\log Z_{neb}$ error propagation:
 \begin{eqnarray}
-	O_3N_2 &\equiv& O_3N_2(F_{\oIII}^{obs}, F_{\nII}^{obs}, F_{\Halpha}^{obs}, F_{\Hbeta}^{obs}) \\
-	\del{O_3N_2}{F_{\oIII}^{obs}} &=& e^{\tauVN (q_{\oIII} - q_{\nII})}\left(\frac{1}{F_{\nII}^{obs}}\right) \\
-	\del{O_3N_2}{F_{\nII}^{obs}} &=& - e^{\tauVN (q_{\oIII} - q_{\nII})}\left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}{}^2}\right) \\
-	\del{O_3N_2}{F_{\Halpha}^{obs}} &=& e^{\tauVN (q_{\oIII} - q_{\nII})} \
+	O3N2 &\equiv& O3N2(F_{\oIII}^{obs}, F_{\nII}^{obs}, F_{\Halpha}^{obs}, F_{\Hbeta}^{obs}) \\
+	\del{O3N2}{F_{\oIII}^{obs}} &=& e^{\tauVN (q_{\oIII} - q_{\nII})}\left(\frac{1}{F_{\nII}^{obs}}\right) \\
+	\del{O3N2}{F_{\nII}^{obs}} &=& - e^{\tauVN (q_{\oIII} - q_{\nII})}\left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}{}^2}\right) \\
+	\del{O3N2}{F_{\Halpha}^{obs}} &=& e^{\tauVN (q_{\oIII} - q_{\nII})} \
 \left(\frac{q_{\oIII} - q_{\nII}}{q_{\Hbeta} - q_{\Halpha}}\right) \
 \left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs} F_{\Halpha}^{obs}}\right) \\
-	\del{O_3N_2}{F_{\Hbeta}^{obs}} &=& - e^{\tauVN (q_{\oIII} - q_{\nII})} \
+	\del{O3N2}{F_{\Hbeta}^{obs}} &=& - e^{\tauVN (q_{\oIII} - q_{\nII})} \
 \left(\frac{q_{\oIII} - q_{\nII}}{q_{\Hbeta} - q_{\Halpha}}\right) \
 \left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs} F_{\Hbeta}^{obs}}\right) \\
-	\nonumber \epsilon(O_3N_2) &=& \frac{e^{\tauVN (q_{\oIII} - q_{\nII})}}{F_{\nII}^{obs}} \
+	\nonumber \epsilon(O3N2) &=& \frac{e^{\tauVN (q_{\oIII} - q_{\nII})}}{F_{\nII}^{obs}} \
 \sqrt{ \epsilon(F_{\oIII}^{obs})^2 + \left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}}\right)^2 \epsilon(F_{\nII}^{obs})^2 + ... } \\
 	&& \overline{... + \left(\frac{q_{\oIII} - q_{\nII}}{q_{\Hbeta} - q_{\Halpha}}\right)^2 \left[\left(\frac{F_{\oIII}^{obs}}{F_{\Halpha}^{obs}}\right)^2 + \left(\frac{F_{\oIII}^{obs}}{F_{\Hbeta}^{obs}}\right)^2 \right]} \\
-	\epsilon(\log Z_{neb}) &=& \sqrt{\del{\log Z_{neb}}{O_3N_2}^2 \epsilon(O_3N_2)^2} \\
-	\del{\log Z_{neb}}{O_3N_2} &=& \frac{0.25}{\ln(10)} \frac{1}{O_3N_2} \\
-	&=& \frac{0.25}{\ln(10)} \left(\frac{\epsilon(O_3N_2)}{O_3N_2}\right)
+	\epsilon(\log Z_{neb}) &=& \sqrt{\del{\log Z_{neb}}{O3N2}^2 \epsilon(O3N2)^2} \\
+	\del{\log Z_{neb}}{O3N2} &=& \frac{0.25}{\ln(10)} \frac{1}{O3N2} \\
+	&=& \frac{0.25}{\ln(10)} \left(\frac{\epsilon(O3N2)}{O3N2}\right)
+\end{eqnarray}
+\\
+
+$SFR_{\Halpha}$ calibration using the solar value for BC03 + Padova1994 + Salpeter:
+\begin{eqnarray}
+	SFR_{\Halpha} &=& 3.17 \left(M_\odot yr^{-1}\right) \times \frac{L(\Halpha)}{10^8}
+\end{eqnarray}
+\\
+
+$\Sigma_{SFR}$. $\Sigma_{gas}$ and $\log$DGR:
+\begin{eqnarray}
+	\Sigma_{SFR} &=& \frac{SFR_{\Halpha}}{A_{zone}} \\
+	\Sigma_{gas}{}^{1.4} &=& \frac{10^6 \Sigma_{SFR}}{1.6 \times 10^{-4}} \\
+	\log DGR &=& C + \log \left(\frac{\tau_V^{neb}}{\Sigma_{gas}}\right)
 \end{eqnarray}
 
 \end{document}
