@@ -13,8 +13,8 @@ import os
 nebular_galaxy_plot = False
 plot = True
 #plot = False
-debug = False
-#debug = True
+#debug = False
+debug = True
 
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -65,12 +65,20 @@ tSF__T = np.array([ 10.01 , 25.2 , 63.2, 100.1 , 158.6 , 199.6 , 1400.2 ]) * 1.e
 N_T = len(tSF__T)
 
 mask_xOk = True
+#weiRadProf = True
+weiRadProf = False
+
 
 # Def smallest light fraction (in the flag__t-ageMax age-range) deemed to be Ok for our stats ...
 xOkMin = 0.05
 
 # Minimum tauV to be taken seriously ...
 tauVOkMin = 0.05
+
+RbinIni , RbinFin , RbinStep = 0.0 , 2.0 , 0.1
+Rbin__r = np.arange(RbinIni, RbinFin + RbinStep, RbinStep)
+RbinCenter__r = (Rbin__r[:-1] + Rbin__r[1:]) / 2.0
+NRbins = len(RbinCenter__r)
 
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -277,6 +285,168 @@ def calcYofXStats_EqNumberBins(x, y, nPerBin = 25):
 ##############################################################################################
 ##############################################################################################
 ##############################################################################################
+
+# ?? Should we use HMRadii instead of HLR??
+
+# must still test results for weiRadProf = True...
+
+
+#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+def calc_SKlaw_Stuff(K, tau_SF, Rbin__r, xOkMin = 0.10, tauVOkMin = 0.1):
+    '''
+
+    # ATT! ?Should I censor pts with too little extinction?
+    # xOk: Fraction of light in flag__t age range
+    # SFRSD...
+
+    ==>  aSFRSD__r, xOk__r, atau2mu__r...
+    Cid@Lagoa - 16/Jun/2014
+    '''
+    flag__t = K.ageBase <= tau_SF
+
+    # Compute xOk "raw" image and then masks points with too little (< xOkMin) light
+    # in the flag__t age Ok range.
+    x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
+    xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
+    xOk__yx = K.zoneToYX(xOk__z, extensive = False, surface_density = False)
+
+    # SRFSD "raw" image
+    # Note that we are NOT dezonifying SFR__z, since it will be compared to the un-dezonifiable tauV!
+    SFR__z = K.Mini__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) / tau_SF
+    SFRSD__yx = K.zoneToYX(SFR__z / K.zoneArea_pc2, extensive = False, surface_density = False)
+
+    # Dust optical depth (at V band) and tauV/mu Dust/Stars ratio "raw" images
+    tauV__yx = K.A_V__yx / (2.5 * np.log10(np.exp(1.)))
+    tauV2mu__yx = tauV__yx / K.McorSD__yx
+
+    # Build mask to keep only pts with xOk__yx >= xOkMin  AND  tauV__yx >= tauVOkMin
+    maskNotOk__yx = (xOk__yx < xOkMin).mask & (tauV__yx < tauVOkMin).mask
+
+    # Mask raw images
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # xOk__yx[maskNotOk__yx] = np.ma.masked
+    # tauV__yx[maskNotOk__yx] = np.ma.masked
+    # SFRSD__yx[maskNotOk__yx] = np.ma.masked
+    # tauV2mu__yx[maskNotOk__yx] = np.ma.masked
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+    xOk__yx.mask = xOk__yx.mask & maskNotOk__yx
+    tauV__yx.mask = tauV__yx.mask & maskNotOk__yx
+    SFRSD__yx.mask = SFRSD__yx.mask & maskNotOk__yx
+    tauV2mu__yx.mask = tauV2mu__yx.mask & maskNotOk__yx
+
+    # Radial profiles
+    # xOk__r    = K.radialProfile(xOk__yx, Rbin__r, rad_scale=K.HLR_pix)
+    aSFRSD__r = K.radialProfile(SFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
+    atauV__r = K.radialProfile(tauV__yx, Rbin__r, rad_scale = K.HLR_pix)
+    atauV2mu__r = K.radialProfile(tauV2mu__yx, Rbin__r, rad_scale = K.HLR_pix)
+
+    # alog versions! (ie, radial-mean of the log(stuff))
+    alogSFRSD__r = K.radialProfile(np.log10(SFRSD__yx), Rbin__r, rad_scale = K.HLR_pix)
+    alogtauV__r = K.radialProfile(np.log10(tauV__yx), Rbin__r, rad_scale = K.HLR_pix)
+    alogtauV2mu__r = K.radialProfile(np.log10(tauV2mu__yx), Rbin__r, rad_scale = K.HLR_pix)
+
+    return aSFRSD__r, atauV__r, atauV2mu__r, alogSFRSD__r, alogtauV__r, alogtauV2mu__r
+#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+
+#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
+    '''
+    Compute average logZ (alogZ_*) both for each zone (*__z) and the galaxy-wide
+    average (*_GAL, computed a la GD14).
+
+    Only st-pops satisfying the input flag__t (ageBase-related) mask are considered!
+    This allows us to compute alogZ_* for, say, < 2 Gyr or 1--7 Gyr populations,
+    as well as the whole-age range (using flag__t = True for all base ages)
+    with a same function and saving the trouble of keeping separate variables for the same thing:-)
+
+    Radial profiles of alogZ_mass and alogZ_flux are also computed. They are/are-not weighted
+    (by Mcor__yx & Lobn__yx, respectively) according to weiRadProf.
+
+    ==> return alogZ_mass_GAL, alogZ_flux_GAL, isOkFrac_GAL , alogZ_mass__r, alogZ_flux__r
+
+    Cid@Lagoa - 05/Jun/2014
+
+
+!!HELP!! ATT: My way of computing alogZ_*__z produces nan', which are ugly but harmless.
+    I tried to fix it using masked arrays:
+
+    alogZ_mass__z  = np.ma.masked_array( numerator__z/(denominator__z+0e-30) , mask = (denominator__z == 0))
+
+    but this did not work!
+
+    Cid@Lagoa - 20/Jun/2014
+    '''
+
+    #--------------------------------------------------------------------------
+    # Initialization
+
+    # Define log of base metallicities **in solar units** for convenience
+    logZBase__Z = np.log10(K.metBase / Zsun)
+    #--------------------------------------------------------------------------
+
+    #--------------------------------------------------------------------------
+    # Define alogZ_****__z: flux & mass weighted average logZ for each zone
+
+    # ==> alogZ_mass__z - ATT: There may be nan's here depending on flag__t!
+    numerator__z = np.tensordot(K.Mcor__tZz[flag__t, :, :] , logZBase__Z , (1, 0)).sum(axis = 0)
+    denominator__z = K.Mcor__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
+    alogZ_mass__z = numerator__z / denominator__z
+
+    # ==> alogZ_flux__z - ATT: There may be nan's here depending on flag__t!
+    numerator__z = np.tensordot(K.Lobn__tZz[flag__t, :, :] , logZBase__Z , (1, 0)).sum(axis = 0)
+    denominator__z = K.Lobn__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
+    alogZ_flux__z = numerator__z / denominator__z
+    #--------------------------------------------------------------------------
+
+    #--------------------------------------------------------------------------
+    # Def galaxy-wide averages of alogZ in light & mass, but **discards** zones having
+    # too little light fractions in the ages given by flag__t
+
+    # Define Ok flag: Zones with light fraction x < xOkMin are not reliable for alogZ (& etc) estimation!
+    x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
+    xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
+    isOk__z = xOk__z > xOkMin
+
+    # Fraction of all zones which are Ok in the isOk__z sense. Useful to censor galaxies whose
+    # galaxy-wide averages are based on too few zones (hence not representative)
+    # OBS: isOkFrac_GAL is not used in this function, but it's returned to be used by the caller
+    isOkFrac_GAL = (1.0 * isOk__z.sum()) / (1.0 * K.N_zone)
+
+    # Galaxy wide averages of logZ - ATT: Only isOk__z zones are considered in this averaging!
+    numerator__z = K.Mcor__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) * alogZ_mass__z
+    denominator__z = K.Mcor__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
+    alogZ_mass_GAL = numerator__z[isOk__z].sum() / denominator__z[isOk__z].sum()
+
+    numerator__z = K.Lobn__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) * alogZ_flux__z
+    denominator__z = K.Lobn__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
+    alogZ_flux_GAL = numerator__z[isOk__z].sum() / denominator__z[isOk__z].sum()
+    #--------------------------------------------------------------------------
+
+    #--------------------------------------------------------------------------
+    # Radial profiles of alogZ_mass & alogZ_flux. The decision to use proper weighted averaging
+    # with the bins (by Mcor__yx for alogZ_mass__r and by Lobn__yx for alogZ_flux__r) is taken
+    # cf the input weiRadProf boolean switch.
+
+    # Define aY_****__yx images - needed to compute radial profiles
+    alogZ_mass__yx = K.zoneToYX(alogZ_mass__z, extensive = False)
+    alogZ_flux__yx = K.zoneToYX(alogZ_flux__z, extensive = False)
+
+    # Compute radial profiles weighted or not.
+    # OBS: Our defs of Mcor__yx & Lobn__yx below return SD's (ie, Msun/pc2 and Lsun/A/pc2).
+    #      This is NOT what I originally intended, but it works for the current weighting purposes
+    if weiRadProf:
+        Mcor__yx = K.zoneToYX(K.Mcor__z, extensive = True)
+        Lobn__yx = K.zoneToYX(K.Lobn__z, extensive = True)
+        alogZ_mass__r = radialProfileWeighted(alogZ_mass__yx, Mcor__yx, Rbin__r, K.HLR_pix, K.radialProfile)
+        alogZ_flux__r = radialProfileWeighted(alogZ_flux__yx, Lobn__yx, Rbin__r, K.HLR_pix, K.radialProfile)
+    else:
+        alogZ_mass__r = K.radialProfile(alogZ_mass__yx, Rbin__r, rad_scale = K.HLR_pix)
+        alogZ_flux__r = K.radialProfile(alogZ_flux__yx, Rbin__r, rad_scale = K.HLR_pix)
+    #--------------------------------------------------------------------------
+
+    return alogZ_mass_GAL, alogZ_flux_GAL, isOkFrac_GAL , alogZ_mass__r, alogZ_flux__r
+#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 
 def nebular_implot(K, tauVNeb__yx, err_tauVNeb__yx, f_obs_HaHb__yx, err_f_obs_HaHb__yx, Lint_Ha__yx, err_Lint_Ha__yx, logZNeb__yx, err_logZNeb__yx, fileName):
     # Setup bins for Radial profiles (in units of HLR)
@@ -525,10 +695,25 @@ if __name__ == '__main__':
     ALL_Mcor_GAL__g         = np.ma.zeros((N_gals))
     ALL_McorSD_GAL__g       = np.ma.zeros((N_gals))
     
-    # SK-law *__Trg arrays
+    #########################################################################        
+    #########################################################################        
 
-    #########################################################################        
-    #########################################################################        
+    ALL_at_flux__rg = np.zeros((NRbins, N_gals))
+    ALL_McorSD__rg = np.zeros((NRbins, N_gals))
+    ALL_alogZ_mass__Urg = np.zeros((N_T, NRbins, N_gals))
+    ALL_alogZ_flux__Urg = np.zeros((N_T, NRbins, N_gals))
+    
+    ALL_alogZ_mass_GAL__Ug = np.zeros((N_T, N_gals))
+    ALL_alogZ_flux_GAL__Ug = np.zeros((N_T, N_gals))
+    ALL_isOkFrac_GAL__Ug = np.zeros((N_T, N_gals))
+
+    #!AKI! 14/Jun/2014
+    ALL_aSFRSD__rg = np.ma.zeros((NRbins, N_gals))
+    ALL_atauV__rg = np.ma.zeros((NRbins, N_gals))
+    ALL_atauV2mu__rg = np.ma.zeros((NRbins, N_gals))
+    ALL_alogSFRSD__rg = np.ma.zeros((NRbins, N_gals))
+    ALL_alogtauV__rg = np.ma.zeros((NRbins, N_gals))
+    ALL_alogtauV2mu__rg = np.ma.zeros((NRbins, N_gals))
 
     _ALL_tauV__g                = []
     _ALL_tauVNeb__g             = []
@@ -599,18 +784,48 @@ if __name__ == '__main__':
         aux = np.ones_like(K.Mcor__z) * ALL_McorSD_GAL__g[iGal]
         _ALL_McorSD_GAL_zones__g.append(aux)
         _ALL_Mcor_GAL_zones__g.append(K.Mcor__z)
-        ALL_Mcor_GAL__g[iGal]   = K.Mcor_tot.sum()
+        ALL_Mcor_GAL__g[iGal] = K.Mcor_tot.sum()
+        
+        ALL_McorSD__rg[:, iGal] = K.radialProfile(K.McorSD__yx , Rbin__r, rad_scale = K.HLR_pix)
 
         # Compute & store galaxy-wide at_flux
         numerator__z   = K.Lobn__tZz.sum(axis=1).sum(axis=0) * K.at_flux__z
         denominator__z = K.Lobn__tZz.sum(axis=1).sum(axis=0)
         ALL_at_flux_GAL__g[iGal] = numerator__z.sum() / denominator__z.sum()
+
+        if weiRadProf:
+            Lobn__yx = K.zoneToYX(K.Lobn__z, extensive = True)
+            ALL_at_flux__rg[:, iGal] = radialProfileWeighted(K.at_flux__yx, Lobn__yx, Rbin__r, K.HLR_pix, K.radialProfile)
+        else:
+            ALL_at_flux__rg[:, iGal] = K.radialProfile(K.at_flux__yx, Rbin__r, rad_scale = K.HLR_pix)
+
+        tau_SF = 1.3e8
+        print '****> tau_SF = ' , tau_SF , 'yr'
+
+        aux = calc_SKlaw_Stuff(K, tau_SF, Rbin__r, xOkMin = xOkMin, tauVOkMin = tauVOkMin)
+        ALL_aSFRSD__rg[:, iGal] = aux[0]
+        ALL_atauV__rg[:, iGal] = aux[1]
+        ALL_atauV2mu__rg[:, iGal] = aux[2]
+        ALL_alogSFRSD__rg[:, iGal] = aux[3]
+        ALL_alogtauV__rg[:, iGal] = aux[4]
+        ALL_alogtauV2mu__rg[:, iGal] = aux[5]
         
         for iT,tSF in enumerate(tSF__T):
             #--------------------------------------------------------------------------
             # Define mask to pick only populations younger than the input tSF in the computation of SFR & SFRSD.
             flag__t = K.ageBase <= tSF
-        
+
+            # Def flag__t to filter only st-pos younger than ageMax.
+            # OBS: The largest ageMax gives age-independent (ie, all ages) alogZ values!
+
+            # Call the function where the alogZ-shit is computed & store its output
+            aux = calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf, xOkMin = xOkMin)
+            ALL_alogZ_mass_GAL__Ug[iT, iGal] = aux[0]
+            ALL_alogZ_flux_GAL__Ug[iT, iGal] = aux[1]
+            ALL_isOkFrac_GAL__Ug[iT, iGal] = aux[2]
+            ALL_alogZ_mass__Urg[iT, :, iGal] = aux[3]
+            ALL_alogZ_flux__Urg[iT, :, iGal] = aux[4]
+
             # SRFSD "raw" image
             # Note that we are NOT dezonifying SFR__z, since it will be compared to the un-dezonifiable tauV!
             aux         = K.Mini__tZz[flag__t,:,:].sum(axis=1).sum(axis=0) / tSF
