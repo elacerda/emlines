@@ -661,8 +661,8 @@ if __name__ == '__main__':
 
             x = ALL_alogSFRSD__Trg[iT, :, :].flatten()
             y = ALL_alogSFRSD_Ha__rg[:, :].flatten()
-            xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} pc^{-2}]$' 
-            ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} pc^{-2}]$' 
+            xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+            ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
             fname = 'alogSFRSD_alogSFRSD_neb_age_%sMyr.png' % str(tSF / 1.e6)
             xlim = np.percentile(x, [1, 100 * (x.flatten().shape[0] - x.mask.sum()) / x.flatten().shape[0] - 1])
             ylim = np.percentile(y, [1, 100 * (y.flatten().shape[0] - y.mask.sum()) / y.flatten().shape[0] - 1])
@@ -715,8 +715,8 @@ if __name__ == '__main__':
             plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
          
             ###################### RADIUS COLOR ######################
-            xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} pc^{-2}]$' 
-            ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} pc^{-2}]$' 
+            xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+            ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
             fname = 'alogSFRSD_alogSFRSD_neb_age_%sMyr_RColor.png' % str(tSF / 1.e6)
             f = plt.figure(dpi = 96)
             f.set_size_inches(21.88,12.5)
