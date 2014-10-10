@@ -12,8 +12,8 @@ import os
 from lines import *
 import errno
 
-#nebular_galaxy_plot = True
-nebular_galaxy_plot = False
+nebular_galaxy_plot = True
+#nebular_galaxy_plot = False
 plot = False
 #plot = True
 debug = False
@@ -170,19 +170,19 @@ def calc_tauVNeb(K, f_obs__Lz, err_f_obs__Lz, lines):
         
     return tauVNeb__z, err_tauVNeb__z, f_obs_HaHb__z, err_f_obs_HaHb__z
 
-def calc_Lint_Ha(Lobs__Lz, err_Lobs__Lz, tauVNeb__z,lines):
+def calc_Lint_Ha(L_obs__Lz, L_obs_err__Lz, tau_V_neb__z,lines):
     i_Ha = lines.index('6563')
     i_Hb = lines.index('4861')
     
     q = qCCM['6563'] / (qCCM['4861'] - qCCM['6563'])
     
-    eHa = np.ma.exp(qCCM['6563'] * tauVNeb__z)
-    LobsHaHb = Lobs__Lz[i_Ha, :] / Lobs__Lz[i_Hb, :]
+    eHa = np.ma.exp(qCCM['6563'] * tau_V_neb__z)
+    LobsHaHb = L_obs__Lz[i_Ha, :] / L_obs__Lz[i_Hb, :]
 
-    Lint_Ha__z = Lobs__Lz[i_Ha, :] * eHa
+    Lint_Ha__z = L_obs__Lz[i_Ha, :] * eHa
     
-    a = err_Lobs__Lz[i_Ha, :]
-    b = q * LobsHaHb * err_Lobs__Lz[i_Hb, :]
+    a = L_obs_err__Lz[i_Ha, :]
+    b = q * LobsHaHb * L_obs_err__Lz[i_Hb, :]
     err_Lint_Ha__z = eHa * np.sqrt(a ** 2.0 + b ** 2.0)
     
     return Lint_Ha__z, err_Lint_Ha__z
@@ -299,7 +299,7 @@ def calcYofXStats_EqNumberBins(x, y, nPerBin = 25):
 ##############################################################################################
 ##############################################################################################
 
-def nebular_implot(K, tauVNeb__yx, err_tauVNeb__yx, f_obs_HaHb__yx, err_f_obs_HaHb__yx, Lint_Ha__yx, err_Lint_Ha__yx, logZNeb__yx, err_logZNeb__yx, fileName):
+def nebular_implot(K, tau_V_neb__yx, err_tauVNeb__yx, f_obs_HaHb__yx, err_f_obs_HaHb__yx, Lint_Ha__yx, err_Lint_Ha__yx, logZ_neb__yx, logZ_neb_err__yx, fileName):
     # Setup bins for Radial profiles (in units of HLR)
     RbinIni             = 0.0 
     RbinFin             = 2.0
@@ -324,34 +324,34 @@ def nebular_implot(K, tauVNeb__yx, err_tauVNeb__yx, f_obs_HaHb__yx, err_f_obs_Ha
     
     ax                  = axArr[0, 1]
     ax.set_axis_on()
-    tauVNeb__r          = K.radialProfile(tauVNeb__yx, Rbin__r, rad_scale = K.HLR_pix)
-    ax.plot(RbinCenter__r, tauVNeb__r, 'o-k')
+    tau_V_neb__r          = K.radialProfile(tau_V_neb__yx, Rbin__r, rad_scale = K.HLR_pix)
+    ax.plot(RbinCenter__r, tau_V_neb__r, 'o-k')
     #ax.tick_params(axis='x', pad=30)
-    ax.set_title(r'$\tau_V^{neb}(HLR)$')
+    ax.set_title(r'$\tau_V^{neb}(R)$')
     
     ax                  = axArr[0, 2]
     ax.set_axis_on()
     Lint_Ha__r          = K.radialProfile(Lint_Ha__yx, Rbin__r, rad_scale = K.HLR_pix)
     ax.plot(RbinCenter__r, Lint_Ha__r, 'o-k')
-    ax.set_title(r'$L_{H\alpha}^{int}(HLR)$')
+    ax.set_title(r'$L_{H\alpha}^{int}(R)$')
 
     ax                  = axArr[0, 3]
     ax.set_axis_on()
-    Lobn__yx            = K.zoneToYX(K.Lobn__z, extensive = True)
-    #logZNeb__r          = radialProfileWeighted(logZNeb__yx, Lobn__yx, Rbin__r, K.HLR_pix, K.radialProfile)
-    logZNeb__r          = K.radialProfile(logZNeb__yx, Rbin__r, rad_scale = K.HLR_pix)
+    #Lobn__yx            = K.zoneToYX(K.Lobn__z, extensive = True)
+    #logZNeb__r          = radialProfileWeighted(logZ_neb__yx, Lobn__yx, Rbin__r, K.HLR_pix, K.radialProfile)
+    logZNeb__r          = K.radialProfile(logZ_neb__yx, Rbin__r, rad_scale = K.HLR_pix)
     ax.plot(RbinCenter__r, logZNeb__r, 'o-k')
     #ax.set_title(r'$\langle \log\ Z_{neb}\rangle_L (HLR)$')
-    ax.set_title(r'$\log\ Z_{neb}(HLR)$')
+    ax.set_title(r'$\log\ Z_{neb}(R)$')
 
     ax                  = axArr[1, 1]
     ax.set_axis_on()
     ax.set_title(r'$\tau_V^{neb}$')
-    sigma               = tauVNeb__yx.std()
-    mean                = tauVNeb__yx.mean()
+    sigma               = tau_V_neb__yx.std()
+    mean                = tau_V_neb__yx.mean()
     vmax                = mean + 2. * sigma
     vmin                = mean - 2. * sigma
-    im                  = ax.imshow(tauVNeb__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', vmax = vmax, vmin = vmin)
+    im                  = ax.imshow(tau_V_neb__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', vmax = vmax, vmin = vmin)
     f.colorbar(ax = ax, mappable = im, use_gridspec = False)
     
     ax                  = axArr[2, 1]
@@ -405,26 +405,26 @@ def nebular_implot(K, tauVNeb__yx, err_tauVNeb__yx, f_obs_HaHb__yx, err_f_obs_Ha
     ax                  = axArr[1, 3]
     ax.set_axis_on()
     ax.set_title(r'$\log\ Z_{neb}$')
-    sigma               = logZNeb__yx.std()
-    mean                = logZNeb__yx.mean()
+    sigma               = logZ_neb__yx.std()
+    mean                = logZ_neb__yx.mean()
     vmax                = mean + sigma
     vmin                = mean - sigma
-    im                  = ax.imshow(logZNeb__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', vmax = vmax, vmin = vmin)
+    im                  = ax.imshow(logZ_neb__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', vmax = vmax, vmin = vmin)
     f.colorbar(ax = ax, mappable = im, use_gridspec = False)
     
     ax                  = axArr[2, 3]
     ax.set_axis_on()
     ax.set_title(r'$\epsilon (log\ Z_{neb})$')
-    sigma               = err_logZNeb__yx.std()
-    mean                = err_logZNeb__yx.mean()
+    sigma               = logZ_neb_err__yx.std()
+    mean                = logZ_neb_err__yx.mean()
     vmax                = mean + sigma
-    im                  = ax.imshow(err_logZNeb__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', vmax = vmax)
+    im                  = ax.imshow(logZ_neb_err__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', vmax = vmax)
     f.colorbar(ax = ax, mappable = im, use_gridspec = False)
     
     ax                  = axArr[3, 3]
     ax.set_axis_on()
     ax.set_title(r'$\log\ Z_{neb} / \epsilon(log\ Z_{neb})$')
-    signalToNoise       = np.abs(logZNeb__yx) / np.abs(err_logZNeb__yx) 
+    signalToNoise       = np.abs(logZ_neb__yx) / np.abs(logZ_neb_err__yx) 
     sigma               = signalToNoise.std()
     mean                = signalToNoise.mean()
     vmax                = mean + sigma
@@ -712,8 +712,8 @@ if __name__ == '__main__':
     #########################################################################        
 
     _ALL_tauV__g                = []
-    _ALL_tauVNeb__g             = []
-    _ALL_tauVNeb_mask__g        = []
+    _ALL_tau_V_neb__g             = []
+    _ALL_tau_V_neb_mask__g        = []
     _ALL_logZNeb__g             = []
     _ALL_logZNeb_mask__g        = []
     _ALL_err_tauVNeb__g         = []
@@ -736,7 +736,7 @@ if __name__ == '__main__':
     ALL_alogSFRSD_Ha__rg        = np.ma.zeros((NRbins, N_gals))
     ALL_aSFRSD__Trg             = np.ma.zeros((N_T, NRbins, N_gals))
     ALL_alogSFRSD__Trg          = np.ma.zeros((N_T, NRbins, N_gals))
-    ALL_tauVneb__rg             = np.ma.zeros((NRbins, N_gals))
+    ALL_tau_V_neb__rg             = np.ma.zeros((NRbins, N_gals))
     ALL_tauV__Trg               = np.ma.zeros((N_T, NRbins, N_gals))
     ALL_morfType_GAL_zones__rg  = np.ma.zeros((NRbins, N_gals))
  
@@ -847,8 +847,6 @@ if __name__ == '__main__':
             ALL_aSFRSD__Trg[iT, :, iGal] = aSFRSD__r
             ALL_alogSFRSD__Trg[iT, :, iGal] = alogSFRSD__r
             
-            print tauV__z.data.shape
-                
             _ALL_tauV__Tg[iT].append(tauV__z.data)
             _ALL_tauV_mask__Tg[iT].append(tauV__z.mask)
             
@@ -922,22 +920,22 @@ if __name__ == '__main__':
         err_tauVNeb__z      = aux[1] 
         f_obs_HaHb__z       = aux[2] 
         err_f_obs_HaHb__z   = aux[3]
-        tauVNeb__yx         = K.zoneToYX(tauVNeb__z, extensive = False)
+        tau_V_neb__yx         = K.zoneToYX(tauVNeb__z, extensive = False)
         err_tauVNeb__yx     = K.zoneToYX(err_tauVNeb__z, extensive = False)
         f_obs_HaHb__yx      = K.zoneToYX(f_obs_HaHb__z, extensive = True)
         err_f_obs_HaHb__yx  = K.zoneToYX(err_f_obs_HaHb__z, extensive = True)
         
-        _ALL_tauVNeb__g.append(tauVNeb__z.data)
-        _ALL_tauVNeb_mask__g.append(tauVNeb__z.mask)
+        _ALL_tau_V_neb__g.append(tauVNeb__z.data)
+        _ALL_tau_V_neb_mask__g.append(tauVNeb__z.mask)
         _ALL_err_tauVNeb__g.append(err_tauVNeb__z)
         
         maskNotOkTauVNeb__z = tauVNeb__z <= 0
         #maskNotOkTauVNeb__z = tauVNeb__z < 0.05
         tauVNeb__z[maskNotOkTauVNeb__z] = np.ma.masked
         tauVNeb_masked__yx       = K.zoneToYX(tauVNeb__z, extensive = False)
-        ALL_tauVneb__rg[:, iGal] = K.radialProfile(tauVNeb__yx, Rbin__r, rad_scale = K.HLR_pix) 
+        ALL_tau_V_neb__rg[:, iGal] = K.radialProfile(tau_V_neb__yx, Rbin__r, rad_scale = K.HLR_pix) 
         
-        tauVNeb2mu__yx      = tauVNeb__yx / K.McorSD__yx
+        tauVNeb2mu__yx      = tau_V_neb__yx / K.McorSD__yx
                 
         aux             = tauV_to_AV(tauVNeb__z, err_tauVNeb__z)
         AVNeb__z        = aux[0]
@@ -972,24 +970,24 @@ if __name__ == '__main__':
         err_logZNeb__z              = aux[1]
         O3N2__z                     = aux[2]
         err_O3N2__z                 = aux[3]
-        logZNeb__yx                 = K.zoneToYX(logZNeb__z, extensive = False)
-        err_logZNeb__yx             = K.zoneToYX(err_logZNeb__z, extensive = False)
+        logZ_neb__yx                 = K.zoneToYX(logZNeb__z, extensive = False)
+        logZ_neb_err__yx             = K.zoneToYX(err_logZNeb__z, extensive = False)
         O3N2__yx                    = K.zoneToYX(O3N2__z, extensive = True)
         err_O3N2__yx                = K.zoneToYX(err_O3N2__z, extensive = True)
         
         _ALL_logZNeb__g.append(logZNeb__z.data)
         _ALL_logZNeb_mask__g.append(logZNeb__z.mask)
         
-        if plot and nebular_galaxy_plot:
+        if nebular_galaxy_plot:
             nebular_implot(K, 
-                           tauVNeb__yx, err_tauVNeb__yx, 
+                           tau_V_neb__yx, err_tauVNeb__yx, 
                            f_obs_HaHb__yx, err_f_obs_HaHb__yx, 
                            Lint_Ha__yx, err_Lint_Ha__yx,
-                           logZNeb__yx, err_logZNeb__yx,  
+                           logZ_neb__yx, logZ_neb_err__yx,  
                            K.califaID + '_' + versionSuffix + '_nebular.png')
     
-    aux                         = np.hstack(np.asarray(_ALL_tauVNeb__g))
-    auxMask                     = np.hstack(np.asarray(_ALL_tauVNeb_mask__g))
+    aux                         = np.hstack(np.asarray(_ALL_tau_V_neb__g))
+    auxMask                     = np.hstack(np.asarray(_ALL_tau_V_neb_mask__g))
     ALL_tauVNeb__g              = np.ma.masked_array(aux, mask = auxMask)
     ALL_tauV__g                 = np.ma.masked_array(np.hstack(np.asarray(_ALL_tauV__g)), mask = auxMask)
     ALL_err_tauVNeb__g          = np.ma.masked_array(np.hstack(np.asarray(_ALL_err_tauVNeb__g)), mask = auxMask)
@@ -1062,7 +1060,7 @@ if __name__ == '__main__':
              'ALL_alogZ_mass__Trg'         : ALL_alogZ_mass__Trg,
              'ALL_alogZ_flux__Trg'         : ALL_alogZ_flux__Trg,
              'ALL_tauV__Trg'               : ALL_tauV__Trg,
-             'ALL_tauVneb__rg'             : ALL_tauVneb__rg,
+             'ALL_tau_V_neb__rg'             : ALL_tau_V_neb__rg,
         }
         np.savez_compressed("emlines.npz", D)
         
@@ -1372,7 +1370,7 @@ if __name__ == '__main__':
             fname = 'tauV_SFRSDHa_SFRSD_age_%sMyr.png' % str(tSF / 1.e6)
             plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
             
-            x = ALL_tauVneb__rg.flatten()
+            x = ALL_tau_V_neb__rg.flatten()
             y = ALL_alogSFRSD_Ha__rg.flatten() - ALL_alogSFRSD__Trg[iT, :, :].flatten()
             xlabel = r'$\tau_V^{neb}(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
@@ -1386,7 +1384,7 @@ if __name__ == '__main__':
             fname = 'tauV_SFRSDHa_SFRSD_age_%sMyr.png' % str(tSF / 1.e6)
             plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
             
-            x = np.log10(ALL_tauVneb__rg[:, :].flatten())
+            x = np.log10(ALL_tau_V_neb__rg[:, :].flatten())
             y = ALL_alogSFRSD_Ha__rg.flatten() - ALL_alogSFRSD__Trg[iT, :, :].flatten()
             xlabel = r'$\log\ \tau_V^{neb}(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
