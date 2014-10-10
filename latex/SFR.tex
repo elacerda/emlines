@@ -1,0 +1,295 @@
+\documentclass[a4paper,11pt]{article}
+
+\ifx\pdftexversion\undefined
+  \usepackage[dvips]{graphicx}
+\else
+  \usepackage[pdftex]{graphicx}
+\fi
+
+\usepackage{amssymb,amsfonts,amstext,amsmath}
+
+% Figure packages
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage[section]{placeins}
+
+% Table package
+\usepackage{longtable}
+
+% The packages below seem to make a pretty good pdf using ps2pdf
+\usepackage{ae,aecompl}
+
+% Bibtex and Portuguese packages - cannot change this order!
+\usepackage{natbib}
+
+% Fix comma spacing in math mode.
+\usepackage{setspace}                % Produzir espaçamento entre linhas
+\usepackage{latexsym}
+\usepackage[utf8x]{inputenc}        % Para poder digitar os acentos da maneira usual:
+\usepackage{calc}
+\usepackage{textcomp}
+\usepackage{ctable}
+\usepackage[T1]{fontenc}
+\usepackage{authblk}
+\usepackage{geometry}
+\geometry{verbose,a4paper,tmargin=2cm,bmargin=2cm,lmargin=2cm,rmargin=2cm}
+\usepackage[font=small,labelfont=bf]{caption}
+
+%Formatar notas de rodape
+\usepackage[hang]{footmisc} 
+\setlength{\footnotemargin}{1em}
+\usepackage[colorlinks,linkcolor=blue,bookmarks=true,citecolor=blue]{hyperref}
+
+% Controlar linhas orfas e viuvas
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+
+\citestyle{aa}
+\def\magyarOptions{mathhucomma=fix,figurecaptions=unchanged,tablecaptions=unchanged,sectiondot=none}
+\usepackage{nadefinitions}
+\usepackage{pythonenv}
+
+\begin{document}
+
+\title{Studies of residual data from CALIFA datacubes}
+\author{Eduardo Alberto Duarte Lacerda}
+
+\section{Emission lines files reader in \pycasso}
+
+Since Rubén G. B. release the measurements of emission lines fluxes using the residual data (one of the products of the \starlight analysis of the CALIFA datacubes) we start to do some trial calculations and this motivate myself to build a default reader to this kind of data file in order to facilitate our usage of the data. I built this reader (and parser) directly in \pycasso (you can find the code \href{https://bitbucket.org/astro_ufsc/pycasso/src/e1df479c41c23f86687ea4da417f43dd86956722/src/pycasso/fitsdatacube.py?at=default}{here},  after the line 207.). I call the object \texttt{EmLinesDataCube}() and it can be used importing directly inside a python script, or directly using a \pycasso datacube. An usage example can be found \href{https://bitbucket.org/astro_ufsc/pycasso/src/e1df479c41c23f86687ea4da417f43dd86956722/contrib/emLinesExample.py?at=default}{here}. If you want some help just send me an \href{mailto:lacerda@iaa.es}{e-mail} and I help you. Soon a help document will [NEED TO] be created.
+
+Today the code is usable but stills in alpha version and nobody saw it, only Roberto Cid and Natalia had been seeing a lot of images produced using the reader. One of the first things that I want to do here in Spain, if possible, is to sit with Rub\'en and do some improvements in the code. Because of that we have to be very careful and keep this things in mind before use it.
+
+\section{Initial outtakes about emission lines measurements}
+
+Rub\'en words:
+
+\begin{quotation}
+"Tal y como están hechos los ajustes ahora, todo los resultados se guardan. Pero seguro que hay resultados que no son buenos. Un primer check sería ver si "pos", la longitud de onda central, está cerca del valor esperado (en reposo). Hay algunas veces que no hay linea, por ejemplo de [OII], pero cerca hay algún glitch o cualquier otra cosa y el programa lo mide. Poniendo una tolerancia de, digamos 2 o 3 Angtroms, eliminaría las líneas que se desvian de la posición central "teórica" fuera de esa tolerancia. Otro método de limpieza quizás serían FHWM absurdamente grandes, o EW. Pero creo que uno muy fiable a priori es el de la posición central de la línea"
+\end{quotation}
+
+This kind of filter was not applied to this results. Maybe this has to be the next thing to tackle and it not appears to be a heavy thing to code, given a central lambda table. 
+
+%Only zones with H$\alpha$, H$\beta$, [O\thinspace{\sc iii}] and [N\thinspace{\sc ii}] signal to noise ratio $\leq$ 3 are used.
+
+%\section{The morphologic types}
+%The morphologic types used are evaluated using \texttt{get\_morfologia()} by ES.Enrique:
+%
+%\begin{verbatim}
+%[‘E0','E1','E2','E3','E4','E5','E6','E7','S0','S0a','Sa','Sab','Sb',
+%[   0,   1,   2,   3,   4,   5,   6,   7,   8,  8.5,   9,  9.5,  10,  
+%'Sbc','Sc','Scd','Sd','Sdm','Sm','Ir']
+% 10.5,  11, 11.5,  12, 12.5,  13,  14]
+%\end{verbatim}
+
+%\section{Age range}
+%The ages used to stellar $\tau_V^{\star}$, SFR${}^\star$ and $\Sigma^\star$ calculations are: \ 
+%$\left( 10.01 , 25.2 , 63.2, 100.1 , 158.6 , 199.6 , 1400.2 \right) * 10^6$ years
+%
+%The smallest light fraction (in the $flag_t$-ageMax age range) deemed to be OK for our stats is 0.05. Also the minimum $\tau_V^\star$ to be %taken seriously: 0.05.
+
+\section{Shortcuts and calculations inside the code}
+
+Attached to the emission line data, some shortcuts are made to facilitate the access to the data:
+
+\begin{itemize}
+	\item \texttt{Ha\_obs\_\_z}: Observed \Halpha observed flux \
+	\item \texttt{Ha\_obs\_\_z}: Observed \Hbeta observed flux \
+	\item \texttt{N2\_obs\_\_z}: Observed \NII observed flux \
+	\item \texttt{O3\_obs\_\_z}: Observed \OIII observed flux 
+\end{itemize}
+
+I did some calculations and store at the object \texttt{EmLinesDataCube} too. This kind of calculation is extinction relations dependent, so, if we don't choose a default relation, perhaps this can be removed from the code. For now I'm using \citet{CCM1989a}
+
+\subsection{Balmer optical depth ($\tauVN$) - \texttt{tau\_V\_neb\_\_z}}
+
+\begin{eqnarray}
+	F_\lambda^{obs} &=& F_\lambda^{int} e^{-\tau_\lambda} \\
+	F_\lambda^{obs} &=& F_\lambda^{int} e^{-(\frac{\tau_\lambda}{\tauV}) \tauV} \\
+	\frac{\tau_\lambda}{\tauV} &=& q_\lambda \\
+	F_\lambda^{obs} &=& F_\lambda^{int} e^{-q_\lambda \tauV} \\
+	\frac{F_\lambda^{obs}}{F_{\lambda^\prime}^{obs}} &=& \
+\frac{F_\lambda^{int} e^{-q_\lambda \tauV}}{F_{\lambda^\prime}^{int} e^{-q_{\lambda^\prime} \tauV}} \\
+	\ln \left(\frac{F_\lambda^{obs}}{F_{\lambda^\prime}^{obs}}\right) &=& \
+\tauV (q_{\lambda^\prime} - q_\lambda) \ln \left(\frac{F_\lambda^{int}}{F_{\lambda^\prime}^{int}}\right) \\
+	\tauV &=& \frac{1}{(q_{\lambda^\prime} - q_\lambda)} \left[\ln \ 
+\left(\frac{F_\lambda^{obs}}{F_{\lambda^\prime}^{obs}}\right) - \
+\ln \left(\frac{F_\lambda^{int}}{F_{\lambda^\prime}^{int}}\right)\right] \\
+	\tauVN &=& \frac{1}{(q_{\Hbeta} - q_{\Halpha})} \ln \left( \frac{ F_{\Halpha}^{obs} / F_{\Hbeta}^{obs}}{F_{\Halpha}^{int} / F_{\Hbeta}^{int}} \right) \\
+	F_{\Halpha}^{int} &=& F_{\Halpha}^{obs} e^{(q_{\Halpha} \tauVN)}
+\end{eqnarray}
+
+\subsubsection{Error propagation of $\tauVN$ calculation - \texttt{tau\_V\_neb\_err\_\_z}}
+\begin{eqnarray}
+	\tauVN &\equiv& \tauVN(F_{\Halpha}^{obs}, F_{\Hbeta}^{obs}) \\
+	\epsilon (\tauVN) &=& \sqrt{\left(\del{\tauVN}{F_{\Halpha}^{obs}}\right)^2 \
+\epsilon (F_{\Halpha}^{obs})^2 + \left(\del{\tauVN}{F_{\Hbeta}^{obs}}\right)^2 \
+\epsilon (F_{\Hbeta}^{obs})^2 } \\
+	\del{\tauVN}{F_{\Halpha}^{obs}} &=& \frac{1}{F_{\Halpha}^{obs} (q_{\Hbeta} - q_{\Halpha})} \\
+	\del{\tauVN}{F_{\Hbeta}^{obs}} &=& - \frac{1}{F_{\Hbeta}^{obs} (q_{\Hbeta} - q_{\Halpha})} \\
+	\epsilon (\tauVN) &=& \frac{1}{(q_{\Hbeta} - q_{\Halpha})} \
+\sqrt{\left(\frac{\epsilon (F_{\Halpha}^{obs})}{F_{\Halpha}^{obs}}\right)^2 + \
+\left(\frac{\epsilon (F_{\Hbeta}^{obs})}{F_{\Hbeta}^{obs}}\right)^2 }
+\end{eqnarray}
+
+\subsection{The nebular metalicity (\O3N2 and $\ZN$) - \texttt{O3N2\_\_z} and \texttt{logZ\_neb\_\_z}}
+
+The nebular metalicity used here is calibrated by \citep{Stasinska.2006a} as:
+\begin{equation}
+	\logZN = \log \frac{(\textrm{O}/\textrm{H})}{(\textrm{O}/\textrm{H})_\odot} = - 0.14 - 0.25 \log \O3N2,
+\end{equation}
+\noindent where the adopted $(\textrm{O}/\textrm{H})_\odot = 4.9 \times 10^{-4}$. The \O3N2 index is extinction corrected as follows:
+\begin{equation}
+	\O3N2 = \frac{F_{\oIII}^{int}}{F_{\nII}^{int}} = \
+\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}} e^{\tauVN (q_{\oIII} - q_{\nII})} \\
+\end{equation}
+
+\subsubsection{Error propagation of \O3N2 and $\ZN$ calculation - \texttt{O3N2\_err\_\_z} and \texttt{logZ\_neb\_err\_\_z}}
+
+\begin{eqnarray}
+	\O3N2 &\equiv& \O3N2(F_{\oIII}^{obs}, F_{\nII}^{obs}, F_{\Halpha}^{obs}, F_{\Hbeta}^{obs}) \\
+	\del{\O3N2}{F_{\oIII}^{obs}} &=& e^{\tauVN (q_{\oIII} - q_{\nII})}\left(\frac{1}{F_{\nII}^{obs}}\right) \\
+	\del{\O3N2}{F_{\nII}^{obs}} &=& - e^{\tauVN (q_{\oIII} - q_{\nII})}\left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}{}^2}\right) \\
+	\del{\O3N2}{F_{\Halpha}^{obs}} &=& e^{\tauVN (q_{\oIII} - q_{\nII})} \
+\left(\frac{q_{\oIII} - q_{\nII}}{q_{\Hbeta} - q_{\Halpha}}\right) \
+\left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs} F_{\Halpha}^{obs}}\right) \\
+	\del{\O3N2}{F_{\Hbeta}^{obs}} &=& - e^{\tauVN (q_{\oIII} - q_{\nII})} \
+\left(\frac{q_{\oIII} - q_{\nII}}{q_{\Hbeta} - q_{\Halpha}}\right) \
+\left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs} F_{\Hbeta}^{obs}}\right) \\
+	\nonumber \epsilon(\O3N2) &=& \frac{e^{\tauVN (q_{\oIII} - q_{\nII})}}{F_{\nII}^{obs}} \
+\sqrt{ \epsilon(F_{\oIII}^{obs})^2 + \left(\frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}}\right)^2 \epsilon(F_{\nII}^{obs})^2 + ... } \\
+	&& \overline{... + \left(\frac{q_{\oIII} - q_{\nII}}{q_{\Hbeta} - q_{\Halpha}}\right)^2 \left[\left(\frac{F_{\oIII}^{obs}}{F_{\Halpha}^{obs}}\right)^2 + \left(\frac{F_{\oIII}^{obs}}{F_{\Hbeta}^{obs}}\right)^2 \right]} \\
+	\epsilon(\logZN) &=& \sqrt{\del{\logZN}{\O3N2}^2 \epsilon(\O3N2)^2} \\
+	\del{\logZN}{\O3N2} &=& \frac{0.25}{\ln(10)} \frac{1}{\O3N2} \\
+	\epsilon(\logZN) &=& \frac{0.25}{\ln(10)} \left(\frac{\epsilon(\O3N2)}{\O3N2}\right)
+\end{eqnarray}
+\\
+
+\section{Some results using the emission lines files}
+
+I begin the nebular studies looking for a star formation rate (SFR) calibration for our data. I did that in the same way as \citet[sec. 5.1]{Asari.etal.2007a} but using \citet{BC03a} with \citet{Salpeter.1955a} IMF and Padova 2000 isochrones \citep{Girardi.etal.2000a}. The recipe is simple, but kinda tricky. I'll explain here as follows.
+
+\subsection{Current SFR calibration using \Halpha luminosity}
+
+We want to calibrate the \Halpha luminosity ($\mathrm{L}_{\Halpha}$) as an SFR ($\psi$) indicator \citep[e.g., ][]{Kennicutt.1998a} using a linear relation
+\begin{equation}
+	\psi_{\Halpha} = k \times \mathrm{L}_{\Halpha}.
+	\label{eq:SFRHa}
+\end{equation}
+\noindent Our job is find that $k$.
+
+The total amount of $l$-light\footnote{$l(t)$ can be any function which describes the time-evolution of any generic radiative source \emph{per unit formed mass} (thus IMF-dependent) of an SSP.}, we receive from stars formed $t$ years ago is
+\begin{equation}
+	\mathrm{d}\Lambda = l(t)\ \mathrm{d}\mathrm{M}(t).
+	\label{eq:dLambda}
+\end{equation}
+\noindent Therefore, to obtain $\Lambda$ we have to know how is stellar mass growth over time (SFR) and only with other methods (see subsection \ref{sub:StellarSFR}) we can evaluate that, but we still have hope. Integrating equation \eqref{eq:dLambda} over the Universe time ($T_U\ \sim$ 14Gyr), we would see, today, a total of
+\begin{eqnarray}
+	\mathrm{d}\mathrm{M}(t) &=& \psi(t)\ \mathrm{d}t \\
+	\Lambda = \Lambda(t = T_U) &=& \int_0^{T_U} l(t)\ \textrm{d}\textrm{M}(t) = \int_0^{T_U} \psi(t)\ l(t)\ \textrm{d}t
+	\label{eq:Lambda}
+\end{eqnarray}
+\noindent $l$-light. 
+From the case B hydrogen recombination one out of each 2.226 ionizing photons produces an \Halpha photon. So the intrinsic \Halpha luminosity can be theorically calculated as
+\begin{equation}
+	\mathrm{L}(\Halpha) = h \nu_{\Halpha} \frac{\mathrm{Q}_H}{2.226}
+	\label{eq:LHa_recomb_theory}
+\end{equation}
+Where $\mathrm{Q}_H$ is the rate of H-ionizing photons. Just to remember, we assume here that no ionizing radiation escapes the nebula, $\mathrm{L}(\Halpha)$ has been corrected for extinction and that dust does not eat much of the $h\nu\ <\ 13.6$ eV photons. We know that $dQ_H$ can be written as equation \eqref{eq:dLambda}. Integrating it as equation \eqref{eq:Lambda} we have:
+\begin{eqnarray}
+	Q_H &=& \int dQ_H = \int q_H(t)\ \mathrm{d}\mathrm{M}(t) \\ 
+	Q_H(t = T) &=& \int_0^T \psi(t)\ q_H(t)\ dt
+	\label{eq:QH}
+\end{eqnarray}
+\noindent In these equations above, $q_H$ is the H-ionizing photon rate per unit formed mass. We can use it as our kind of $l$-light in equation \eqref{eq:Lambda} considering all photons that can ionize hydrogen (h$\nu\ \geq\ 13.6$ eV or $\lambda\ \leq\ 912\AA$) and write it as follows:
+\begin{equation}
+	q_H(t) = \int_0^{912\AA} \frac{l_\lambda\ \lambda}{h c} d\lambda,
+	\label{eq:qH}
+\end{equation}
+\noindent where $l_\lambda$ is the luminosity per unit formed mass per wavelength in solar units $[\textrm{L}_\odot/\AA\textrm{M}_\odot]$ for an SSP\footnote{One can notice that I do not wrote an explicit dependency on Z, IMF and isochrones, on $l_\lambda$ (hence $q_H$ all and his products), but exists those exists.}. With this we still need to analyze how the integration of $q_H$ evolves in time in order to obtain an SFR ($\psi$). Integrating $q_H$ from today to $T_U$ we have the number of H-ionizing photons produced by our $l$-light:
+%Are we able to do some hypothesis about equation \eqref{eq:QH}? And the answer is \emph{YES, WE ARE!} From the left part of the equation \eqref{eq:LHa_recomb_theory} we have an observable ($\mathrm{L}(\Halpha)$). In the right side, something that we have to calculate ($Q_H$) times something constant. 
+\begin{equation}
+	\mathcal{N}_H = \int_0^{T_U} q_H(t)\ dt
+\end{equation}
+For our models configuration we can see the evolution of $\mathcal{N}_H$ in time in the Fig. \ref{fig:Nh_qh}. This figure shows us the evolution of $\mathcal{N}_H$ in time in absolute values (left-upper panel) and in relatively the total $\mathcal{N}_H$ (right-upper panel). In \citet[Fig. 2b]{CidFernandes.etal.2011a} we can see the time evolution of $q_H$ over all ages and metalicities\footnote{In that study the \href{http://starlight.ufsc.br}{SEAGal/\STARLIGHT} group used Padova 1994 tracks with an IMF from \citet{Chabrier.2003a}}. The same plot is reproduces here in the same figure (\ref{fig:Nh_qh}) at bottom panel. It's easy to twig that number of H-ionizing photons rapidly converges to it maximum close to $t = 10$ Myr. For an SFR which is constant over that time-scale ($\psi(t) \rightarrow \psi$) the equation \eqref{eq:QH} converges to
+\begin{equation}
+	Q_H = \psi\ \mathcal{N}_H(t\ =\ 10\ \textrm{Myr, IMF, Z}{}_\star).
+	\label{eq:QH_converge}
+\end{equation}
+\noindent Replacing \eqref{eq:QH_converge} in \eqref{eq:LHa_recomb_theory}, we are now able to write:
+\begin{equation}
+	\psi_{\Halpha} = \frac{2.226}{\mathcal{N}_H\ h \nu_{\Halpha}} \times \mathrm{L}(\Halpha)
+	\label{eq:SFR_theoric}
+\end{equation}
+\noindent This method gives us a recent SFR in terms that we use the value of $N_H$ at $t = 10$ Myr. With the \starlight synthesis we can do more than that, as we will see in \ref{sub:StellarSFR}. For the last step, solving \eqref{eq:SFR_theoric} we found the value for k in \eqref{eq:SFRHa} ($\psi \equiv \mathrm{SFR}$):
+\begin{equation}
+	\mathrm{SFR}_{\Halpha} = 3.17\ \mathrm{M}_\odot\ yr^{-1} \left(\frac{\mathrm{L}(\Halpha)}{10^8\mathrm{L}_\odot}\right)
+\end{equation}
+\
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+\begin{figure*}
+\resizebox{0.99\textwidth}{!}{\includegraphics{Nh_logt_metBase_Padova2000_salp.pdf}}
+\caption{\emph{Left panel}: The time-evolution of the number of the photons ($\mathcal{N}_H$) for six metallicities (from 0.02 $Z_\odot$ to 1.58 $Z_\odot$) that compose our SSP models. The solar metalicity is drawn as a thick black line. \emph{Right panel}: The same from \emph{left panel} but normalized by the total value of $\mathcal{N}_H$. The black dashed line shows 95\% of the total $\mathcal{N}_H$. A zoom is also provided for a better view of the region around 10 Myr.}
+\label{fig:Nh_qh}
+\end{figure*}
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+
+\subsection{SFR from the stellar sinthesys}
+\label{sub:StellarSFR}
+Using \STARLIGHT we are able to analyze de SFR in function of time (SFR($t_\star$)) using the cumulative fraction of mass ($\mu_\star^c$) as follows:
+\begin{equation}
+	\mathrm{SFR}(t_\star) = \frac{\mathrm{d} \mathrm{M}_\star^c(t_\star)}{\mathrm{d} t_\star} \approx \frac{\Delta \mathrm{M}_\star^c(t_\star)}{\Delta t_\star} = \frac{\mathrm{M}_\star^c \log e}{t_\star} \frac{\mu_\star^c(t_\star)}{\Delta \log t_\star}
+\end{equation}
+
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+\begin{figure*}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_allages.png}}
+\caption{Comparison of star formation rates from full spectral fits with \starlight and those from \Halpha luminosity for 40532 zones of 300 CALIFA galaxies. All the zones are selected to be below of the line created by \citet{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
+\label{fig:SFHCompare}
+\end{figure*}
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+\begin{figure*}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SigmaSFR_allages.png}}
+\caption{Comparison of star formation rates from full spectral fits with \starlight and those from \Halpha luminosity for 40532 zones of 300 CALIFA galaxies. All the zones are selected to be below of the line created by \citet[S06]{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
+\label{fig:SigmaSFHCompare}
+\end{figure*}
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+\begin{figure*}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_allages_BelowS06.png}}
+\caption{The same as figure \ref{fig:SigmaSFHCompareBS06} with zones with position in the BPT plane below S06 line.}
+\label{fig:SFHCompareBS06}
+\end{figure*}
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+\begin{figure*}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SigmaSFR_allages_BelowS06.png}}
+\caption{The same as figure \ref{fig:SigmaSFHCompareBS06} with zones with position in the BPT plane below S06 line.}
+\label{fig:SigmaSFHCompareBS06}
+\end{figure*}
+%***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
+
+
+In the Fig. \ref{fig:SFHCompare} we compare $\SFR$ for seven ages (0.01, 25.2, 63.2, 100.1, 158.6, 199.6, 1400.2 Myr) with the $\SFRN$ calibrated from the \Halpha luminosity. 
+ 
+In these results below I assume a Schmidt law of \citet{Kennicutt.1998a} with the numerical coefficient adjusted by \citet{Tremonti.etal.2004a} to include helium in $\Sigma_{gas}$:
+\begin{equation}
+	\Sigma_{\textrm{SFR}} = 1.6 \times 10^{-4} \left(\frac{\Sigma_{gas}}{1\ \textrm{M}_\odot\ pc^{-2}}\right)^{1.4} \textrm{M}_\odot\ yr^{-1}\ kpc^{-2}
+\end{equation}
+
+%$\Sigma_{SFR}$. $\Sigma_{gas}$ and $\log$DGR:
+%\begin{eqnarray}
+%	\Sigma_{SFR} &=& \frac{SFR_{\Halpha}}{A_{zone}} \\
+%	\Sigma_{gas}{}^{1.4} &=& \frac{10^6 \Sigma_{SFR}}{1.6 \times 10^{-4}} \\
+%	\log DGR &=& C + \log \left(\frac{\tau_V^{neb}}{\Sigma_{gas}}\right)
+%\end{eqnarray}
+
+\bibliographystyle{apj}
+\bibliography{/Users/lacerda/Documents/Papers/papers.bib}
+
+\end{document}
