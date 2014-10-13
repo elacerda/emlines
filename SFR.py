@@ -14,6 +14,7 @@ import os
 from pystarlight.util.constants import L_sun
 from pystarlight.util.base import StarlightBase
 from matplotlib.ticker import MultipleLocator, MaxNLocator
+from astropy import units as u
 
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -25,8 +26,8 @@ nebular_plot = False
 plot = False
 debug = False
 #debug = True
-#BPTLowS06 = True
-BPTLowS06 = False
+BPTLowS06 = True
+#BPTLowS06 = False
 
 mpl.rcParams['font.size']       = 20
 mpl.rcParams['axes.labelsize']  = 20
@@ -73,7 +74,7 @@ RColor = [ 'r', 'y', 'b', 'k' ]
 RRange = [  .5,  1., 1.5, 2.  ]
 
 if debug:
-    listOfPrefixes = listOfPrefixes[1:20]        # Q&D tests ...
+    listOfPrefixes = listOfPrefixes[1:10]        # Q&D tests ...
     #listOfPrefixes = ['K0277\n']
     
 N_gals = len(listOfPrefixes)
@@ -213,14 +214,16 @@ def calcYofXStats_EqNumberBins(x, y, nPerBin = 25):
 
 def plotSFR(x,y,xlabel,ylabel,xlim,ylim,age,fname):
     f = plt.figure(dpi = 96)
-    f.set_size_inches(21.88,12.5)
+    f.set_size_inches(10,8)
     ax = f.gca()
     scat = ax.scatter(x, y, c = 'black', edgecolor = 'none', alpha = 0.5)
     ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c=".3")
     rhoSpearman, pvalSpearman = st.spearmanr(x, y)
-    txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(y/x), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
+    yxlabel = r'$%s /\ %s $ ' % (ylabel.split('[')[0].strip('$ '), xlabel.split('[')[0].strip('$ '))
+    txt = '%s mean:%.3f  median:%.3f  $\sigma(y/x)$:%.3f  Rs: %.2f' % (yxlabel, (y/x).mean(), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
+    print age, txt
     textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
-    ax.text(0.10, 0.93, txt, fontsize = 28, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
+    ax.text(0.03, 0.97, txt, fontsize = 16, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
     ax.grid()
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -235,14 +238,15 @@ def plotSFR(x,y,xlabel,ylabel,xlim,ylim,age,fname):
 
 def plotTau(x,y,xlabel,ylabel,xlim,ylim,age,fname):
     f = plt.figure(dpi = 96)
-    f.set_size_inches(21.88,12.5)
+    f.set_size_inches(10,8)
     ax = f.gca()
     scat = ax.scatter(x, y, c = 'black', edgecolor = 'none', alpha = 0.5)
     #ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c=".3")
     rhoSpearman, pvalSpearman = st.spearmanr(x, y)
-    txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(y/x), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
+    yxlabel = r'$%s /\ %s $ ' % (ylabel.split('[')[0].strip('$ '), xlabel.split('[')[0].strip('$ '))
+    txt = '%s mean:%.3f  median:%.3f  $\sigma(y/x)$:%.3f  Rs: %.2f' % (yxlabel, (y/x).mean(), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
     textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
-    ax.text(0.10, 0.93, txt, fontsize = 28, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
+    ax.text(0.3, 0.97, txt, fontsize = 15, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
     ax.grid()
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -403,6 +407,7 @@ def plotCid(x1, x1label, y1, y1label, x2, x2label, y2, y2label, fname):
     ax.set_ylabel(y2label)
     plt.tight_layout()
     f.savefig(fname)
+    plt.close(f)
  
 def plotRunningStatsAxis(ax, x, y, color):
     nBox        = 25
@@ -437,13 +442,12 @@ if __name__ == '__main__':
     _ALL_morfType_GAL_zones__g  = []
     _ALL_Mcor_GAL_zones__g      = []
     _ALL_McorSD_GAL_zones__g    = []
-    _ALL_tau_V_neb__g             = []
-    _ALL_tau_V_neb_err__g         = []
-    _ALL_tau_V_neb_mask__g        = []
-    _ALL_SFRNeb__g              = []
-    _ALL_SFRSDNeb__g            = []
+    _ALL_tau_V_neb__g           = []
+    _ALL_tau_V_neb_err__g       = []
+    _ALL_tau_V_neb_mask__g      = []
     _ALL_SFR_Ha__g              = []
     _ALL_SFRSD_Ha__g            = []
+    _ALL_SFRSD_Ha_kpc__g        = []
     _ALL_L_int_Ha__g            = []
     _ALL_L_int_Ha_err__g        = []
     _ALL_L_int_Ha_mask__g       = []
@@ -458,19 +462,23 @@ if __name__ == '__main__':
     _ALL_tauV_mask__Tg          = []
     _ALL_SFR__Tg                = []
     _ALL_SFRSD__Tg              = []
+    _ALL_SFRSD_kpc__Tg          = []
     #########################################################################
     #########################################################################
     #########################################################################
 
     ALL_morfType_GAL_zones__rg  = np.ma.zeros((NRbins, N_gals))
-    ALL_aSFRSD_Ha__rg           = np.ma.zeros((NRbins, N_gals))
-    ALL_alogSFRSD_Ha__rg        = np.ma.zeros((NRbins, N_gals))
-    ALL_tau_V_neb__rg             = np.ma.zeros((NRbins, N_gals))
+    ALL_tau_V_neb__rg           = np.ma.zeros((NRbins, N_gals))
     ALL_alogZ_mass_GAL__Tg      = np.ma.zeros((N_T, N_gals))
     ALL_alogZ_flux_GAL__Tg      = np.ma.zeros((N_T, N_gals))
     ALL_isOkFrac_GAL__Tg        = np.ma.zeros((N_T, N_gals))
+
+    ALL_aSFRSD_Ha__rg           = np.ma.zeros((NRbins, N_gals))
+    ALL_aSFRSD_Ha_kpc__rg       = np.ma.zeros((NRbins, N_gals))
+    
     ALL_aSFRSD__Trg             = np.ma.zeros((N_T, NRbins, N_gals))
-    ALL_alogSFRSD__Trg          = np.ma.zeros((N_T, NRbins, N_gals))
+    ALL_aSFRSD_kpc__Trg         = np.ma.zeros((N_T, NRbins, N_gals))
+    
     ALL_tauV__Trg               = np.ma.zeros((N_T, NRbins, N_gals))
     ALL_alogZ_mass__Trg         = np.ma.zeros((N_T, NRbins, N_gals))
     ALL_alogZ_flux__Trg         = np.ma.zeros((N_T, NRbins, N_gals))
@@ -486,6 +494,7 @@ if __name__ == '__main__':
         _ALL_tauV_mask__Tg.append([])
         _ALL_SFR__Tg.append([])
         _ALL_SFRSD__Tg.append([])
+        _ALL_SFRSD_kpc__Tg.append([])
         
     for iGal in np.arange(N_gals):
         galName         = listOfPrefixes[iGal][:-1]
@@ -537,8 +546,8 @@ if __name__ == '__main__':
         HaOk = np.array((K.EL.flux[i_Ha, :] / K.EL.eflux[i_Ha, :]) >= minSNR, dtype = np.bool)
         N2Ok = np.array((K.EL.flux[i_N2, :] / K.EL.eflux[i_N2, :]) >= minSNR, dtype = np.bool)
         
-        N2Ha = np.log10(K.EL.N2_obs__z/K.EL.Ha_obs__z)
-        O3Hb = np.log10(K.EL.O3_obs__z/K.EL.Hb_obs__z)
+        N2Ha = np.ma.log10(K.EL.N2_obs__z/K.EL.Ha_obs__z)
+        O3Hb = np.ma.log10(K.EL.O3_obs__z/K.EL.Hb_obs__z)
         
         maskOk = HbOk & O3Ok & HaOk & N2Ok
         maskBPT = None
@@ -567,7 +576,7 @@ if __name__ == '__main__':
         K.EL._forceMask = None
         
         ##########################
-        ####### CID Stuff ########
+        ####### STARLIGHT ########
         ##########################        
         # Compute galaxy-wide mu (cf eq 2 in GD14) - following Andre's tip.
         ALL_McorSD_GAL__g[iGal] = K.McorSD__yx.mean()
@@ -588,9 +597,10 @@ if __name__ == '__main__':
         
             # SRFSD "raw" image
             # Note that we are NOT dezonifying SFR__z, since it will be compared to the un-dezonifiable tauV!
-            aux         = K.Mini__tZz[flag__t,:,:].sum(axis=1).sum(axis=0) / tSF
-            SFR__z      = np.ma.masked_array(aux)
-            SFRSD__z    = SFR__z / K.zoneArea_pc2
+            aux             = K.Mini__tZz[flag__t,:,:].sum(axis=1).sum(axis=0) / tSF
+            SFR__z          = np.ma.masked_array(aux)
+            SFRSD__z        = SFR__z / K.zoneArea_pc2
+            SFRSD_kpc__z    = SFRSD__z * 1e6
             
             tauV__z     = np.ma.masked_array(K.tau_V__z)
                             
@@ -607,6 +617,7 @@ if __name__ == '__main__':
                 tauV__z[maskNotOk__z]   = np.ma.masked
                 SFR__z[maskNotOk__z]    = np.ma.masked
                 SFRSD__z[maskNotOk__z]  = np.ma.masked
+                SFRSD_kpc__z[maskNotOk__z]  = np.ma.masked
 
             weiRadProf = True
                             
@@ -617,11 +628,13 @@ if __name__ == '__main__':
             ALL_alogZ_mass__Trg[iT, :, iGal] = aux[3]
             ALL_alogZ_flux__Trg[iT, :, iGal] = aux[4]
 
-            SFRSD__yx = K.zoneToYX(SFR__z, extensive = True)
-            aSFRSD__r = K.radialProfile(SFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
-            alogSFRSD__r = K.radialProfile(np.ma.log10(SFRSD__yx * 1e6), Rbin__r, rad_scale = K.HLR_pix)
-            ALL_aSFRSD__Trg[iT, :, iGal] = aSFRSD__r
-            ALL_alogSFRSD__Trg[iT, :, iGal] = alogSFRSD__r
+            aSFRSD__yx      = K.zoneToYX(SFR__z, extensive = True)
+            aSFRSD__r       = K.radialProfile(aSFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
+            aSFRSD_kpc__r       = K.radialProfile(aSFRSD__yx * 1e6, Rbin__r, rad_scale = K.HLR_pix)
+
+            
+            ALL_aSFRSD__Trg[iT, :, iGal]        = aSFRSD__r
+            ALL_aSFRSD_kpc__Trg[iT, :, iGal]    = aSFRSD_kpc__r
 
             _ALL_tauV__Tg[iT].append(tauV__z.data)
             _ALL_tauV_mask__Tg[iT].append(tauV__z.mask)
@@ -631,6 +644,7 @@ if __name__ == '__main__':
             
             _ALL_SFR__Tg[iT].append(SFR__z)
             _ALL_SFRSD__Tg[iT].append(SFRSD__z)
+            _ALL_SFRSD_kpc__Tg[iT].append(SFRSD__z)
         ##########################
         ##########################
         ##########################    
@@ -668,16 +682,6 @@ if __name__ == '__main__':
         ##########################
         #### SFR and SigmaSFR ####
         ##########################
-
-        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-        # if BPTLowS06:
-        #     K.EL._forceMask = ~(maskOk & maskBPT) #Changing global EL mask
-        #     N_zones_Lum = len(K.EL.flux[0,:].compressed())
-        #     print 'Luminosity and products: BPT and minSNR mask: using %d zones' % N_zones_Lum
-        # else:
-        #     K.EL._forceMask = ~maskOk
-        #     N_zones_Lum = len(K.EL.flux[0,:].compressed())
-        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
         N_zones_Lum = len(K.EL.flux[0,:].compressed())
         print 'Luminosity and products: minSNR mask: using %d zones' % N_zones_Lum
             
@@ -694,15 +698,18 @@ if __name__ == '__main__':
         # 3.17 M_sun/yr was calculated using BC03 + Padova1994 + Salpeter        
         SFR_Ha__z       = 3.17 * L_int_Ha__z / (1.e8)
         SFRSD_Ha__z     = SFR_Ha__z / K.zoneArea_pc2
+        SFRSD_Ha_kpc__z = SFRSD_Ha__z * 1e6
         
-        SFRSD_Ha__yx    = K.zoneToYX(SFR_Ha__z, extensive = True)
-        aSFRSD_Ha__r    = K.radialProfile(SFRSD_Ha__yx, Rbin__r, rad_scale = K.HLR_pix)
-        alogSFRSD_Ha__r = K.radialProfile(np.ma.log10(SFRSD_Ha__yx * 1e6), Rbin__r, rad_scale = K.HLR_pix)
-        ALL_aSFRSD_Ha__rg[:, iGal]    = aSFRSD_Ha__r
-        ALL_alogSFRSD_Ha__rg[:, iGal] = alogSFRSD_Ha__r
+        SFRSD_Ha__yx        = K.zoneToYX(SFR_Ha__z, extensive = True)
+        aSFRSD_Ha__r        = K.radialProfile(SFRSD_Ha__yx, Rbin__r, rad_scale = K.HLR_pix)
+        aSFRSD_Ha_kpc__r    = K.radialProfile(SFRSD_Ha__yx * 1e6, Rbin__r, rad_scale = K.HLR_pix)
+
+        ALL_aSFRSD_Ha__rg[:, iGal]          = aSFRSD_Ha__r
+        ALL_aSFRSD_Ha_kpc__rg[:, iGal]      = aSFRSD_Ha_kpc__r
         
         _ALL_SFR_Ha__g.append(SFR_Ha__z)
         _ALL_SFRSD_Ha__g.append(SFRSD_Ha__z)
+        _ALL_SFRSD_Ha_kpc__g.append(SFRSD_Ha__z)
         ##########################
         ##########################
         ##########################
@@ -854,16 +861,19 @@ if __name__ == '__main__':
     ALL_L_int_Ha__g             = np.ma.masked_array(aux, mask = auxMask)
     ALL_SFR_Ha__g               = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR_Ha__g)), mask = auxMask)
     ALL_SFRSD_Ha__g             = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_Ha__g)), mask = auxMask)
+    ALL_SFRSD_Ha_kpc__g         = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_Ha_kpc__g)), mask = auxMask)
     
     ALL_Mcor_GAL_zones__g       = np.ma.masked_array(np.hstack(np.asarray(_ALL_Mcor_GAL_zones__g)))
     ALL_McorSD_GAL_zones__g     = np.ma.masked_array(np.hstack(np.asarray(_ALL_McorSD_GAL_zones__g)))
     ALL_morfType_GAL_zones__g   = np.ma.masked_array(np.hstack(np.asarray(_ALL_morfType_GAL_zones__g)))
     
-    ALL_tauV__Tg     = []
-    ALL_SFR__Tg      = []
-    ALL_SFRSD__Tg    = []
+    ALL_tauV__Tg        = []
+    ALL_SFR__Tg         = []
+    ALL_SFRSD__Tg       = []
+    ALL_SFRSD_kpc__Tg   = []
     correl_SFR = np.ones_like(tSF__T)
-    correl_SigmaSFR__rT = np.ones((1 + len(RRange), tSF__T.shape[0])) 
+    correl_SigmaSFR__rT = np.ones((1 + len(RRange), tSF__T.shape[0]))
+    correl_SigmaSFR_kpc__rT = np.ones((1 + len(RRange), tSF__T.shape[0])) 
 
     for iT,tSF in enumerate(tSF__T):
         aux     = np.hstack(np.asarray(_ALL_tauV__Tg[iT]))
@@ -871,6 +881,7 @@ if __name__ == '__main__':
         ALL_tauV__Tg.append(np.ma.masked_array(aux, mask = auxMask))
         ALL_SFR__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR__Tg[iT])), mask = auxMask))
         ALL_SFRSD__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD__Tg[iT])), mask = auxMask))
+        ALL_SFRSD_kpc__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_kpc__Tg[iT])), mask = auxMask))
 
         x = np.ma.log10(ALL_SFR__Tg[iT])
         y = np.ma.log10(ALL_SFR_Ha__g)
@@ -879,8 +890,8 @@ if __name__ == '__main__':
         ym = y[~mask]
         correl_SFR[iT] = st.spearmanr(xm, ym)[0]
 
-        x = ALL_alogSFRSD__Trg[iT, :, :].flatten()
-        y = ALL_alogSFRSD_Ha__rg[:, :].flatten()
+        x = np.ma.log10(ALL_aSFRSD__Trg[iT, :, :].flatten())
+        y = np.ma.log10(ALL_aSFRSD_Ha__rg[:, :].flatten())
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -895,38 +906,61 @@ if __name__ == '__main__':
                 
             iiR = iR + 1
 
-            x = ALL_alogSFRSD__Trg[iT, RMask, :].flatten()
-            y = ALL_alogSFRSD_Ha__rg[RMask, :].flatten()
+            x = np.ma.log10(ALL_aSFRSD__Trg[iT, RMask, :].flatten())
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg[RMask, :].flatten())
             mask = x.mask | y.mask
             xm = x[~mask]
             ym = y[~mask]
             correl_SigmaSFR__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
+
+        x = np.ma.log10(ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
+        y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg[:, :].flatten())
+        mask = x.mask | y.mask
+        xm = x[~mask]
+        ym = y[~mask]
+        correl_SigmaSFR_kpc__rT[0, iT] = st.spearmanr(xm, ym)[0]
+        
+        for iR, RUp in enumerate(RRange):
+            if iR == 0:
+                RMask = RbinCenter__r <= RUp
+            else:
+                RDown =  RRange[iR - 1]
+                RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp)
+                
+            iiR = iR + 1
+
+            x = ALL_aSFRSD_kpc__Trg[iT, RMask, :].flatten()
+            y = ALL_aSFRSD_Ha_kpc__rg[RMask, :].flatten()
+            mask = x.mask | y.mask
+            xm = x[~mask]
+            ym = y[~mask]
+            correl_SigmaSFR_kpc__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
         
     if plot:
         NRows = 4
         NCols = 3
-         
+          
         f, axArr = plt.subplots(NRows, NCols)
         f.set_dpi(96)
         f.set_size_inches(10,12)
-          
+           
         for ax in f.axes:
             ax.set_axis_off()
-     
+      
         xlabel = r'$\log\ SFR_\star\ [M_\odot yr^{-1}]$' 
         ylabel = r'$\log\ SFR_{neb}\ [M_\odot yr^{-1}]$'
-      
+       
         NAxes = len(f.axes) 
-              
+               
         k = 0
-         
+          
         for i in range(0, NRows):
             for j in range(0, NCols):
                 ax = axArr[i, j]
-    
+     
                 if k < len(tSF_to_plot):
                     iT = tSF_to_plot[k]
-                 
+                  
                 if i < (NRows - 1) or j < (NCols - 1):
                     ax.set_axis_on()
                     x = np.ma.log10(ALL_SFR__Tg[iT])
@@ -967,42 +1001,42 @@ if __name__ == '__main__':
                     ax.yaxis.set_minor_locator(MultipleLocator(0.1))
                     ax.set_ylim([0., 1.])
                     ax.grid(which = 'minor')
-      
+       
         f.savefig('SFR_allages.png')
         plt.close(f)
-     
+      
         NCols = 3 
         NRows = 4
-
+ 
         pos_y_ini = 0.38
         pos_step = 0.09
         Rfontsize = 10
-         
+          
         f, axArr = plt.subplots(NRows, NCols)
         f.set_dpi(96)
         f.set_size_inches(10,12)
-          
+           
         for ax in f.axes:
             ax.set_axis_off()
-      
+       
         xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
         ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-          
+           
         NAxes = len(f.axes) 
         k = 0
-              
+               
         for i in range(0, NRows):
             for j in range(0, NCols):
                 ax = axArr[i, j]
-                
+ 
                 if k < len(tSF_to_plot):
                     iT = tSF_to_plot[k]
-                
+                 
                 if i < (NRows - 1) or j < (NCols - 1):
                     ax.set_axis_on()
                     age = tSF__T[iT]
-                    
                     n_mask = n_tot = 0
+                 
                     for iR, RUp in enumerate(RRange):
                         if iR == 0:
                             RMask = RbinCenter__r <= RUp
@@ -1011,21 +1045,16 @@ if __name__ == '__main__':
                             RDown =  RRange[iR - 1]
                             RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp)
                             txt = '%.1f < R <= %.1f HLR' % (RDown, RUp)
-                            
-                        print 'R: %s' % txt 
-                            
+                             
                         c = RColor[iR] 
-                    
-                        x = ALL_alogSFRSD__Trg[iT, RMask, :].flatten()
-                        y = ALL_alogSFRSD_Ha__rg[RMask, :].flatten()
+                        x = np.ma.log10(ALL_aSFRSD__Trg[iT, RMask, :].flatten())
+                        y = np.ma.log10(ALL_aSFRSD_Ha__rg[RMask, :].flatten())
                         mask = x.mask | y.mask
                         xm = x[~mask]
                         ym = y[~mask]
-                        
-                        
                         n_mask += mask.sum()
                         n_tot += len(x)
-                        
+                         
                         if i == 0 and j == 0:
                             pos_y = pos_y_ini - (iR * pos_step)
                             textbox = dict(alpha = 0.)
@@ -1036,11 +1065,11 @@ if __name__ == '__main__':
                                     bbox = textbox)
                         scat = ax.scatter(xm, ym, c = c, marker = 'o', s = 1., edgecolor = 'none', alpha = 1.)
                     print 'SigmaSFR x SigmaSFR_Ha Age: %.2f Myr: masked %d points of %d (Total: %d)' % (age/1e6, n_mask, n_tot, n_tot - n_mask)
-                            
+                             
                     ax.legend(loc = 'lower left', fontsize=12, frameon=False)
                     age = tSF__T[iT]
-                    xran = [-4.5, 0.5]
-                    yran = [-4.5, 0.5]
+                    xran = [-3.5, 1.]
+                    yran = [-3.5, 1.]
                     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
                     # binsx = np.linspace(-4.5, 1., 51)
                     # binsy = np.linspace(min(ym),max(ym), 51)
@@ -1056,6 +1085,11 @@ if __name__ == '__main__':
                     ax.grid()
                     ax.set_xlim(xran)
                     ax.set_ylim(yran)
+                    ax.xaxis.set_major_locator(MultipleLocator(1))
+                    ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+                    ax.yaxis.set_major_locator(MultipleLocator(1))
+                    ax.yaxis.set_minor_locator(MultipleLocator(0.5))
+                 
                     if j == 0 and i == 1:
                         ax.set_ylabel(ylabel)
                     if j == 1 and i == (NRows - 1):
@@ -1064,7 +1098,7 @@ if __name__ == '__main__':
                 elif i == (NRows - 1) and j == (NCols - 1):
                     ax.set_axis_on()
                     ax.plot(np.log10(tSF__T), correl_SigmaSFR__rT[0, :], 'k-', label = r'$R_S$')
-
+ 
                     for iR, RUp in enumerate(RRange):
                         if iR == 0:
                             RMask = RbinCenter__r <= RUp
@@ -1072,10 +1106,10 @@ if __name__ == '__main__':
                             RDown =  RRange[iR - 1]
                             RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp)
                         iiR = iR + 1
-                        
+                         
                         c = RColor[iR]
                         ax.plot(np.log10(tSF__T), correl_SigmaSFR__rT[iiR, :], color = c, ls = '--', label = None)
-
+ 
                     ax.set_xlabel(r'$\log\ t_\star\ [yr]$')
                     ax.legend(fontsize=12, frameon=False)
                     ax.xaxis.set_major_locator(MultipleLocator(1))
@@ -1083,14 +1117,15 @@ if __name__ == '__main__':
                     ax.yaxis.set_minor_locator(MultipleLocator(0.1))
                     ax.set_ylim([0., 1.])
                     ax.grid(which = 'minor')
-      
+       
         #f.tight_layout()   
         f.savefig('SigmaSFR_allages.pdf')
         plt.close(f)
-         
+          
         f = plt.figure()
         ax = f.gca()
         ax.plot(np.log10(tSF__T), correl_SigmaSFR__rT[0, :], 'k-', label = r'$R_S(\Sigma_{\mathrm{SFR}})$')
+        ax.plot(np.log10(tSF__T), correl_SigmaSFR_kpc__rT[0, :], 'k-', label = r'$R_S(\Sigma_{\mathrm{SFR}}\ \star)$')
         ax.plot(np.log10(tSF__T), correl_SFR, 'k--', label = r'$R_S(\mathrm{SFR})$')
         ax.set_xlabel(r'$\log\ t_\star\ [yr]$')
         ax.set_ylabel(r'$R_S$')
@@ -1100,28 +1135,49 @@ if __name__ == '__main__':
         f.tight_layout()
         f.savefig('Rs_SFR.pdf')
         plt.close(f)
- 
+  
         for iT,tSF in enumerate(tSF__T):
             x1 = np.ma.log10(ALL_SFR__Tg[iT])
             x1label = r'$\log\ \mathrm{SFR}_\star\ [M_\odot yr^{-1}]$' 
             y1 = np.ma.log10(ALL_SFR_Ha__g)
             y1label = r'$\log\ \mathrm{SFR}_{neb}\ [M_\odot yr^{-1}]$' 
-            x2 = ALL_alogSFRSD__Trg[iT, :, :].flatten()
+            x2 = np.ma.log10(ALL_aSFRSD__Trg[iT, :, :].flatten())
             x2label = r'$\log\ \Sigma_{\mathrm{SFR}}^\star(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-            y2 = ALL_alogSFRSD_Ha__rg.flatten()
+            y2 = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten())
             y2label = r'$\log\ \Sigma_{\mathrm{SFR}}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
             fname = 'SFReSFRSD_%sMyr.png' % str(tSF / 1.e6)
-            plotCid(x1, x1label, y1, y1label, x2, x2label, y2, y2label, fname)
-   
-            x = ALL_alogSFRSD__Trg[iT, :, :].flatten()
-            y = ALL_alogSFRSD_Ha__rg[:, :].flatten()
+            mask1 = ~(x1.mask | y1.mask)
+            x1m = x1[mask1]
+            y1m = y1[mask1]
+            mask2 = ~(x2.mask | y2.mask)
+            x2m = x2[mask2]
+            y2m = y2[mask2]
+            plotCid(x1m, x1label, y1m, y1label, x2m, x2label, y2m, y2label, fname)
+
+            x = np.ma.log10(ALL_aSFRSD__Trg[iT, :, :].flatten())
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg[:, :].flatten())
+            mask = ~(x.mask | y.mask)
+            xm = x[mask]
+            ym = y[mask]
+            xlim = np.percentile(xm, [1, 100 * (xm.shape[0] - xm.mask.sum()) / xm.shape[0] - 1])
+            ylim = np.percentile(ym, [1, 100 * (ym.shape[0] - ym.mask.sum()) / ym.shape[0] - 1])
+            xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} pc^{-2}]$' 
+            ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} pc^{-2}]$' 
+            fname = 'alogSFRSD_alogSFRSD_neb_age_%sMyr1.png' % str(tSF / 1.e6)
+            plotSFR(xm,ym,xlabel,ylabel,xlim,ylim,tSF,fname)
+
+            x = np.ma.log10(ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
+            y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg[:, :].flatten())
+            mask = ~(x.mask | y.mask)
+            xm = x[mask]
+            ym = y[mask]
+            xlim = np.percentile(xm, [1, 100 * (xm.shape[0] - xm.mask.sum()) / xm.shape[0] - 1])
+            ylim = np.percentile(ym, [1, 100 * (ym.shape[0] - ym.mask.sum()) / ym.shape[0] - 1])
             xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
             ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-            fname = 'alogSFRSD_alogSFRSD_neb_age_%sMyr.png' % str(tSF / 1.e6)
-            xlim = np.percentile(x, [1, 100 * (x.flatten().shape[0] - x.mask.sum()) / x.flatten().shape[0] - 1])
-            ylim = np.percentile(y, [1, 100 * (y.flatten().shape[0] - y.mask.sum()) / y.flatten().shape[0] - 1])
-            plotSFR(x,y,xlabel,ylabel,xlim,ylim,tSF,fname)
-                
+            fname = 'alogSFRSD_alogSFRSD_neb_age_%sMyr2.png' % str(tSF / 1.e6)
+            plotSFR(xm,ym,xlabel,ylabel,xlim,ylim,tSF,fname)
+
             x = np.ma.log10(ALL_SFR__Tg[iT])
             y = np.ma.log10(ALL_SFR_Ha__g)
             xlabel = r'$\log\ SFR_\star\ [M_\odot yr^{-1}]$' 
@@ -1130,69 +1186,68 @@ if __name__ == '__main__':
             xlim = np.percentile(x, [1, 100 * (x.shape[0] - x.mask.sum()) / x.shape[0] - 1])
             ylim = np.percentile(y, [1, 100 * (y.shape[0] - y.mask.sum()) / y.shape[0] - 1])
             plotSFR(x,y,xlabel,ylabel,xlim,ylim,tSF,fname)
-                
-            x = np.ma.log10(ALL_SFR__Tg[iT])
-            y = np.ma.log10(ALL_SFR_Ha__g)
-            xlabel = r'$\log\ SFR_\star\ [M_\odot yr^{-1}]$' 
-            ylabel = r'$\log\ SFR_{neb}\ [M_\odot yr^{-1}]$' 
-            fname = 'logSFR_logSFR_neb_age_%sMyr.png' % str(tSF / 1.e6)
-            xlim = np.percentile(x, [1, 100 * (x.shape[0] - x.mask.sum()) / x.shape[0] - 1])
-            ylim = np.percentile(y, [1, 100 * (y.shape[0] - y.mask.sum()) / y.shape[0] - 1])
-            plotSFR(x,y,xlabel,ylabel,xlim,ylim,tSF,fname)
-                
+
             x = ALL_tauV__Trg[iT, :, :].flatten()
-            y = ALL_alogSFRSD_Ha__rg.flatten() - ALL_alogSFRSD__Trg[iT, :, :].flatten()
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten() / ALL_aSFRSD__Trg[iT, :, :].flatten())
             xlabel = r'$\tau_V^\star(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
-            fname = 'tauV_SFRSDHa_SFRSD_age_%sMyr.png' % str(tSF / 1.e6)
+            fname = 'tauV_SFRSDHa_SFRSD_age_%sMyr1.png' % str(tSF / 1.e6)
             plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
-                
+
+            x = ALL_tauV__Trg[iT, :, :].flatten()
+            y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg.flatten() / ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
+            xlabel = r'$\tau_V^\star(R)$'
+            ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
+            fname = 'tauV_SFRSDHa_SFRSD_age_%sMyr2.png' % str(tSF / 1.e6)
+            plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
+
             x = ALL_tau_V_neb__rg.flatten()
-            y = ALL_alogSFRSD_Ha__rg.flatten() - ALL_alogSFRSD__Trg[iT, :, :].flatten()
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten() / ALL_aSFRSD__Trg[iT, :, :].flatten())
             xlabel = r'$\tau_V^{neb}(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
-            fname = 'tauVneb_SFRSDHa_SFRSD_age_%sMyr.png' % str(tSF / 1.e6)
+            fname = 'tauVneb_SFRSDHa_SFRSD_age_%sMyr1.png' % str(tSF / 1.e6)
             plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
-                
-            x = np.ma.log10(ALL_tauV__Trg[iT, :, :].flatten())
-            y = ALL_alogSFRSD_Ha__rg.flatten() - ALL_alogSFRSD__Trg[iT, :, :].flatten()
-            xlabel = r'$\log\ \tau_V^\star(R)$'
+
+            x = ALL_tau_V_neb__rg.flatten()
+            y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg.flatten() / ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
+            xlabel = r'$\tau_V^{neb}(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
-            fname = 'tauV_SFRSDHa_SFRSD_age_%sMyr.png' % str(tSF / 1.e6)
-            plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
-                
-            x = np.ma.log10(ALL_tau_V_neb__rg[:, :].flatten())
-            y = ALL_alogSFRSD_Ha__rg.flatten() - ALL_alogSFRSD__Trg[iT, :, :].flatten()
-            xlabel = r'$\log\ \tau_V^{neb}(R)$'
-            ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
-            fname = 'tauVneb_SFRSDHa_SFRSD_age_%sMyr.png' % str(tSF / 1.e6)
-            plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
-            
+            fname = 'tauVneb_SFRSDHa_SFRSD_age_%sMyr2.png' % str(tSF / 1.e6)
+            plotTau(x,y,xlabel,ylabel,None,None,tSF,fname)
+                         
             ###################### RADIUS COLOR ######################
-        for iT,tSF in enumerate(tSF__T):
             xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
             ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
             fname = 'alogSFRSD_alogSFRSD_neb_age_%sMyr_RColor.png' % str(tSF / 1.e6)
             f = plt.figure(dpi = 96)
             f.set_size_inches(21.88,12.5)
             ax = f.gca()
+             
             for iR, RUp in enumerate(RRange):
                 if iR == 0:
                     RMask = RbinCenter__r <= RUp
                 else:
                     RDown =  RRange[iR - 1]
                     RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp) 
-                       
-                x = ALL_alogSFRSD__Trg[iT, RMask, :].flatten()
-                y = ALL_alogSFRSD_Ha__rg[RMask, :].flatten()
+                        
+                x = np.ma.log10(ALL_aSFRSD__Trg[iT, RMask, :].flatten())
+                y = np.ma.log10(ALL_aSFRSD_Ha__rg[RMask, :].flatten())
                 mask = ~(x.mask | y.mask)
                 xm = x[mask]
                 ym = y[mask]
                 scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
                 plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+             
             ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c=".3")
+ 
+            x = np.ma.log10(ALL_aSFRSD__Trg[iT, :, :].flatten())
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten())
+            mask = ~(x.mask | y.mask)
+            xm = x[mask]
+            ym = y[mask]
+             
             rhoSpearman, pvalSpearman = st.spearmanr(xm, ym)
-            txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(ym/xm), np.ma.median((ym/xm)), np.ma.std(ym/xm), rhoSpearman)
+            txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % ((ym/xm).mean(), np.ma.median((ym/xm)), np.ma.std(ym/xm), rhoSpearman)
             textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
             ax.text(0.10, 0.93, txt, fontsize = 28, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
             ax.grid()
@@ -1201,7 +1256,7 @@ if __name__ == '__main__':
             ax.set_title(r'$%s$ Myr' % str(tSF / 1.e6))
             f.savefig(fname)
             plt.close(f)
-        
+         
             xlabel = r'$\tau_V^\star(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
             fname = 'tauV_SFRSDHa_SFRSD_age_%sMyr_RColor.png' % str(tSF / 1.e6)
@@ -1214,14 +1269,21 @@ if __name__ == '__main__':
                 else:
                     RDown =  RRange[iR - 1]
                     RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp) 
-
+ 
                 x = ALL_tauV__Trg[iT, RMask, :].flatten()
-                y = ALL_alogSFRSD_Ha__rg[RMask, :].flatten() - ALL_alogSFRSD__Trg[iT, RMask, :].flatten()
+                y = np.ma.log10(ALL_aSFRSD_Ha__rg[RMask, :].flatten()/ALL_aSFRSD__Trg[iT, RMask, :].flatten())
                 mask = ~(x.mask | y.mask)
                 xm = x[mask]
                 ym = y[mask]
                 scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
                 plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+ 
+            x = ALL_tauV__Trg[iT, :, :].flatten()
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
+            mask = ~(x.mask | y.mask)
+            xm = x[mask]
+            ym = y[mask]
+ 
             rhoSpearman, pvalSpearman = st.spearmanr(xm, ym)
             txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(ym/xm), np.ma.median((ym/xm)), np.ma.std(ym/xm), rhoSpearman)
             textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
@@ -1232,7 +1294,7 @@ if __name__ == '__main__':
             ax.set_title(r'$%s$ Myr' % str(tSF / 1.e6))
             f.savefig(fname)
             plt.close(f)
-                
+                 
             xlabel = r'$\tau_V^{neb}(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
             fname = 'tauVneb_SFRSDHa_SFRSD_age_%sMyr_RColor.png' % str(tSF / 1.e6)
@@ -1245,14 +1307,20 @@ if __name__ == '__main__':
                 else:
                     RDown =  RRange[iR - 1]
                     RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp) 
-                
+                 
                 x = ALL_tau_V_neb__rg[RMask, :].flatten()
-                y = ALL_alogSFRSD_Ha__rg[RMask, :].flatten() - ALL_alogSFRSD__Trg[iT, RMask, :].flatten()
+                y = np.ma.log10(ALL_aSFRSD_Ha__rg[RMask, :].flatten()/ALL_aSFRSD__Trg[iT, RMask, :].flatten())
                 mask = ~(x.mask | y.mask)
                 xm = x[mask]
                 ym = y[mask]
                 scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
                 plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+                 
+            x = ALL_tau_V_neb__rg.flatten()
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
+            mask = ~(x.mask | y.mask)
+            xm = x[mask]
+            ym = y[mask]
             rhoSpearman, pvalSpearman = st.spearmanr(xm, ym)
             txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(ym/xm), np.ma.median((ym/xm)), np.ma.std(ym/xm), rhoSpearman)
             textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
@@ -1263,7 +1331,7 @@ if __name__ == '__main__':
             ax.set_title(r'$%s$ Myr' % str(tSF / 1.e6))
             f.savefig(fname)
             plt.close(f)
-                
+                 
             xlabel = r'$\log\ \tau_V^\star(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
             fname = 'tauV_SFRSDHa_SFRSD_age_%sMyr_RColor.png' % str(tSF / 1.e6)
@@ -1276,14 +1344,21 @@ if __name__ == '__main__':
                 else:
                     RDown =  RRange[iR - 1]
                     RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp) 
-
+ 
                 x = np.ma.log10(ALL_tauV__Trg[iT, RMask, :].flatten())
-                y = ALL_alogSFRSD_Ha__rg[RMask, :].flatten() - ALL_alogSFRSD__Trg[iT, RMask, :].flatten()
+                y = np.ma.log10(ALL_aSFRSD_Ha__rg[RMask, :].flatten()/ALL_aSFRSD__Trg[iT, RMask, :].flatten())
                 mask = ~(x.mask | y.mask)
                 xm = x[mask]
                 ym = y[mask]
                 scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
                 plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+ 
+            x = np.ma.log10(ALL_tauV__Trg[iT, :, :].flatten())
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
+            mask = ~(x.mask | y.mask)
+            xm = x[mask]
+            ym = y[mask]
+             
             rhoSpearman, pvalSpearman = st.spearmanr(xm, ym)
             txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(ym/xm), np.ma.median((ym/xm)), np.ma.std(ym/xm), rhoSpearman)
             textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
@@ -1294,7 +1369,7 @@ if __name__ == '__main__':
             ax.set_title(r'$%s$ Myr' % str(tSF / 1.e6))
             f.savefig(fname)
             plt.close(f)
-                
+                 
             xlabel = r'$\log\ \tau_V^{neb}(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
             fname = 'tauVneb_SFRSDHa_SFRSD_age_%sMyr_RColor.png' % str(tSF / 1.e6)
@@ -1307,14 +1382,21 @@ if __name__ == '__main__':
                 else:
                     RDown =  RRange[iR - 1]
                     RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp) 
-
+ 
                 x = np.ma.log10(ALL_tau_V_neb__rg[RMask, :].flatten())
-                y = ALL_alogSFRSD_Ha__rg[RMask, :].flatten() - ALL_alogSFRSD__Trg[iT, RMask, :].flatten()
+                y = np.ma.log10(ALL_aSFRSD_Ha__rg[RMask, :].flatten()/ALL_aSFRSD__Trg[iT, RMask, :].flatten())
                 mask = ~(x.mask | y.mask)
                 xm = x[mask]
                 ym = y[mask]
                 scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
                 plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+ 
+            x = np.ma.log10(ALL_tau_V_neb__rg.flatten())
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
+            mask = ~(x.mask | y.mask)
+            xm = x[mask]
+            ym = y[mask]
+             
             rhoSpearman, pvalSpearman = st.spearmanr(xm, ym)
             txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(ym/xm), np.ma.median((ym/xm)), np.ma.std(ym/xm), rhoSpearman)
             textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
@@ -1325,8 +1407,7 @@ if __name__ == '__main__':
             ax.set_title(r'$%s$ Myr' % str(tSF / 1.e6))
             f.savefig(fname)
             plt.close(f)
-            
-        for iT,tSF in enumerate(tSF__T):
+             
             xlabel = r'$\log\ \mathcal{M}_\star(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
             fname = 'logMcorSD_SFRSDHa_SFRSD_age_%sMyr_RColor.png' % str(tSF / 1.e6)
@@ -1339,14 +1420,21 @@ if __name__ == '__main__':
                 else:
                     RDown =  RRange[iR - 1]
                     RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp) 
-
+ 
                 x = np.ma.log10(ALL_McorSD_GAL__rg[RMask, :].flatten())
-                y = np.log10(ALL_aSFRSD_Ha__rg[RMask, :].flatten()/ALL_aSFRSD__Trg[iT, RMask, :].flatten())
+                y = np.ma.log10(ALL_aSFRSD_Ha__rg[RMask, :].flatten()/ALL_aSFRSD__Trg[iT, RMask, :].flatten())
                 x.mask = y.mask
                 xm = x
                 ym = y
                 scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
                 plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+ 
+            x = np.ma.log10(ALL_McorSD_GAL__rg.flatten())
+            y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
+            x.mask = y.mask
+            xm = x
+            ym = y
+ 
             rhoSpearman, pvalSpearman = st.spearmanr(xm, ym)
             txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(ym/xm), np.ma.median((ym/xm)), np.ma.std(ym/xm), rhoSpearman)
             textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
