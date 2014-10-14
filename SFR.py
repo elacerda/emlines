@@ -26,8 +26,10 @@ nebular_plot = False
 plot = False
 debug = False
 #debug = True
-BPTLowS06 = True
-#BPTLowS06 = False
+#BPTLowS06 = True
+BPTLowS06 = False
+#hdf5 = False
+hdf5 = True
 
 mpl.rcParams['font.size']       = 20
 mpl.rcParams['axes.labelsize']  = 20
@@ -94,6 +96,26 @@ xOkMin = 0.05
 tauVOkMin = 0.05
 tauVNebOkMin = 0.05
 tauVNebErrMax = 0.15
+
+def get_attrib_h5(h5, attrib):
+    if any([ attrib in s for s in h5['masked/mask'].keys() ]):
+        node = '/masked/data/' + attrib
+        ds = h5[node]
+        if type(ds) == h5py.Dataset:
+            data = h5.get('/masked/data/' + attrib).value
+            mask = h5.get('/masked/mask/' + attrib).value
+            arr = np.ma.masked_array(data, mask = mask)
+        else:
+            arr = []
+            tSF__T = h5.get('/data/tSF__T').value
+            for iT,tSF in enumerate(tSF__T):
+                group = '%s/%d' % (attrib, iT)
+                data = h5.get('/masked/data/' + group).value
+                mask = h5.get('/masked/mask/' + group).value
+                arr.append(np.ma.masked_array(data, mask = mask))
+        return arr 
+    else:
+        return h5.get('/data/' + attrib).value
 
 def find_confidence_interval(x, pdf, confidence_level):
     return pdf[pdf > x].sum() - confidence_level
@@ -866,14 +888,14 @@ if __name__ == '__main__':
     ALL_Mcor_GAL_zones__g       = np.ma.masked_array(np.hstack(np.asarray(_ALL_Mcor_GAL_zones__g)))
     ALL_McorSD_GAL_zones__g     = np.ma.masked_array(np.hstack(np.asarray(_ALL_McorSD_GAL_zones__g)))
     ALL_morfType_GAL_zones__g   = np.ma.masked_array(np.hstack(np.asarray(_ALL_morfType_GAL_zones__g)))
-    
+
     ALL_tauV__Tg        = []
     ALL_SFR__Tg         = []
     ALL_SFRSD__Tg       = []
     ALL_SFRSD_kpc__Tg   = []
     correl_SFR = np.ones_like(tSF__T)
-    correl_SigmaSFR__rT = np.ones((1 + len(RRange), tSF__T.shape[0]))
-    correl_SigmaSFR_kpc__rT = np.ones((1 + len(RRange), tSF__T.shape[0])) 
+    correl_SFRSD__rT = np.ones((1 + len(RRange), tSF__T.shape[0]))
+    correl_SFRSD_kpc__rT = np.ones((1 + len(RRange), tSF__T.shape[0])) 
 
     for iT,tSF in enumerate(tSF__T):
         aux     = np.hstack(np.asarray(_ALL_tauV__Tg[iT]))
@@ -895,7 +917,7 @@ if __name__ == '__main__':
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
-        correl_SigmaSFR__rT[0, iT] = st.spearmanr(xm, ym)[0]
+        correl_SFRSD__rT[0, iT] = st.spearmanr(xm, ym)[0]
         
         for iR, RUp in enumerate(RRange):
             if iR == 0:
@@ -911,14 +933,14 @@ if __name__ == '__main__':
             mask = x.mask | y.mask
             xm = x[~mask]
             ym = y[~mask]
-            correl_SigmaSFR__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
+            correl_SFRSD__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
 
         x = np.ma.log10(ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
         y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg[:, :].flatten())
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
-        correl_SigmaSFR_kpc__rT[0, iT] = st.spearmanr(xm, ym)[0]
+        correl_SFRSD_kpc__rT[0, iT] = st.spearmanr(xm, ym)[0]
         
         for iR, RUp in enumerate(RRange):
             if iR == 0:
@@ -934,8 +956,119 @@ if __name__ == '__main__':
             mask = x.mask | y.mask
             xm = x[~mask]
             ym = y[~mask]
-            correl_SigmaSFR_kpc__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
+            correl_SFRSD_kpc__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
+
+
+
+
+
+
+
+
+    if hdf5:
+        import h5py
         
+            
+                
+        if BPTLowS06:       
+            filename = 'SFR_BelowS06.h5'
+        else:
+            filename = 'SFR.h5'
+            
+        file = h5py.File(filename, 'w')
+        
+        D = {
+            '/masked/data/ALL_morfType_GAL__g' : ALL_morfType_GAL__g.data,
+            '/masked/data/ALL_at_flux_GAL__g' : ALL_at_flux_GAL__g.data,
+            '/masked/data/ALL_Mcor_GAL__g' : ALL_Mcor_GAL__g.data,  
+            '/masked/data/ALL_McorSD_GAL__g' : ALL_McorSD_GAL__g.data,  
+            '/masked/data/ALL_morfType_GAL_zones__rg' : ALL_morfType_GAL_zones__rg.data,  
+            '/masked/data/ALL_tau_V_neb__rg' : ALL_tau_V_neb__rg.data, 
+            '/masked/data/ALL_alogZ_mass_GAL__Tg' : ALL_alogZ_mass_GAL__Tg.data, 
+            '/masked/data/ALL_alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.data, 
+            '/masked/data/ALL_isOkFrac_GAL__Tg' : ALL_isOkFrac_GAL__Tg.data, 
+            '/masked/data/ALL_aSFRSD_Ha__rg' : ALL_aSFRSD_Ha__rg.data, 
+            '/masked/data/ALL_aSFRSD_Ha_kpc__rg' : ALL_aSFRSD_Ha_kpc__rg.data, 
+            '/masked/data/ALL_aSFRSD__Trg' : ALL_aSFRSD__Trg.data, 
+            '/masked/data/ALL_aSFRSD_kpc__Trg' : ALL_aSFRSD_kpc__Trg.data, 
+            '/masked/data/ALL_tauV__Trg' : ALL_tauV__Trg.data, 
+            '/masked/data/ALL_alogZ_mass__Trg' : ALL_alogZ_mass__Trg.data, 
+            '/masked/data/ALL_alogZ_flux__Trg' : ALL_alogZ_flux__Trg.data, 
+            '/masked/data/ALL_McorSD_GAL__rg' : ALL_McorSD_GAL__rg.data, 
+            '/masked/data/ALL_tauVNeb__g' :  ALL_tauVNeb__g.data, 
+            '/masked/data/ALL_tauVNeb_err__g' : ALL_tauVNeb_err__g.data, 
+            '/masked/data/ALL_L_int_Ha__g' : ALL_L_int_Ha__g.data, 
+            '/masked/data/ALL_SFR_Ha__g' : ALL_SFR_Ha__g.data, 
+            '/masked/data/ALL_SFRSD_Ha__g' : ALL_SFRSD_Ha__g.data, 
+            '/masked/data/ALL_SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.data, 
+            '/masked/data/ALL_Mcor_GAL_zones__g' : ALL_Mcor_GAL_zones__g.data, 
+            '/masked/data/ALL_McorSD_GAL_zones__g' : ALL_McorSD_GAL_zones__g.data, 
+            '/masked/data/ALL_morfType_GAL_zones__g' : ALL_morfType_GAL_zones__g.data, 
+            '/masked/mask/ALL_morfType_GAL__g' : ALL_morfType_GAL__g.mask, 
+            '/masked/mask/ALL_at_flux_GAL__g' : ALL_at_flux_GAL__g.mask, 
+            '/masked/mask/ALL_Mcor_GAL__g' : ALL_Mcor_GAL__g.mask,  
+            '/masked/mask/ALL_McorSD_GAL__g' : ALL_McorSD_GAL__g.mask,  
+            '/masked/mask/ALL_morfType_GAL_zones__rg' : ALL_morfType_GAL_zones__rg.mask,  
+            '/masked/mask/ALL_tau_V_neb__rg' : ALL_tau_V_neb__rg.mask, 
+            '/masked/mask/ALL_alogZ_mass_GAL__Tg' : ALL_alogZ_mass_GAL__Tg.mask, 
+            '/masked/mask/ALL_alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.mask, 
+            '/masked/mask/ALL_isOkFrac_GAL__Tg' : ALL_isOkFrac_GAL__Tg.mask, 
+            '/masked/mask/ALL_aSFRSD_Ha__rg' : ALL_aSFRSD_Ha__rg.mask, 
+            '/masked/mask/ALL_aSFRSD_Ha_kpc__rg' : ALL_aSFRSD_Ha_kpc__rg.mask, 
+            '/masked/mask/ALL_aSFRSD__Trg' : ALL_aSFRSD__Trg.mask, 
+            '/masked/mask/ALL_aSFRSD_kpc__Trg' : ALL_aSFRSD_kpc__Trg.mask, 
+            '/masked/mask/ALL_tauV__Trg' : ALL_tauV__Trg.mask, 
+            '/masked/mask/ALL_alogZ_mass__Trg' : ALL_alogZ_mass__Trg.mask, 
+            '/masked/mask/ALL_alogZ_flux__Trg' : ALL_alogZ_flux__Trg.mask, 
+            '/masked/mask/ALL_McorSD_GAL__rg' : ALL_McorSD_GAL__rg.mask, 
+            '/masked/mask/ALL_tauVNeb__g' :  ALL_tauVNeb__g.mask, 
+            '/masked/mask/ALL_tauVNeb_err__g' : ALL_tauVNeb_err__g.mask, 
+            '/masked/mask/ALL_L_int_Ha__g' : ALL_L_int_Ha__g.mask, 
+            '/masked/mask/ALL_SFR_Ha__g' : ALL_SFR_Ha__g.mask, 
+            '/masked/mask/ALL_SFRSD_Ha__g' : ALL_SFRSD_Ha__g.mask, 
+            '/masked/mask/ALL_SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.mask, 
+            '/masked/mask/ALL_Mcor_GAL_zones__g' : ALL_Mcor_GAL_zones__g.mask, 
+            '/masked/mask/ALL_McorSD_GAL_zones__g' : ALL_McorSD_GAL_zones__g.mask, 
+            '/masked/mask/ALL_morfType_GAL_zones__g' : ALL_morfType_GAL_zones__g.mask, 
+            '/data/correl_SFR' : correl_SFR, 
+            '/data/correl_SFRSD__rT' : correl_SFRSD__rT, 
+            '/data/correl_SFRSD_kpc__rT' : correl_SFRSD_kpc__rT, 
+            '/data/ALL_zones_tau_V' : ALL_zones_tau_V, 
+            '/data/ALL_zones_Lum' : ALL_zones_Lum, 
+            '/data/ALL_gals' : ALL_gals, 
+            '/data/ALL_zones' : ALL_zones, 
+            '/data/RbinIni' : RbinIni, 
+            '/data/RbinFin' : RbinFin, 
+            '/data/RbinStep' : RbinStep, 
+            '/data/Rbin__r' : Rbin__r, 
+            '/data/RbinCenter__r' : RbinCenter__r, 
+            '/data/NRbins' : NRbins, 
+            '/data/RColor' : RColor, 
+            '/data/RRange' : RRange, 
+            '/data/N_gals' : N_gals, 
+            '/data/tSF__T' : tSF__T, 
+            '/data/xOkMin' : xOkMin, 
+            '/data/tauVOkMin' : tauVOkMin, 
+            '/data/tauVNebOkMin' : tauVNebOkMin, 
+            '/data/tauVNebErrMax' : tauVNebErrMax,
+        }
+
+        for iT,tSF in enumerate(tSF__T):
+            D['/masked/data/ALL_tauV__Tg/%d' % iT] = ALL_tauV__Tg[iT].data
+            D['/masked/data/ALL_SFR__Tg/%d' % iT] = ALL_SFR__Tg[iT].data
+            D['/masked/data/ALL_SFRSD__Tg/%d' % iT] = ALL_SFRSD__Tg[iT].data
+            D['/masked/data/ALL_SFRSD_kpc__Tg/%d' % iT] = ALL_SFRSD_kpc__Tg[iT].data
+            D['/masked/mask/ALL_tauV__Tg/%d' % iT] = ALL_tauV__Tg[iT].mask
+            D['/masked/mask/ALL_SFR__Tg/%d' % iT] = ALL_SFR__Tg[iT].mask
+            D['/masked/mask/ALL_SFRSD__Tg/%d' % iT] = ALL_SFRSD__Tg[iT].mask
+            D['/masked/mask/ALL_SFRSD_kpc__Tg/%d' % iT] = ALL_SFRSD_kpc__Tg[iT].mask
+
+        for k in D.keys():
+            try:
+                file.create_dataset(k, data = D[k], compression='gzip', compression_opts=4)
+            except TypeError:
+                file.create_dataset(k, data = D[k])
+    
     if plot:
         NRows = 4
         NCols = 3
@@ -1076,7 +1209,7 @@ if __name__ == '__main__':
                     # density_contour(xm, ym, binsx, binsy, ax=ax)
                     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
                     ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c=".3")
-                    txt = 'age: %.2d Myr - $R_S$: %.2f' % ((age / 1e6), correl_SigmaSFR__rT[0, iT])
+                    txt = 'age: %.2d Myr - $R_S$: %.2f' % ((age / 1e6), correl_SFRSD__rT[0, iT])
                     textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
                     ax.text(0.05, 0.92, txt, fontsize = 12, 
                             transform = ax.transAxes, 
@@ -1097,7 +1230,7 @@ if __name__ == '__main__':
                     k += 1
                 elif i == (NRows - 1) and j == (NCols - 1):
                     ax.set_axis_on()
-                    ax.plot(np.log10(tSF__T), correl_SigmaSFR__rT[0, :], 'k-', label = r'$R_S$')
+                    ax.plot(np.log10(tSF__T), correl_SFRSD__rT[0, :], 'k-', label = r'$R_S$')
  
                     for iR, RUp in enumerate(RRange):
                         if iR == 0:
@@ -1108,7 +1241,7 @@ if __name__ == '__main__':
                         iiR = iR + 1
                          
                         c = RColor[iR]
-                        ax.plot(np.log10(tSF__T), correl_SigmaSFR__rT[iiR, :], color = c, ls = '--', label = None)
+                        ax.plot(np.log10(tSF__T), correl_SFRSD__rT[iiR, :], color = c, ls = '--', label = None)
  
                     ax.set_xlabel(r'$\log\ t_\star\ [yr]$')
                     ax.legend(fontsize=12, frameon=False)
@@ -1124,8 +1257,8 @@ if __name__ == '__main__':
           
         f = plt.figure()
         ax = f.gca()
-        ax.plot(np.log10(tSF__T), correl_SigmaSFR__rT[0, :], 'k-', label = r'$R_S(\Sigma_{\mathrm{SFR}})$')
-        ax.plot(np.log10(tSF__T), correl_SigmaSFR_kpc__rT[0, :], 'k-', label = r'$R_S(\Sigma_{\mathrm{SFR}}\ \star)$')
+        ax.plot(np.log10(tSF__T), correl_SFRSD__rT[0, :], 'k-', label = r'$R_S(\Sigma_{\mathrm{SFR}})$')
+        ax.plot(np.log10(tSF__T), correl_SFRSD_kpc__rT[0, :], 'k-', label = r'$R_S(\Sigma_{\mathrm{SFR}}\ \star)$')
         ax.plot(np.log10(tSF__T), correl_SFR, 'k--', label = r'$R_S(\mathrm{SFR})$')
         ax.set_xlabel(r'$\log\ t_\star\ [yr]$')
         ax.set_ylabel(r'$R_S$')

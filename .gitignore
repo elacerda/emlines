@@ -13,3 +13,9 @@ latex/tau.out
 latex/tau.synctex.gz
 emlines_backup.py
 teste.py
+latex/SFR.aux
+latex/SFR.bbl
+latex/SFR.blg
+latex/SFR.out
+latex/nathesis.cls
+latex/pythonenv.sty
