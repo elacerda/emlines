@@ -9,6 +9,32 @@ import scipy.optimize as so
 from matplotlib import pyplot as plt
 
 
+def plotRunningStatsAxis(ax, x, y, plot_stats = 'mean', color = 'black', errorbar = True):
+    nBox        = 25
+    dxBox       = (x.max() - x.min()) / (nBox - 1.)
+    aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
+    xbinCenter  = aux[0]
+    xMedian     = aux[1]
+    xMean       = aux[2]
+    xStd        = aux[3]
+    yMedian     = aux[4]
+    yMean       = aux[5]
+    yStd        = aux[6]
+    nInBin      = aux[7]
+    
+    if plot_stats == 'median':
+        xx = xMedian
+        yy = yMedian
+    else:
+        xx = xMean
+        yy = yMean
+
+    ax.plot(xx, yy, 'o-', c = color, lw = 2)
+    
+    if errorbar:
+        ax.errorbar(xx, yy, yerr = yStd, xerr = xStd, c = color)
+
+
 def get_attrib_h5(h5, attrib):
     if any([ attrib in s for s in h5['masked/mask'].keys() ]):
         node = '/masked/data/' + attrib
@@ -51,12 +77,12 @@ def density_contour(xdata, ydata, binsx, binsy, ax = None, **contour_kwargs):
     contour_kwargs : dict
         kwargs to be passed to pyplot.contour()
     """    
-    nbins_x = len(binsx) - 1
-    nbins_y = len(binsy) - 1
+    #nbins_x = len(binsx) - 1
+    #nbins_y = len(binsy) - 1
 
     H, xedges, yedges = np.histogram2d(xdata, ydata, bins = [binsx, binsy], normed = True)
-    x_bin_sizes = (xedges[1:] - xedges[:-1]).reshape((1, nbins_x))
-    y_bin_sizes = (yedges[1:] - yedges[:-1]).reshape((nbins_y, 1))
+    x_bin_sizes = (xedges[1:] - xedges[:-1])
+    y_bin_sizes = (yedges[1:] - yedges[:-1])
  
     pdf = (H * (x_bin_sizes * y_bin_sizes))
  
@@ -105,6 +131,13 @@ def calcRunningStats(x, y, dxBox = 0.3, xbinIni = 8.5, xbinFin = 12, xbinStep = 
     return xbinCenter, xMedian, xMean, xStd, yMedian, yMean, yStd, nInBin
 
 
+def plotStatCorreAxis(ax, x, y, pos_x, pos_y, fontsize):
+    rhoSpearman, pvalSpearman = st.spearmanr(x, y)
+    txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(y/x), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
+    textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
+    ax.text(pos_x, pos_y, txt, fontsize = fontsize, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
+
+
 def gaussSmooth_YofX(x, y, FWHM):
     '''
     Sloppy function to return the gaussian-smoothed version of an y(x) relation.
@@ -125,6 +158,75 @@ def gaussSmooth_YofX(x, y, FWHM):
         yS[i] = (w__ij[i, :] * y).sum()
 
     return xS , yS
+
+
+def plotSFR(x,y,xlabel,ylabel,xlim,ylim,age,fname):
+    f = plt.figure()
+    f.set_size_inches(10,8)
+    ax = f.gca()
+    scat = ax.scatter(x, y, c = 'black', edgecolor = 'none', alpha = 0.5)
+    ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c=".3")
+    rhoSpearman, pvalSpearman = st.spearmanr(x, y)
+    yxlabel = r'$%s /\ %s $ ' % (ylabel.split('[')[0].strip('$ '), xlabel.split('[')[0].strip('$ '))
+    txt = '%s mean:%.3f  median:%.3f  $\sigma(y/x)$:%.3f  Rs: %.2f' % (yxlabel, (y/x).mean(), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
+    textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
+    ax.text(0.03, 0.97, txt, fontsize = 16, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
+    ax.grid()
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    #ax.set_xlim(xlim)
+    #ax.set_ylim(ylim)
+    ax.set_title(r'$%s$ Myr' % str(age / 1.e6))
+    if fname:
+        f.savefig(fname)
+    else:
+        f.show()
+    plt.close(f)
+
+
+def plotTau(x,y,xlabel,ylabel,xlim,ylim,age,fname):
+    f = plt.figure()
+    f.set_size_inches(10,8)
+    ax = f.gca()
+    scat = ax.scatter(x, y, c = 'black', edgecolor = 'none', alpha = 0.5)
+    #ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c=".3")
+    rhoSpearman, pvalSpearman = st.spearmanr(x, y)
+    yxlabel = r'$%s /\ %s $ ' % (ylabel.split('[')[0].strip('$ '), xlabel.split('[')[0].strip('$ '))
+    txt = '%s mean:%.3f  median:%.3f  $\sigma(y/x)$:%.3f  Rs: %.2f' % (yxlabel, (y/x).mean(), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
+    textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
+    ax.text(0.3, 0.97, txt, fontsize = 15, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
+    ax.grid()
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    #ax.set_xlim(xlim)
+    #ax.set_ylim(ylim)
+    ax.set_title(r'$%s$ Myr' % str(age / 1.e6))
+    if fname:
+        f.savefig(fname)
+    else:
+        f.show()
+    plt.close(f)
+    
+    
+def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, age, fname):
+    f = plt.figure()
+    f.set_size_inches(10,10)
+    ax = f.gca()
+    sc = ax.scatter(x, y, c = zm, cmap = 'spectral_r', vmin = 4., vmax = 6.,  marker = 'o', s = 5., edgecolor = 'none')
+    binsx = np.linspace(min(x), max(x), 21)
+    binsy = np.linspace(min(y), max(y), 21)
+    density_contour(x, y, binsx, binsy, ax = ax, color = 'k')
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_xlim(0, 2.5)
+    ax.set_ylim(0, 2.5)
+    plotStatCorreAxis(ax, x, y, 0.03, 0.97, 16)
+    plotRunningStatsAxis(ax, x, y, 'k')    
+    cb = f.colorbar(sc)
+    cb.set_label(zlabel)
+    ax.set_title(r'$%s$ Myr' % str(age / 1.e6))
+    f.savefig(fname)
+    plt.close(f)
 
 
 def calcYofXStats_EqNumberBins(x, y, nPerBin = 25):

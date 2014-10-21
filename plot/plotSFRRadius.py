@@ -7,7 +7,8 @@ import h5py
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 import sys
-from plot_aux import get_attrib_h5, calcRunningStats
+from plot_aux import get_attrib_h5, calcRunningStats, \
+                     plotRunningStatsAxis
 from scipy import stats as st
 
 
@@ -18,23 +19,6 @@ mpl.rcParams['xtick.labelsize'] = 16
 mpl.rcParams['ytick.labelsize'] = 16 
 mpl.rcParams['font.family']     = 'serif'
 mpl.rcParams['font.serif']      = 'Times New Roman'
-
-
-def plotRunningStatsAxis(ax, x, y, color):
-    nBox        = 25
-    dxBox       = (x.max() - x.min()) / (nBox - 1.)
-    aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
-    xbinCenter  = aux[0]
-    xMedian     = aux[1]
-    xMean       = aux[2]
-    xStd        = aux[3]
-    yMedian     = aux[4]
-    yMean       = aux[5]
-    yStd        = aux[6]
-    nInBin      = aux[7]
-    ax.plot(xMean, yMean, 'o-', c = color, lw = 2)
-    ax.errorbar(xMean, yMean, yerr = yStd, xerr = xStd, c = color)
-
 
 h5 = h5py.File(sys.argv[1], 'r')
 
@@ -72,7 +56,7 @@ for iT,tSF in enumerate(tSF__T):
        xm = x[mask]
        ym = y[mask]
        scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
-       plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+       plotRunningStatsAxis(ax, xm, ym, 'mean', RColor[iR])
     
    ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c=".3")
 
@@ -112,7 +96,7 @@ for iT,tSF in enumerate(tSF__T):
        xm = x[mask]
        ym = y[mask]
        scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
-       plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+       plotRunningStatsAxis(ax, xm, ym, 'mean', RColor[iR])
 
    x = ALL_tauV__Trg[iT, :, :].flatten()
    y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
@@ -150,7 +134,7 @@ for iT,tSF in enumerate(tSF__T):
        xm = x[mask]
        ym = y[mask]
        scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
-       plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+       plotRunningStatsAxis(ax, xm, ym, 'mean', RColor[iR])
         
    x = ALL_tau_V_neb__rg.flatten()
    y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
@@ -187,7 +171,7 @@ for iT,tSF in enumerate(tSF__T):
        xm = x[mask]
        ym = y[mask]
        scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
-       plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+       plotRunningStatsAxis(ax, xm, ym, 'mean', RColor[iR])
 
    x = np.ma.log10(ALL_tauV__Trg[iT, :, :].flatten())
    y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
@@ -225,7 +209,7 @@ for iT,tSF in enumerate(tSF__T):
        xm = x[mask]
        ym = y[mask]
        scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
-       plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+       plotRunningStatsAxis(ax, xm, ym, 'mean', RColor[iR])
 
    x = np.ma.log10(ALL_tau_V_neb__rg.flatten())
    y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
@@ -263,7 +247,7 @@ for iT,tSF in enumerate(tSF__T):
        xm = x
        ym = y
        scat = ax.scatter(xm, ym, c = RColor[iR], edgecolor = 'none', alpha = 0.8)
-       plotRunningStatsAxis(ax, xm, ym, RColor[iR])
+       plotRunningStatsAxis(ax, xm, ym, 'mean', RColor[iR])
 
    x = np.ma.log10(ALL_McorSD_GAL__rg.flatten())
    y = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten()/ALL_aSFRSD__Trg[iT, :, :].flatten())
