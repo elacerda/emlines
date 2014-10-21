@@ -224,7 +224,7 @@ For our models configuration we can see the evolution of $\mathcal{N}_H$ in time
 \end{equation}
 \noindent This method gives us a recent SFR in terms that we use the value of $N_H$ at $t = 10$ Myr. With the \starlight synthesis we can do more than that, as we will see in \ref{sub:StellarSFR}. For the last step, solving \eqref{eq:SFR_theoric} we found the value for k in \eqref{eq:SFRHa} ($\psi \equiv \mathrm{SFR}$):
 \begin{equation}
-	\mathrm{SFR}_{\Halpha} = 3.17\ \mathrm{M}_\odot\ yr^{-1} \left(\frac{\mathrm{L}(\Halpha)}{10^8\mathrm{L}_\odot}\right)
+	\mathrm{SFR}_{\Halpha} = 3.13\ \mathrm{M}_\odot\ yr^{-1} \left(\frac{\mathrm{L}(\Halpha)}{10^8\mathrm{L}_\odot}\right)
 \end{equation}
 \
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
@@ -236,11 +236,11 @@ For our models configuration we can see the evolution of $\mathcal{N}_H$ in time
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
 \subsection{SFR from the stellar sinthesys}
-\label{sub:StellarSFR}
-Using \STARLIGHT we are able to analyze de SFR in function of time (SFR($t_\star$)) using the cumulative fraction of mass ($\mu_\star^c$) as follows:
-\begin{equation}
-	\mathrm{SFR}(t_\star) = \frac{\mathrm{d} \mathrm{M}_\star^c(t_\star)}{\mathrm{d} t_\star} \approx \frac{\Delta \mathrm{M}_\star^c(t_\star)}{\Delta t_\star} = \frac{\mathrm{M}_\star^c \log e}{t_\star} \frac{\mu_\star^c(t_\star)}{\Delta \log t_\star}
-\end{equation}
+%\label{sub:StellarSFR}
+%Using \STARLIGHT we are able to analyze de SFR in function of time (SFR($t_\star$)) using the cumulative fraction of mass ($\mu_\star^c$) as follows:
+%\begin{equation}
+%	\mathrm{SFR}(t_\star) = \frac{\mathrm{d} \mathrm{M}_\star^c(t_\star)}{\mathrm{d} t_\star} \approx \frac{\Delta \mathrm{M}_\star^c(t_\star)}{\Delta t_\star} = \frac{\mathrm{M}_\star^c \log e}{t_\star} \frac{\mu_\star^c(t_\star)}{\Delta \log t_\star}
+%\end{equation}
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
@@ -252,7 +252,7 @@ Using \STARLIGHT we are able to analyze de SFR in function of time (SFR($t_\star
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SigmaSFR_allages.png}}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SigmaSFR_allages.pdf}}
 \caption{Comparison of star formation rates from full spectral fits with \starlight and those from \Halpha luminosity for 40532 zones of 300 CALIFA galaxies. All the zones are selected to be below of the line created by \citet[S06]{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
 \label{fig:SigmaSFHCompare}
 \end{figure*}
@@ -268,19 +268,19 @@ Using \STARLIGHT we are able to analyze de SFR in function of time (SFR($t_\star
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SigmaSFR_allages_BelowS06.png}}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SigmaSFR_allages_BelowS06.pdf}}
 \caption{The same as figure \ref{fig:SigmaSFHCompareBS06} with zones with position in the BPT plane below S06 line.}
 \label{fig:SigmaSFHCompareBS06}
 \end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
 
-In the Fig. \ref{fig:SFHCompare} we compare $\SFR$ for seven ages (0.01, 25.2, 63.2, 100.1, 158.6, 199.6, 1400.2 Myr) with the $\SFRN$ calibrated from the \Halpha luminosity. 
+%In the Fig. \ref{fig:SFHCompare} we compare $\SFR$ for seven ages (0.01, 25.2, 63.2, 100.1, 158.6, 199.6, 1400.2 Myr) with the $\SFRN$ calibrated from the \Halpha luminosity. 
  
-In these results below I assume a Schmidt law of \citet{Kennicutt.1998a} with the numerical coefficient adjusted by \citet{Tremonti.etal.2004a} to include helium in $\Sigma_{gas}$:
-\begin{equation}
-	\Sigma_{\textrm{SFR}} = 1.6 \times 10^{-4} \left(\frac{\Sigma_{gas}}{1\ \textrm{M}_\odot\ pc^{-2}}\right)^{1.4} \textrm{M}_\odot\ yr^{-1}\ kpc^{-2}
-\end{equation}
+%In these results below I assume a Schmidt law of \citet{Kennicutt.1998a} with the numerical coefficient adjusted by \citet{Tremonti.etal.2004a} to include helium in $%\Sigma_{gas}$:
+%\begin{equation}
+%	\Sigma_{\textrm{SFR}} = 1.6 \times 10^{-4} \left(\frac{\Sigma_{gas}}{1\ \textrm{M}_\odot\ pc^{-2}}\right)^{1.4} \textrm{M}_\odot\ yr^{-1}\ kpc^{-2}
+%\end{equation}
 
 %$\Sigma_{SFR}$. $\Sigma_{gas}$ and $\log$DGR:
 %\begin{eqnarray}
