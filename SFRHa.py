@@ -12,8 +12,8 @@ from pystarlight.util.base import StarlightBase
 
 #useTrapz = True
 useTrapz = False
-#plot = True
-plot = False
+plot = True
+#plot = False
 outputImgSuffix = 'pdf'
 
 def add_subplot_axes(ax, rect, axisbg = 'w'):
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         base        = StarlightBase(baseFile, b, hdf5 = True)
         
         max_yr      = base.ageBase[-1]
-        max_yr      = 10e7
+        max_yr      = 1e7
         mask        = base.l_ssp <= 912         # Angstrom
         mask_age    = base.ageBase <= max_yr
         
