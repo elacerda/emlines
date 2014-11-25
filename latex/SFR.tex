@@ -168,10 +168,10 @@ The nebular metalicity used here is calibrated by \citep{Stasinska.2006a} as:
 
 \section{Some results using the emission lines files}
 
-I begin the nebular studies looking for a star formation rate (SFR) calibration for our data. I did that in the same way as \citet[sec. 5.1]{Asari.etal.2007a} but using \citet{BC03a} with \citet{Salpeter.1955a} IMF and Padova 2000 isochrones \citep{Girardi.etal.2000a}. The recipe is simple, but kinda tricky. I'll explain here as follows.
+I began the nebular studies looking for a star formation rate (SFR) calibration for our data. I did that in the same way as \citet[sec. 5.1]{Asari.etal.2007a} but instead using \citet{BC03a} with \citet{Salpeter.1955a} IMF and Padova 2000 isochrones \citep{Girardi.etal.2000a}. The recipe is simple, but kinda tricky. I'll explain here as follows.
 
 \subsection{Current SFR calibration using \Halpha luminosity}
-
+\label{sub:NebularSFR}
 We want to calibrate the \Halpha luminosity ($\mathrm{L}_{\Halpha}$) as an SFR ($\psi$) indicator \citep[e.g., ][]{Kennicutt.1998a} using a linear relation
 \begin{equation}
 	\psi_{\Halpha} = k \times \mathrm{L}_{\Halpha}.
@@ -224,19 +224,28 @@ For our models configuration we can see the evolution of $\mathcal{N}_H$ in time
 \end{equation}
 \noindent This method gives us a recent SFR in terms that we use the value of $N_H$ at $t = 10$ Myr. With the \starlight synthesis we can do more than that, as we will see in \ref{sub:StellarSFR}. For the last step, solving \eqref{eq:SFR_theoric} we found the value for k in \eqref{eq:SFRHa} ($\psi \equiv \mathrm{SFR}$):
 \begin{equation}
+	\label{eq:SFRNeb}
 	\mathrm{SFR}_{\Halpha} = 3.13\ \mathrm{M}_\odot\ yr^{-1} \left(\frac{\mathrm{L}(\Halpha)}{10^8\mathrm{L}_\odot}\right)
 \end{equation}
 \
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
 \resizebox{0.99\textwidth}{!}{\includegraphics{Nh_logt_metBase_Padova2000_salp.pdf}}
-\caption{\emph{Left panel}: The time-evolution of the number of the photons ($\mathcal{N}_H$) for six metallicities (from 0.02 $Z_\odot$ to 1.58 $Z_\odot$) that compose our SSP models. The solar metalicity is drawn as a thick black line. \emph{Right panel}: The same from \emph{left panel} but normalized by the total value of $\mathcal{N}_H$. The black dashed line shows 95\% of the total $\mathcal{N}_H$. A zoom is also provided for a better view of the region around 10 Myr.}
+\caption{\emph{Upper left panel}: The time-evolution of the number of the photons ($\mathcal{N}_H$) for six metallicities (from 0.02 $Z_\odot$ to 1.58 $Z_\odot$) that compose our SSP models. The solar metalicity is drawn as a thick black line. \emph{Upper right panel}: The same from \emph{upper left panel} but normalized by the total value of $\mathcal{N}_H$. The black dashed line shows 95\% of the total $\mathcal{N}_H$. A zoom is also provided for a better view of the region around 10 Myr. \emph{Bottom panel}: Evolution of the H-ionizing photon rate per unit formed mass also for the same six metallicities.}
 \label{fig:Nh_qh}
 \end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
 \subsection{SFR from the stellar sinthesys}
-%\label{sub:StellarSFR}
+\label{sub:StellarSFR}
+The process explained at the Sec. \ref{sub:NebularSFR}, which culminates in equation \eqref{eq:SFRNeb}, show us a recent SFR.  The SFR from spectral synthesis should be more representative of the true SFR due to the contribution of all stars to visible light. Using the fact that we have age and mass of each stellar population as one of the products of the spectral synthesis, we can sum over this factor and obtain the total mass converted into stars within the last $\tau$ years, i.e., a mean stellar SFR in the last $\tau$ years.
+\begin{equation}
+	\label{eq:MeanStellarSFR}
+	\overline{\mathrm{SFR}_\star}(\tau) = \mathrm{M}_\star^c \frac{1 - \eta_\star^c(\tau)}{\tau}
+\end{equation}
+
+Using all the years presented in our base (spanning since 1 Myr till 14.1 Gyr) we can compare this $\overline{\mathrm{SFR}_\star}(\tau)$ with the $\mathrm{SFR}_{\Halpha}$. The Figs. \ref{fig:SFRCompare}, \ref{fig:SFRSDCompare}, \ref{fig:SFRCompareBS06} and \ref{fig:SFRSDCompareBS06} shows us the this comparison for 11 ages and in the last panel the correlations between both for all ages. 
+
 %Using \STARLIGHT we are able to analyze de SFR in function of time (SFR($t_\star$)) using the cumulative fraction of mass ($\mu_\star^c$) as follows:
 %\begin{equation}
 %	\mathrm{SFR}(t_\star) = \frac{\mathrm{d} \mathrm{M}_\star^c(t_\star)}{\mathrm{d} t_\star} \approx \frac{\Delta \mathrm{M}_\star^c(t_\star)}{\Delta t_\star} = \frac{\mathrm{M}_\star^c \log e}{t_\star} \frac{\mu_\star^c(t_\star)}{\Delta \log t_\star}
@@ -244,33 +253,33 @@ For our models configuration we can see the evolution of $\mathcal{N}_H$ in time
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_allages.png}}
-\caption{Comparison of star formation rates from full spectral fits with \starlight and those from \Halpha luminosity for 40532 zones of 300 CALIFA galaxies. All the zones are selected to be below of the line created by \citet{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
-\label{fig:SFHCompare}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_report.png}}
+\caption{Comparison of star formation rates from full spectral fits with \starlight and those from \Halpha luminosity for 40532 zones of 300 CALIFA galaxies. The last panel show us the correlation between $\overline{\mathrm{SFR}_\star}(\tau)$ and $\mathrm{SFR}_{\Halpha}$ for all ages.}
+\label{fig:SFRCompare}
 \end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SigmaSFR_allages.pdf}}
-\caption{Comparison of star formation rates from full spectral fits with \starlight and those from \Halpha luminosity for 40532 zones of 300 CALIFA galaxies. All the zones are selected to be below of the line created by \citet[S06]{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
-\label{fig:SigmaSFHCompare}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SFRSD_report.pdf}}
+\caption{Comparison of star formation rates from full spectral fits with \starlight and those from \Halpha luminosity. In this plot the quantities are averaged by 20 bins in radius (from 0 to 2 HLR) for 300 CALIFA galaxies and also color coded by distance.}
+\label{fig:SFRSDCompare}
 \end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_allages_BelowS06.png}}
-\caption{The same as figure \ref{fig:SigmaSFHCompareBS06} with zones with position in the BPT plane below S06 line.}
-\label{fig:SFHCompareBS06}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_BelowS06_report.png}}
+\caption{The same as figure \ref{fig:SFRCompare} but with the zones selected to be below of the line created by \citet{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
+\label{fig:SFRCompareBS06}
 \end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SigmaSFR_allages_BelowS06.pdf}}
-\caption{The same as figure \ref{fig:SigmaSFHCompareBS06} with zones with position in the BPT plane below S06 line.}
-\label{fig:SigmaSFHCompareBS06}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SFRSD_BelowS06_report.pdf}}
+\caption{The same as figure \ref{fig:SFRSDCompare} but with the zones selected to be below of the line created by \citet{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
+\label{fig:SFRSDCompareBS06}
 \end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
