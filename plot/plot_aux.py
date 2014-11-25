@@ -9,8 +9,7 @@ import scipy.optimize as so
 from matplotlib import pyplot as plt
 
 
-def plotRunningStatsAxis(ax, x, y, plot_stats = 'mean', color = 'black', errorbar = True):
-    nBox        = 25
+def plotRunningStatsAxis(ax, x, y, ylegend, plot_stats = 'mean', color = 'black', errorbar = True, nBox = 25):
     dxBox       = (x.max() - x.min()) / (nBox - 1.)
     aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
     xbinCenter  = aux[0]
@@ -29,7 +28,7 @@ def plotRunningStatsAxis(ax, x, y, plot_stats = 'mean', color = 'black', errorba
         xx = xMean
         yy = yMean
 
-    ax.plot(xx, yy, 'o-', c = color, lw = 2)
+    ax.plot(xx, yy, color, lw = 2, label = ylegend)
     
     if errorbar:
         ax.errorbar(xx, yy, yerr = yStd, xerr = xStd, c = color)
@@ -208,25 +207,44 @@ def plotTau(x,y,xlabel,ylabel,xlim,ylim,age,fname):
     plt.close(f)
     
     
-def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, age, fname):
+def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, zlim, age, fname):
     f = plt.figure()
-    f.set_size_inches(10,10)
+    f.set_size_inches(10,9)
     ax = f.gca()
-    sc = ax.scatter(x, y, c = zm, cmap = 'spectral_r', vmin = 4., vmax = 6.,  marker = 'o', s = 5., edgecolor = 'none')
+    if zlim != None:
+        sc = ax.scatter(x, y, c = z, cmap = 'spectral_r', vmin = zlim[0], vmax = zlim[1], marker = 'o', s = 5., edgecolor = 'none')
+    else:
+        sc = ax.scatter(x, y, c = z, cmap = 'spectral_r', marker = 'o', s = 5., edgecolor = 'none')
+    ax.plot((y - np.log10(1.6e-4))/1.4, y, 'k--')
     binsx = np.linspace(min(x), max(x), 21)
     binsy = np.linspace(min(y), max(y), 21)
     density_contour(x, y, binsx, binsy, ax = ax, color = 'k')
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_xlim(0, 2.5)
-    ax.set_ylim(0, 2.5)
+    if xlim != None:
+        ax.set_xlim(xlim)
+    if ylim != None:
+        ax.set_ylim(ylim)
     plotStatCorreAxis(ax, x, y, 0.03, 0.97, 16)
-    plotRunningStatsAxis(ax, x, y, 'k')    
+    #plotRunningStatsAxis(ax, x, y, 'k')    
+    nBox = 20
+    dxBox       = (x.max() - x.min()) / (nBox - 1.)
+    aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
+    xbinCenter  = aux[0]
+    xMedian     = aux[1]
+    xMean       = aux[2]
+    xStd        = aux[3]
+    yMedian     = aux[4]
+    yMean       = aux[5]
+    yStd        = aux[6]
+    nInBin      = aux[7]
+    ax.plot(xMedian, yMedian, 'k', lw = 2)
     cb = f.colorbar(sc)
     cb.set_label(zlabel)
     ax.set_title(r'$%s$ Myr' % str(age / 1.e6))
     f.savefig(fname)
     plt.close(f)
+    
 
 
 def calcYofXStats_EqNumberBins(x, y, nPerBin = 25):

@@ -8,9 +8,9 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 import sys
 from plot_aux import get_attrib_h5, plotStatCorreAxis, \
-                     density_contour, plotRunningStatsAxis
+                     density_contour, plotRunningStatsAxis, \
+                     plotTau, plotSFR, plotScatterColor
 from scipy import stats as st
-
 
 mpl.rcParams['font.size']       = 20
 mpl.rcParams['axes.labelsize']  = 20
@@ -24,143 +24,120 @@ h5 = h5py.File(sys.argv[1], 'r')
 
 tSF__T = get_attrib_h5(h5, 'tSF__T')
 
+# zones
 ALL_SFR__Tg = get_attrib_h5(h5, 'ALL_SFR__Tg')
 ALL_SFR_Ha__g = get_attrib_h5(h5, 'ALL_SFR_Ha__g')
+ALL_SFRSD__Tg = get_attrib_h5(h5, 'ALL_SFRSD__Tg')
+ALL_SFRSD_kpc__Tg = get_attrib_h5(h5, 'ALL_SFRSD_kpc__Tg')
+ALL_SFRSD_Ha__g = get_attrib_h5(h5, 'ALL_SFRSD_Ha__g')
+ALL_dist_zone__g = get_attrib_h5(h5, 'ALL_dist_zone__g')
+ALL_tau_V__Tg = get_attrib_h5(h5, 'ALL_tau_V__Tg')
+ALL_tau_V_neb__g = get_attrib_h5(h5, 'ALL_tau_V_neb__g')
+ALL_L_int_Ha__g = get_attrib_h5(h5, 'ALL_L_int_Ha__g')
+
+# Mcor and McorSD by zones for all galaxies
+ALL_Mcor__g = get_attrib_h5(h5, 'ALL_Mcor__g')
+ALL_McorSD__g = get_attrib_h5(h5, 'ALL_McorSD__g')
+
+# galaxy wide quantities replicated by zones
+ALL_Mcor_GAL_zones__g = get_attrib_h5(h5, 'ALL_Mcor_GAL_zones__g')
+ALL_McorSD_GAL_zones__g = get_attrib_h5(h5, 'ALL_McorSD_GAL_zones__g')
+ALL_morfType_GAL_zones__g = get_attrib_h5(h5, 'ALL_morfType_GAL_zones__g')
+ALL_at_flux_GAL_zones__g = get_attrib_h5(h5, 'ALL_at_flux_GAL_zones__g')
+
+# radius
 ALL_aSFRSD_kpc__Trg = get_attrib_h5(h5, 'ALL_aSFRSD_kpc__Trg')
 ALL_aSFRSD_Ha_kpc__rg = get_attrib_h5(h5, 'ALL_aSFRSD_Ha_kpc__rg')
-ALL_tauV__Trg = get_attrib_h5(h5, 'ALL_tauV__Trg')
+ALL_tau_V__Trg = get_attrib_h5(h5, 'ALL_tau_V__Trg')
 ALL_tau_V_neb__rg = get_attrib_h5(h5, 'ALL_tau_V_neb__rg')
-ALL_dist_zone__g = get_attrib_h5(h5, 'ALL_dist_zone__g')
-ALL_tauV__Tg = get_attrib_h5(h5, 'ALL_tauV__Tg')
-ALL_tau_V_neb__g = get_attrib_h5(h5, 'ALL_tauVNeb__g')
-ALL_L_int_Ha__g = get_attrib_h5(h5, 'ALL_L_int_Ha__g')
+
+correl_SFR__T = get_attrib_h5(h5, 'correl_SFR__T')
  
 h5.close()
 
 for iT,tSF in enumerate(tSF__T):
-    x = np.ma.log10(ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
-    y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg[:, :].flatten())
-    mask = ~(x.mask | y.mask)
-    xm = x[mask]
-    ym = y[mask]
-    xlim = np.percentile(xm, [1, 100 * (xm.shape[0] - xm.mask.sum()) / xm.shape[0] - 1])
-    ylim = np.percentile(ym, [1, 100 * (ym.shape[0] - ym.mask.sum()) / ym.shape[0] - 1])
-    xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    fname = 'alogSFRSD_alogSFRSD_neb_age_%sMyr.png' % str(tSF / 1.e6)
-    plotSFR(xm,ym,xlabel,ylabel,xlim,ylim,tSF,fname)
-      
-    x = np.ma.log10(ALL_SFR__Tg[iT])
-    y = np.ma.log10(ALL_SFR_Ha__g)
-    xlabel = r'$\log\ SFR_\star\ [M_\odot yr^{-1}]$' 
-    ylabel = r'$\log\ SFR_{neb}\ [M_\odot yr^{-1}]$' 
-    fname = 'logSFR_logSFR_neb_age_%sMyr.png' % str(tSF / 1.e6)
-    xlim = np.percentile(x, [1, 100 * (x.shape[0] - x.mask.sum()) / x.shape[0] - 1])
-    ylim = np.percentile(y, [1, 100 * (y.shape[0] - y.mask.sum()) / y.shape[0] - 1])
-    plotSFR(x,y,xlabel,ylabel,xlim,ylim,tSF,fname)
-          
-    x = ALL_tauV__Trg[iT, :, :].flatten()
-    y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg.flatten() / ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
-    xlabel = r'$\tau_V^\star(R)$'
-    ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
-    fname = 'tauV_SFRSDHa_SFRSD_age_%sMyr.png' % str(tSF / 1.e6)
-    plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
-      
-    x = ALL_tau_V_neb__rg.flatten()
-    y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg.flatten() / ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
-    xlabel = r'$\tau_V^{neb}(R)$'
-    ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
-    fname = 'tauVneb_SFRSDHa_SFRSD_age_%sMyr.png' % str(tSF / 1.e6)
-    plotTau(x,y,xlabel,ylabel,None,None,tSF,fname)
-     
-    x = ALL_tauV__Tg[iT]
-    y = ALL_tau_V_neb__g
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     # all zones 
+#     # x = log10(SFR*(age)) 
+#     # y = log10(SFRHa)
+#     # z = (tauV*(age) - tauVHa)
+#     x = np.ma.log10(ALL_SFR__Tg[iT])
+#     y = np.ma.log10(ALL_SFR_Ha__g)
+#     z = ALL_tau_V__Tg[iT] - ALL_tau_V_neb__g
+#     mask = ~(x.mask | y.mask)
+#     xm = x[mask]
+#     ym = y[mask]
+#     zm = z[mask]
+#     xlabel = r'$\log\ SFR_\star\ [M_\odot\ yr^{-1}]$' 
+#     ylabel = r'$\log\ SFR_{neb}\ [M_\odot\ yr^{-1}]$'
+#     zlabel = r'$\tau_V^\star\ -\ \tau_V^{neb}$' 
+#     fname = 'logSFR_logSFR_neb_dTau_age_%sMyr.png' % str(tSF / 1.e6)
+#     #xlim = np.percentile(x, [1, 100 * (x.shape[0] - x.mask.sum()) / x.shape[0] - 1])
+#     #ylim = np.percentile(y, [1, 100 * (y.shape[0] - y.mask.sum()) / y.shape[0] - 1])
+#     plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, None, None, None, tSF, fname)
+#     #plotSFR(x,y,xlabel,ylabel,xlim,ylim,tSF,fname)
+# 
+#     # all zones 
+#     # x = log10(SFRSD*(age)) 
+#     # y = log10(SFRSDHa)
+#     # z = (tauV*(age) - tauVHa)
+#     x = np.ma.log10(ALL_SFRSD__Tg[iT])
+#     y = np.ma.log10(ALL_SFRSD_Ha__g)
+#     z = ALL_tau_V__Tg[iT] - ALL_tau_V_neb__g
+#     mask = ~(x.mask | y.mask)
+#     xm = x[mask]
+#     ym = y[mask]
+#     zm = z[mask]
+#     xlabel = r'$\log\ SFRSD_\star\ [M_\odot\ yr^{-1}\ pc^{-2}]$' 
+#     ylabel = r'$\log\ SFRSD_{neb}\ [M_\odot\ yr^{-1}\ pc^{-2}]$'
+#     zlabel = r'$\tau_V^\star\ -\ \tau_V^{neb}$' 
+#     fname = 'logSFRSD_logSFRSD_neb_dTau_age_%sMyr.png' % str(tSF / 1.e6)
+#     #xlim = np.percentile(x, [1, 100 * (x.shape[0] - x.mask.sum()) / x.shape[0] - 1])
+#     #ylim = np.percentile(y, [1, 100 * (y.shape[0] - y.mask.sum()) / y.shape[0] - 1])
+#     plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, None, None, None, tSF, fname)
+#     #plotSFR(x,y,xlabel,ylabel,xlim,ylim,tSF,fname)
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    
+    A_V_neb__g = np.log10(np.exp(1)) * ALL_tau_V_neb__g / 0.4
+    SigmaGAS = 15. * A_V_neb__g 
+    x = np.log10(SigmaGAS)
+    y = np.log10(ALL_SFRSD_kpc__Tg[iT]) + 6.
     z = ALL_dist_zone__g
     mask = ~(x.mask | y.mask)
     xm = x[mask]
     ym = y[mask]
     zm = z[mask]
-    xlabel = r'$\tau_V^\star$'
-    ylabel = r'$\tau_V^{neb}$'
-    zlabel = 'pixel distance (HLR)'
-    fname = 'tauV_tauVNeb_pixDistHLR_age_%sMyr.png' % str(tSF / 1.e6)
-    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, tSF, fname)
+    xlabel = r'$\log\ \Sigma_{gas} [M_\odot pc^{-2}]$'
+    ylabel = r'$\log\ \Sigma_{SFR}^\star\ [M_\odot yr^{-1} kpc^{-2}]$' 
+    zlabel = r'zone distance (HLR)'
+    fname = 'logSigmaGas_logSFR_distZone_age_%sMyr.png' % str(tSF / 1.e6)
+    #xlim = np.percentile(xm, [1, 100 * (xm.shape[0] - xm.mask.sum()) / xm.shape[0] - 1])
+    #ylim = np.percentile(ym, [1, 100 * (ym.shape[0] - ym.mask.sum()) / ym.shape[0] - 1])
+    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, None, None, None, tSF, fname)
     
-    x = ALL_tauV__Tg[iT]
-    y = ALL_tau_V_neb__g
-    z = np.ma.log10(ALL_L_int_Ha__g)
-    mask = ~(x.mask | y.mask | z.mask)
-    xm = x[mask]
-    ym = y[mask]
-    zm = z[mask]
-    xlabel = r'$\tau_V^\star$'
-    ylabel = r'$\tau_V^{neb}$'
-    zlabel = r'$L_{H\alpha}\ [L_\odot]$'
-    fname = 'tauV_tauVNeb_LHa_age_%sMyr.png' % str(tSF / 1.e6)
-    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, tSF, fname)
-    
- #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
- #    f = plt.figure()
- #    f.set_size_inches(10,10)
- #    ax = f.gca()
- #    sc = ax.scatter(xm, ym, c = zm, cmap = 'spectral_r', vmin = 4., vmax = 6.,  marker = 'o', s = 5., edgecolor = 'none')
- #    binsx = np.linspace(min(xm), max(xm), 21)
- #    binsy = np.linspace(min(ym), max(ym), 21)
- #    density_contour(xm, ym, binsx, binsy, ax = ax, color = 'k')
- #    ax.set_xlabel(xlabel)
- #    ax.set_ylabel(ylabel)
- #    ax.set_xlim(0, 2.5)
- #    ax.set_ylim(0, 2.5)
- #    #plotStatCorreAxis(ax, x, y, 0.03, 0.97, 16)
- #    plotRunningStatsAxis(ax, x, y, 'k')    
- #    cb = f.colorbar(sc)
- #    cb.set_label(zlabel)
- #    ax.set_title(r'$%s$ Myr' % str(tSF / 1.e6))
- #     
- #    for iT2 in range(0, 8):
- #        x = ALL_tauV__Tg[iT2]
- #        y = ALL_tau_V_neb__g
- #        z = np.ma.log10(ALL_L_int_Ha__g)
- #        mask = ~(x.mask | y.mask | z.mask)
- #        xm = x[mask]
- #        ym = y[mask]
- #        zm = z[mask]
- #        plotRunningStatsAxis(ax, xm, ym, 'k')
- #         
- #    f.savefig(fname)
- #    plt.close(f)
- # 
- #    #iT = [7, 13, 17, 27]    
- #    f, axArr = plt.subplots(2,2)
- #    ax = axArr[0,0]
- #    x = ALL_dist_zone__g
- #    y = ALL_SFR__Tg[7]
- #    mask = ~(x.mask | y.mask)
- #    xm = x[mask]
- #    ym = y[mask]
- #    ax.hist2d(xm[(ym > -0.5) & (ym < 0.5)], ym[(ym > -0.5) & (ym < 0.5)], bins = 100, norm = LogNorm())
- #  
- #    ax = axArr[0,1]
- #    x = ALL_dist_zone__g
- #    y = ALL_SFR__Tg[13] - ALL_SFR__Tg[7]
- #    mask = ~(x.mask | y.mask)
- #    xm = x[mask]
- #    ym = y[mask]
- #    ax.hist2d(xm[(ym > -0.5) & (ym < 0.5)], ym[(ym > -0.5) & (ym < 0.5)], bins = 100, norm = LogNorm())
- #      
- #    ax = axArr[1,0]
- #    x = ALL_dist_zone__g
- #    y = ALL_SFR__Tg[17] - ALL_SFR__Tg[13]
- #    mask = ~(x.mask | y.mask)
- #    xm = x[mask]
- #    ym = y[mask]
- #    ax.hist2d(xm[(ym > -0.5) & (ym < 0.5)], ym[(ym > -0.5) & (ym < 0.5)], bins = 100, norm = LogNorm())
- #      
- #    ax = axArr[1,1]
- #    x = ALL_dist_zone__g
- #    y = ALL_SFR__Tg[27] - ALL_SFR__Tg[17]
- #    mask = ~(x.mask | y.mask)
- #    xm = x[mask]
- #    ym = y[mask]
- #    ax.hist2d(xm[(ym > -0.5) & (ym < 0.5)], ym[(ym > -0.5) & (ym < 0.5)], bins = 100, norm = LogNorm())
- #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # x = np.ma.log10(ALL_SFR__Tg[iT])
+    # y = np.ma.log10(ALL_SFR_Ha__g)
+    # xlabel = r'$\log\ SFR_\star\ [M_\odot yr^{-1}]$' 
+    # ylabel = r'$\log\ SFR_{neb}\ [M_\odot yr^{-1}]$' 
+    # fname = 'logSFR_logSFR_neb_age_%sMyr.png' % str(tSF / 1.e6)
+    # xlim = np.percentile(x, [1, 100 * (x.shape[0] - x.mask.sum()) / x.shape[0] - 1])
+    # ylim = np.percentile(y, [1, 100 * (y.shape[0] - y.mask.sum()) / y.shape[0] - 1])
+    # plotSFR(x,y,xlabel,ylabel,xlim,ylim,tSF,fname)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # x = np.ma.log10(ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
+    # y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg[:, :].flatten())
+    # mask = ~(x.mask | y.mask)
+    # xm = x[mask]
+    # ym = y[mask]
+    # xlim = np.percentile(xm, [1, 100 * (xm.shape[0] - xm.mask.sum()) / xm.shape[0] - 1])
+    # ylim = np.percentile(ym, [1, 100 * (ym.shape[0] - ym.mask.sum()) / ym.shape[0] - 1])
+    # xlabel = r'$\log\ \Sigma_{SFR}^\star(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+    # ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+    # fname = 'alogSFRSD_alogSFRSD_neb_age_%sMyr.png' % str(tSF / 1.e6)
+    # plotSFR(xm,ym,xlabel,ylabel,xlim,ylim,tSF,fname)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+           

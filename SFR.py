@@ -34,8 +34,6 @@ mpl.rcParams['ytick.labelsize'] = 16
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
-tauFilteredDir = 'tauVMasked'
-
 CALIFAWorkDir = '/Users/lacerda/CALIFA/'
     
 galaxiesListFile = CALIFAWorkDir + 'listOf300GalPrefixes.txt'
@@ -223,6 +221,8 @@ def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
 
 
 if __name__ == '__main__':
+    ALL_N_zones__g = np.ma.zeros((N_gals))
+
     #########################################################################        
     ################################## CID ##################################
     ######################################################################### 
@@ -271,6 +271,7 @@ if __name__ == '__main__':
     _ALL_SFR_Ha__g = []
     _ALL_SFRSD_Ha__g = []
     _ALL_SFRSD_Ha_kpc__g = []
+    _ALL_F_obs_Ha__g = []
     _ALL_L_int_Ha__g = []
     _ALL_L_int_Ha_err__g = []
     _ALL_L_int_Ha_mask__g = []
@@ -321,6 +322,7 @@ if __name__ == '__main__':
         emLinesFitsFile = emLinesFitsDir + galName + emLinesSuffix
         
         if not (os.path.isfile(CALIFAFitsFile) and os.path.isfile(emLinesFitsFile)):
+            ALL_N_zones__g[iGal] = np.ma.masked
             ALL_morfType_GAL__g[iGal] = np.ma.masked
             ALL_at_flux_GAL__g[iGal] = np.ma.masked
             ALL_Mcor_GAL__g[iGal] = np.ma.masked
@@ -391,6 +393,7 @@ if __name__ == '__main__':
         K.EL._forceMask = ~maskOk
         
         if len(K.EL.flux[0, :].compressed()) == 0:
+            ALL_N_zones__g[iGal] = np.ma.masked
             ALL_morfType_GAL__g[iGal] = np.ma.masked
             ALL_at_flux_GAL__g[iGal] = np.ma.masked
             ALL_Mcor_GAL__g[iGal] = np.ma.masked
@@ -422,6 +425,7 @@ if __name__ == '__main__':
         tipos, tipo, tipo_m, tipo_p = get_morfologia(galName)
         ALL_morfType_GAL__g[iGal] = tipo
         print '>>> Doing' , iGal , galName , 'hubtyp=', ALL_morfType_GAL__g[iGal], '|  Nzones=' , K.N_zone
+        ALL_N_zones__g[iGal] = K.N_zone
         ALL_zones += K.N_zone
         ALL_gals += 1
 
@@ -522,7 +526,7 @@ if __name__ == '__main__':
             
             _ALL_SFR__Tg[iT].append(SFR__z)
             _ALL_SFRSD__Tg[iT].append(SFRSD__z)
-            _ALL_SFRSD_kpc__Tg[iT].append(SFRSD__z)
+            _ALL_SFRSD_kpc__Tg[iT].append(SFRSD_kpc__z)
         ##########################
         ##########################
         ##########################    
@@ -560,6 +564,7 @@ if __name__ == '__main__':
         ##########################
         #### intrinsic Ha Lum ####
         ##########################
+        _ALL_F_obs_Ha__g.append(K.EL.flux[i_Ha, :])
         L_obs__Lz = K.EL._F_to_L(K.EL.flux) / L_sun
         L_obs_err__Lz = K.EL._F_to_L(K.EL.eflux) / L_sun
         
@@ -611,7 +616,7 @@ if __name__ == '__main__':
         
         _ALL_SFR_Ha__g.append(SFR_Ha__z)
         _ALL_SFRSD_Ha__g.append(SFRSD_Ha__z)
-        _ALL_SFRSD_Ha_kpc__g.append(SFRSD_Ha__z)
+        _ALL_SFRSD_Ha_kpc__g.append(SFRSD_Ha__z * 1e6)
         ##########################
         ##########################
         ##########################
@@ -763,6 +768,7 @@ if __name__ == '__main__':
     aux = np.hstack(np.asarray(_ALL_L_int_Ha__g))
     auxMask = np.hstack(np.asarray(_ALL_L_int_Ha_mask__g))
     ALL_L_int_Ha__g = np.ma.masked_array(aux, mask = auxMask)
+    ALL_F_obs_Ha__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_F_obs_Ha__g)), mask = auxMask)
     ALL_SFR_Ha__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR_Ha__g)), mask = auxMask)
     ALL_SFRSD_Ha__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_Ha__g)), mask = auxMask)
     ALL_SFRSD_Ha_kpc__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_Ha_kpc__g)), mask = auxMask)
@@ -779,8 +785,8 @@ if __name__ == '__main__':
     ALL_SFRSD__Tg = []
     ALL_SFRSD_kpc__Tg = []
     correl_SFR__T = np.ones_like(tSF__T)
-    correl_SFRSD__rT = np.ones((1 + len(RRange), tSF__T.shape[0]))
-    correl_SFRSD_kpc__rT = np.ones((1 + len(RRange), tSF__T.shape[0])) 
+    correl_SFRSD__T = np.ones_like(tSF__T)
+    correl_aSFRSD__rT = np.ones((1 + len(RRange), tSF__T.shape[0]))
 
     for iT, tSF in enumerate(tSF__T):
         aux = np.hstack(np.asarray(_ALL_tau_V__Tg[iT]))
@@ -797,12 +803,19 @@ if __name__ == '__main__':
         ym = y[~mask]
         correl_SFR__T[iT] = st.spearmanr(xm, ym)[0]
 
+        x = np.ma.log10(ALL_SFRSD__Tg[iT])
+        y = np.ma.log10(ALL_SFRSD_Ha__g)
+        mask = x.mask | y.mask
+        xm = x[~mask]
+        ym = y[~mask]
+        correl_SFRSD__T[iT] = st.spearmanr(xm, ym)[0]
+
         x = np.ma.log10(ALL_aSFRSD__Trg[iT, :, :].flatten())
         y = np.ma.log10(ALL_aSFRSD_Ha__rg[:, :].flatten())
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
-        correl_SFRSD__rT[0, iT] = st.spearmanr(xm, ym)[0]
+        correl_aSFRSD__rT[0, iT] = st.spearmanr(xm, ym)[0]
         
         for iR, RUp in enumerate(RRange):
             if iR == 0:
@@ -818,30 +831,7 @@ if __name__ == '__main__':
             mask = x.mask | y.mask
             xm = x[~mask]
             ym = y[~mask]
-            correl_SFRSD__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
-
-        x = np.ma.log10(ALL_aSFRSD_kpc__Trg[iT, :, :].flatten())
-        y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg[:, :].flatten())
-        mask = x.mask | y.mask
-        xm = x[~mask]
-        ym = y[~mask]
-        correl_SFRSD_kpc__rT[0, iT] = st.spearmanr(xm, ym)[0]
-        
-        for iR, RUp in enumerate(RRange):
-            if iR == 0:
-                RMask = RbinCenter__r <= RUp
-            else:
-                RDown = RRange[iR - 1]
-                RMask = (RbinCenter__r > RDown) & (RbinCenter__r <= RUp)
-                
-            iiR = iR + 1
-
-            x = ALL_aSFRSD_kpc__Trg[iT, RMask, :].flatten()
-            y = ALL_aSFRSD_Ha_kpc__rg[RMask, :].flatten()
-            mask = x.mask | y.mask
-            xm = x[~mask]
-            ym = y[~mask]
-            correl_SFRSD_kpc__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
+            correl_aSFRSD__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
 
     if hdf5:
         import h5py
@@ -874,6 +864,7 @@ if __name__ == '__main__':
             '/masked/data/ALL_tau_V_neb__g' :  ALL_tau_V_neb__g.data,
             '/masked/data/ALL_tau_V_neb_err__g' : ALL_tau_V_neb_err__g.data,
             '/masked/data/ALL_L_int_Ha__g' : ALL_L_int_Ha__g.data,
+            '/masked/data/ALL_F_obs_Ha__g' : ALL_F_obs_Ha__g.data,
             '/masked/data/ALL_SFR_Ha__g' : ALL_SFR_Ha__g.data,
             '/masked/data/ALL_SFRSD_Ha__g' : ALL_SFRSD_Ha__g.data,
             '/masked/data/ALL_SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.data,
@@ -889,7 +880,8 @@ if __name__ == '__main__':
             '/masked/data/ALL_integrated_SFR_Ha__g' : ALL_integrated_SFR_Ha__g.data,
             '/masked/data/ALL_integrated_SFRSD_Ha__g' : ALL_integrated_SFRSD_Ha__g.data,
             '/masked/data/ALL_integrated_SFRSD_Ha_kpc__g' : ALL_integrated_SFRSD_Ha_kpc__g.data,
-            '/masked/data/ALL_dist_zone__g' : ALL_dist_zone__g.data, 
+            '/masked/data/ALL_dist_zone__g' : ALL_dist_zone__g.data,
+            '/masked/data/ALL_N_zones__g' : ALL_N_zones__g.data, 
             '/masked/mask/ALL_morfType_GAL__g' : ALL_morfType_GAL__g.mask,
             '/masked/mask/ALL_at_flux_GAL__g' : ALL_at_flux_GAL__g.mask,
             '/masked/mask/ALL_Mcor_GAL__g' : ALL_Mcor_GAL__g.mask,
@@ -910,6 +902,7 @@ if __name__ == '__main__':
             '/masked/mask/ALL_tau_V_neb__g' :  ALL_tau_V_neb__g.mask,
             '/masked/mask/ALL_tau_V_neb_err__g' : ALL_tau_V_neb_err__g.mask,
             '/masked/mask/ALL_L_int_Ha__g' : ALL_L_int_Ha__g.mask,
+            '/masked/mask/ALL_F_obs_Ha__g' : ALL_F_obs_Ha__g.mask,
             '/masked/mask/ALL_SFR_Ha__g' : ALL_SFR_Ha__g.mask,
             '/masked/mask/ALL_SFRSD_Ha__g' : ALL_SFRSD_Ha__g.mask,
             '/masked/mask/ALL_SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.mask,
@@ -926,9 +919,10 @@ if __name__ == '__main__':
             '/masked/mask/ALL_integrated_SFRSD_Ha__g' : ALL_integrated_SFRSD_Ha__g.mask,
             '/masked/mask/ALL_integrated_SFRSD_Ha_kpc__g' : ALL_integrated_SFRSD_Ha_kpc__g.mask,
             '/masked/mask/ALL_dist_zone__g' : ALL_dist_zone__g.mask,
+            '/masked/mask/ALL_N_zones__g' : ALL_N_zones__g.mask,
             '/data/correl_SFR__T' : correl_SFR__T,
-            '/data/correl_SFRSD__rT' : correl_SFRSD__rT,
-            '/data/correl_SFRSD_kpc__rT' : correl_SFRSD_kpc__rT,
+            '/data/correl_SFRSD__T' : correl_SFRSD__T,
+            '/data/correl_aSFRSD__rT' : correl_aSFRSD__rT,
             '/data/ALL_zones_tau_V' : ALL_zones_tau_V,
             '/data/ALL_gals' : ALL_gals,
             '/data/ALL_zones' : ALL_zones,
