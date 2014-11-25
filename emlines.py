@@ -722,7 +722,7 @@ if __name__ == '__main__':
     _ALL_SFR_Ha__g              = []
     _ALL_SFRSD_Ha__g            = []
     _ALL_tauVNeb2mu__g          = []
-    _ALL_Mcor_GAL_zones__g      = []
+    _ALL_Mcor__g      = []
     _ALL_McorSD_GAL_zones__g    = []
     _ALL_morfType_GAL_zones__g  = []
     _ALL_WHa__g                 = []
@@ -737,7 +737,7 @@ if __name__ == '__main__':
     ALL_aSFRSD__Trg             = np.ma.zeros((N_T, NRbins, N_gals))
     ALL_alogSFRSD__Trg          = np.ma.zeros((N_T, NRbins, N_gals))
     ALL_tau_V_neb__rg             = np.ma.zeros((NRbins, N_gals))
-    ALL_tauV__Trg               = np.ma.zeros((N_T, NRbins, N_gals))
+    ALL_tau_V__Trg               = np.ma.zeros((N_T, NRbins, N_gals))
     ALL_morfType_GAL_zones__rg  = np.ma.zeros((NRbins, N_gals))
  
     ALL_alogZ_mass_GAL__Tg      = np.zeros((N_T, N_gals))
@@ -800,7 +800,7 @@ if __name__ == '__main__':
         ALL_McorSD_GAL__g[iGal] = K.McorSD__yx.mean()
         aux = np.ones_like(K.Mcor__z) * ALL_McorSD_GAL__g[iGal]
         _ALL_McorSD_GAL_zones__g.append(aux)
-        _ALL_Mcor_GAL_zones__g.append(K.Mcor__z)
+        _ALL_Mcor__g.append(K.Mcor__z)
         ALL_Mcor_GAL__g[iGal]   = K.Mcor_tot.sum()
 
         # Compute & store galaxy-wide at_flux
@@ -851,7 +851,7 @@ if __name__ == '__main__':
             _ALL_tauV_mask__Tg[iT].append(tauV__z.mask)
             
             tauV__yx = K.zoneToYX(tauV__z, extensive=False)
-            ALL_tauV__Trg[iT, :, iGal] = K.radialProfile(tauV__yx, Rbin__r, rad_scale = K.HLR_pix)
+            ALL_tau_V__Trg[iT, :, iGal] = K.radialProfile(tauV__yx, Rbin__r, rad_scale = K.HLR_pix)
             
             _ALL_SFR__Tg[iT].append(SFR__z)
             _ALL_SFRSD__Tg[iT].append(SFRSD__z)
@@ -1003,18 +1003,18 @@ if __name__ == '__main__':
     ALL_SFR_Ha__g               = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR_Ha__g)), mask = auxMask)
     ALL_SFRSD_Ha__g             = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_Ha__g)), mask = auxMask)
     
-    ALL_Mcor_GAL_zones__g       = np.ma.masked_array(np.hstack(np.asarray(_ALL_Mcor_GAL_zones__g)))
+    ALL_Mcor__g       = np.ma.masked_array(np.hstack(np.asarray(_ALL_Mcor__g)))
     ALL_McorSD_GAL_zones__g     = np.ma.masked_array(np.hstack(np.asarray(_ALL_McorSD_GAL_zones__g)))
     ALL_morfType_GAL_zones__g   = np.ma.masked_array(np.hstack(np.asarray(_ALL_morfType_GAL_zones__g)))
     
-    ALL_tauV__Tg     = []
+    ALL_tau_V__Tg     = []
     ALL_SFR__Tg      = []
     ALL_SFRSD__Tg    = []
     
     for iT in range(N_T):
         aux     = np.hstack(np.asarray(_ALL_tauV__Tg[iT]))
         auxMask = np.hstack(np.asarray(_ALL_tauV_mask__Tg[iT]))
-        ALL_tauV__Tg.append(np.ma.masked_array(aux, mask = auxMask))
+        ALL_tau_V__Tg.append(np.ma.masked_array(aux, mask = auxMask))
         ALL_SFR__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR__Tg[iT])), mask = auxMask))
         ALL_SFRSD__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD__Tg[iT])), mask = auxMask))\
 
@@ -1043,11 +1043,11 @@ if __name__ == '__main__':
              'ALL_Lint_Ha__g'              : ALL_Lint_Ha__g,
              'ALL_SFR_Ha__g'               : ALL_SFR_Ha__g,
              'ALL_SFRSD_Ha__g'             : ALL_SFRSD_Ha__g,
-             'ALL_Mcor_GAL_zones__g'       : ALL_Mcor_GAL_zones__g,
+             'ALL_Mcor__g'       : ALL_Mcor__g,
              'ALL_McorSD_GAL_zones__g'     : ALL_McorSD_GAL_zones__g,
              'ALL_morfType_GAL_zones__g'   : ALL_morfType_GAL_zones__g,
              'ALL_morfType_GAL_zones__rg'  : ALL_morfType_GAL_zones__rg,
-             'ALL_tauV__Tg'                : ALL_tauV__Tg,
+             'ALL_tau_V__Tg'                : ALL_tau_V__Tg,
              'ALL_SFR__Tg'                 : ALL_SFR__Tg,
              'ALL_SFRSD__Tg'               : ALL_SFRSD__Tg,
              'ALL_aSFRSD_Ha__rg'           : ALL_aSFRSD_Ha__rg,
@@ -1059,7 +1059,7 @@ if __name__ == '__main__':
              'ALL_isOkFrac_GAL__Tg'        : ALL_isOkFrac_GAL__Tg,
              'ALL_alogZ_mass__Trg'         : ALL_alogZ_mass__Trg,
              'ALL_alogZ_flux__Trg'         : ALL_alogZ_flux__Trg,
-             'ALL_tauV__Trg'               : ALL_tauV__Trg,
+             'ALL_tau_V__Trg'               : ALL_tau_V__Trg,
              'ALL_tau_V_neb__rg'             : ALL_tau_V_neb__rg,
         }
         np.savez_compressed("emlines.npz", D)
@@ -1081,7 +1081,7 @@ if __name__ == '__main__':
         plot_3din2d_scatter(x, y, z,
                             r'$\log\ Z_{neb}\ [Z_\odot]$', r'$\log\ \delta_{DGR}$', r'$\log\ W_{H\alpha}\ [\AA]$',
                             'logZNeb_logDGR_logWHa.png')
-        x = np.log10(ALL_Mcor_GAL_zones__g[m])
+        x = np.log10(ALL_Mcor__g[m])
         y = logDGR[m]
         z = ALL_morfType_GAL_zones__g[m]
         plot_3din2d_scatter(x, y, z,
@@ -1128,7 +1128,7 @@ if __name__ == '__main__':
         plot_3din2d_scatter(x, y, z,
                             r'$\log\ Z_{neb}\ [Z_\odot]$', r'$\log\ \delta_{DGR}$', r'$\log\ W_{H\alpha}\ [\AA]$',
                             '%s/logZNeb_logDGR_logWHa.png' % tauFilteredDir)
-        x = np.log10(ALL_Mcor_GAL_zones__g[m])
+        x = np.log10(ALL_Mcor__g[m])
         y = logDGR[m]
         z = ALL_morfType_GAL_zones__g[m]
         plot_3din2d_scatter(x, y, z,
@@ -1175,7 +1175,7 @@ if __name__ == '__main__':
         plot_3din2d_scatter(x, y, z,
                             r'$\log\ Z_{neb}\ [Z_\odot]$', r'$\log\ \delta_{DGR}$', r'$\log\ W_{H\alpha}\ [\AA]$',
                             '%s/logZNeb_logDGR_logWHa2.png' % tauFilteredDir)
-        x = np.log10(ALL_Mcor_GAL_zones__g[m])
+        x = np.log10(ALL_Mcor__g[m])
         y = logDGR[m]
         z = ALL_morfType_GAL_zones__g[m]
         plot_3din2d_scatter(x, y, z,
@@ -1225,25 +1225,25 @@ if __name__ == '__main__':
             plot_3din2d_scatter_age(x, y, z,
                                     r'$\log\ SFR_{neb}$', r'$\log\ SFR_\star$', r'Morphology Type',
                                     tSF, 'logSFRNeb_logSFR_morphType_age_%sMyr.png' % str(tSF / 1.e6))
-            x = ALL_tauV__Tg[iT]
+            x = ALL_tau_V__Tg[iT]
             y = ALL_tauVNeb__g
             z = 10. ** ALL_logZNeb__g
             plot_3din2d_scatter_age(x, y, z,
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$Z_{neb}\ [Z_\odot]$',
                                     tSF, 'tauV_tauVNeb_ZNeb_age_%sMyr.png' % str(tSF / 1.e6))
-            x = ALL_tauV__Tg[iT]
+            x = ALL_tau_V__Tg[iT]
             y = ALL_tauVNeb__g
             z = np.log10(ALL_SFRSD_Ha__g)
             plot_3din2d_scatter_age(x, y, z, 
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$\log\ \Sigma_{SFR}^{neb}\ [M_\odot yr^{-1} pc^{-2}]$',
                                     tSF, 'tauV_tauVNeb_logSFRSDNeb_age_%sMyr.png' % str(tSF / 1.e6))
-            x = ALL_tauV__Tg[iT]
+            x = ALL_tau_V__Tg[iT]
             y = ALL_tauVNeb__g
             z = np.log10(ALL_SFRSD__Tg[iT])
             plot_3din2d_scatter_age(x, y, z, 
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$\log\ \Sigma_{SFR}^\star\ [M_\odot yr^{-1} pc^{-2}]$',
                                     tSF, 'tauV_tauVNeb_logSFRSD_age_%sMyr.png' % str(tSF / 1.e6))
-            x = ALL_tauV__Tg[iT]
+            x = ALL_tau_V__Tg[iT]
             y = ALL_tauVNeb__g
             z = np.log10(ALL_WHa__g)
             plot_3din2d_scatter_age(x, y, z, 
@@ -1269,25 +1269,25 @@ if __name__ == '__main__':
                                     tSF, '%s/logSFRHa_logSFR_morphType_age_%sMyr.png' % (tauFilteredDir, str(tSF / 1.e6)))
 
             m = (ALL_err_tauVNeb__g<0.15) & (ALL_tauVNeb__g > 0)
-            x = ALL_tauV__Tg[iT][m]
+            x = ALL_tau_V__Tg[iT][m]
             y = ALL_tauVNeb__g[m]
             z = 10. ** ALL_logZNeb__g[m]
             plot_3din2d_scatter_age(x, y, z,
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$Z_{neb}\ [Z_\odot]$',
                                     tSF, '%s/tauV_tauVNeb_ZNeb_age_%sMyr.png' % (tauFilteredDir, str(tSF / 1.e6)))
-            x = ALL_tauV__Tg[iT][m]
+            x = ALL_tau_V__Tg[iT][m]
             y = ALL_tauVNeb__g[m]
             z = np.log10(ALL_SFRSD_Ha__g[m])
             plot_3din2d_scatter_age(x, y, z, 
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$\log\ \Sigma_{SFR}^{neb}\ [M_\odot yr^{-1} pc^{-2}]$',
                                     tSF, '%s/tauV_tauVNeb_logSFRSDNeb_age_%sMyr.png' % (tauFilteredDir, str(tSF / 1.e6)))
-            x = ALL_tauV__Tg[iT][m]
+            x = ALL_tau_V__Tg[iT][m]
             y = ALL_tauVNeb__g[m]
             z = np.log10(ALL_SFRSD__Tg[iT][m])
             plot_3din2d_scatter_age(x, y, z, 
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$\log\ \Sigma_{SFR}^\star\ [M_\odot yr^{-1} pc^{-2}]$',
                                     tSF, '%s/tauV_tauVNeb_logSFRSD_age_%sMyr.png' % (tauFilteredDir, str(tSF / 1.e6)))
-            x = ALL_tauV__Tg[iT][m]
+            x = ALL_tau_V__Tg[iT][m]
             y = ALL_tauVNeb__g[m]
             z = np.log10(ALL_WHa__g[m])
             plot_3din2d_scatter_age(x, y, z, 
@@ -1311,25 +1311,25 @@ if __name__ == '__main__':
                                     tSF, '%s/logSFRHa_logSFR_morphType_age_%sMyr2.png' % (tauFilteredDir, str(tSF / 1.e6)))
 
             m = (ALL_err_tauVNeb__g<0.15) & (ALL_tauVNeb__g > 0.05)
-            x = ALL_tauV__Tg[iT][m]
+            x = ALL_tau_V__Tg[iT][m]
             y = ALL_tauVNeb__g[m]
             z = 10. ** ALL_logZNeb__g[m]
             plot_3din2d_scatter_age(x, y, z,
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$Z_{neb}\ [Z_\odot]$',
                                     tSF, '%s/tauV_tauVNeb_ZNeb_age_%sMyr2.png' % (tauFilteredDir, str(tSF / 1.e6)))
-            x = ALL_tauV__Tg[iT][m]
+            x = ALL_tau_V__Tg[iT][m]
             y = ALL_tauVNeb__g[m]
             z = np.log10(ALL_SFRSD_Ha__g[m])
             plot_3din2d_scatter_age(x, y, z, 
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$\log\ \Sigma_{SFR}^{neb}\ [M_\odot yr^{-1} pc^{-2}]$',
                                     tSF, '%s/tauV_tauVNeb_logSFRSDNeb_age_%sMyr2.png' % (tauFilteredDir, str(tSF / 1.e6)))
-            x = ALL_tauV__Tg[iT][m]
+            x = ALL_tau_V__Tg[iT][m]
             y = ALL_tauVNeb__g[m]
             z = np.log10(ALL_SFRSD__Tg[iT][m])
             plot_3din2d_scatter_age(x, y, z, 
                                     r'$\tau_V$', r'$\tau_V^{neb}$', r'$\log\ \Sigma_{SFR}^\star\ [M_\odot yr^{-1} pc^{-2}]$',
                                     tSF, '%s/tauV_tauVNeb_logSFRSD_age_%sMyr2.png' % (tauFilteredDir, str(tSF / 1.e6)))
-            x = ALL_tauV__Tg[iT][m]
+            x = ALL_tau_V__Tg[iT][m]
             y = ALL_tauVNeb__g[m]
             z = np.log10(ALL_WHa__g[m])
             plot_3din2d_scatter_age(x, y, z, 
@@ -1363,7 +1363,7 @@ if __name__ == '__main__':
             ylim = np.percentile(y, [1, 100 * (y.shape[0] - y.mask.sum()) / y.shape[0] - 1])
             plotSFR(x,y,xlabel,ylabel,xlim,ylim,tSF,fname)
             
-            x = ALL_tauV__Trg[iT, :, :].flatten()
+            x = ALL_tau_V__Trg[iT, :, :].flatten()
             y = ALL_alogSFRSD_Ha__rg.flatten() - ALL_alogSFRSD__Trg[iT, :, :].flatten()
             xlabel = r'$\tau_V^\star(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
@@ -1377,7 +1377,7 @@ if __name__ == '__main__':
             fname = 'tauVneb_SFRSDHa_SFRSD_age_%sMyr.png' % str(tSF / 1.e6)
             plotTau(x,y,xlabel,ylabel,None,None,tSF,fname) 
             
-            x = np.log10(ALL_tauV__Trg[iT, :, :].flatten())
+            x = np.log10(ALL_tau_V__Trg[iT, :, :].flatten())
             y = ALL_alogSFRSD_Ha__rg.flatten() - ALL_alogSFRSD__Trg[iT, :, :].flatten()
             xlabel = r'$\log\ \tau_V^\star(R)$'
             ylabel = r'$\log\ (\Sigma_{SFR}^{neb}(R)/\Sigma_{SFR}^\star(R))$'
