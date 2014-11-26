@@ -12,7 +12,6 @@ import sys
 from plot_aux import get_attrib_h5, plotRunningStatsAxis, \
                      plotScatterColor, calcRunningStats
 
-
 mpl.rcParams['font.size']       = 20
 mpl.rcParams['axes.labelsize']  = 20
 mpl.rcParams['axes.titlesize']  = 22

@@ -9,7 +9,6 @@
 import numpy as np
 from pystarlight.util.base import StarlightBase
 
-
 #useTrapz = True
 useTrapz = False
 plot = True

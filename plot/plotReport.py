@@ -19,8 +19,6 @@ mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
-tSF_to_plot = [0, 10, 14, 17, 20, 23, 26, 29, 32, 35, 39 ]
-
 h5 = h5py.File(sys.argv[1], 'r')
 
 tSF__T = get_attrib_h5(h5, 'tSF__T')
@@ -42,7 +40,7 @@ h5.close()
 NRows = 5
 NCols = 8
 f, axArr = plt.subplots(NRows, NCols)
-f.set_dpi(96)
+f.set_dpi(300)
 f.set_size_inches(11.69,8.27) 
 plt.setp([a.get_xticklabels() for a in f.axes], visible = False)
 plt.setp([a.get_yticklabels() for a in f.axes], visible = False)
@@ -191,6 +189,7 @@ ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$'
     
 NAxes = len(f.axes) 
 iT = 0
+jump = 0
         
 for i in range(0, NRows):
     for j in range(0, NCols):
@@ -218,7 +217,9 @@ for i in range(0, NRows):
             n_tot += len(x)
 
             if i == 0 and j == 0:
-                pos_x = (iR * 2)
+                if iR > 0:
+                    jump = 0.25 * (iR - 1.)
+                pos_x = iR + jump
                 #pos_y = pos_y_ini - (iR * pos_step)
                 pos_y = 1.8
                 textbox = dict(alpha = 0.)
