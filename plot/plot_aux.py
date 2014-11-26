@@ -246,7 +246,6 @@ def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, zlim, age, fna
     plt.close(f)
     
 
-
 def calcYofXStats_EqNumberBins(x, y, nPerBin = 25):
     '''
     This gives the statistics of y(x) for x-bins of variable width, but all containing
@@ -271,3 +270,23 @@ def calcYofXStats_EqNumberBins(x, y, nPerBin = 25):
         yMedian[ixBin] , yMean[ixBin] , yStd[ixBin] = np.median(yy) , yy.mean() , yy.std()
         nInBin[ixBin] = len(xx)
     return xMedian, xMean, xStd, yMedian, yMean , yStd, nInBin
+
+
+def list_gal_sorted_by_data(list_gal, data, type):
+    '''
+    type = 0 - sort asc
+    type = other - sort desc
+    '''
+    list_tmp = np.unique(list_gal)
+    NGal = len(list_tmp)
+    var__g = np.ones((NGal))
+    
+    for i, g in enumerate(list_tmp):
+        var__g[i] = np.unique(data[np.where(list_gal == g)])
+        
+    iS = np.argsort(var__g)
+    
+    if type != 0:
+        iS = iS[::-1]
+    
+    return list_tmp[iS]
