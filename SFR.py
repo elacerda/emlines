@@ -78,7 +78,6 @@ N_gals = len(listOfPrefixes)
 base = StarlightBase('/Users/lacerda/LOCAL/data/BASE.CALIFA.gsd6.h5', 'gsd6e', hdf5 = True)
 tSF__T = base.ageBase
 N_T = base.nAges
-tSF_to_plot = [0, 10, 14, 17, 20, 23, 26, 29, 32, 35, 39 ]
 
 mask_xOk = True
 
@@ -235,6 +234,8 @@ if __name__ == '__main__':
     #########################################################################
 
     ALL_morfType_GAL_zones__rg = np.ma.zeros((NRbins, N_gals))
+    ALL_Mr_GAL_zones__rg = np.ma.zeros((NRbins, N_gals))
+    ALL_ur_GAL_zones__rg = np.ma.zeros((NRbins, N_gals))
     ALL_tau_V_neb__rg = np.ma.zeros((NRbins, N_gals))
     ALL_alogZ_mass_GAL__Tg = np.ma.zeros((N_T, N_gals))
     ALL_alogZ_flux_GAL__Tg = np.ma.zeros((N_T, N_gals))
@@ -259,7 +260,10 @@ if __name__ == '__main__':
     #########################################################################
     ############# temporary lists with shape N_Zone * N_gals ################
     #########################################################################
+    _ALL_califaID_GAL_zones__g = []
     _ALL_morfType_GAL_zones__g = []
+    _ALL_Mr_GAL_zones__g = []
+    _ALL_ur_GAL_zones__g = []
     _ALL_Mcor__g = []
     _ALL_McorSD__g = []
     _ALL_Mcor_GAL_zones__g = []
@@ -327,6 +331,8 @@ if __name__ == '__main__':
             ALL_at_flux_GAL__g[iGal] = np.ma.masked
             ALL_Mcor_GAL__g[iGal] = np.ma.masked
             ALL_McorSD_GAL__g[iGal] = np.ma.masked
+            ALL_Mr_GAL_zones__rg[:, iGal] = np.ma.masked
+            ALL_ur_GAL_zones__rg[:, iGal] = np.ma.masked 
             ALL_morfType_GAL_zones__rg[:, iGal] = np.ma.masked
             ALL_tau_V_neb__rg[:, iGal] = np.ma.masked
             ALL_alogZ_mass_GAL__Tg[:, iGal] = np.ma.masked
@@ -400,6 +406,8 @@ if __name__ == '__main__':
             ALL_McorSD_GAL__g[iGal] = np.ma.masked
             ALL_morfType_GAL_zones__rg[:, iGal] = np.ma.masked
             ALL_tau_V_neb__rg[:, iGal] = np.ma.masked
+            ALL_Mr_GAL_zones__rg[:, iGal] = np.ma.masked
+            ALL_ur_GAL_zones__rg[:, iGal] = np.ma.masked
             ALL_alogZ_mass_GAL__Tg[:, iGal] = np.ma.masked
             ALL_alogZ_flux_GAL__Tg[:, iGal] = np.ma.masked
             ALL_isOkFrac_GAL__Tg[:, iGal] = np.ma.masked
@@ -434,6 +442,14 @@ if __name__ == '__main__':
         _ALL_morfType_GAL_zones__g.append(aux)
         # The same above but for radial
         ALL_morfType_GAL_zones__rg[:, iGal] = np.ones_like(RbinCenter__r) * ALL_morfType_GAL__g[iGal]
+
+        _ALL_Mr_GAL_zones__g.append(np.ones_like(K.Mcor__z) * np.float(K.masterListData['Mr']))
+        ALL_Mr_GAL_zones__rg[:, iGal] = np.ones_like(RbinCenter__r) * np.float(K.masterListData['Mr'])
+        
+        _ALL_ur_GAL_zones__g.append(np.ones_like(K.Mcor__z) * np.float(K.masterListData['u-r']))
+        ALL_ur_GAL_zones__rg[:, iGal] = np.ones_like(RbinCenter__r) * np.float(K.masterListData['u-r'])
+        
+        _ALL_califaID_GAL_zones__g.append(np.asarray([K.califaID for i in range(K.N_zone)]))
         
         zoneDistHLR = np.sqrt((K.zonePos['x'] - K.x0)**2. + (K.zonePos['y'] - K.y0)**2.) / K.HLR_pix
         _ALL_dist_zone__g.append(zoneDistHLR)
@@ -760,25 +776,29 @@ if __name__ == '__main__':
     
     ALL_dist_zone__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_dist_zone__g)))
 
-    aux = np.hstack(np.asarray(_ALL_tau_V_neb__g))
-    auxMask = np.hstack(np.asarray(_ALL_tau_V_neb_mask__g))
+    aux = np.hstack(_ALL_tau_V_neb__g)
+    auxMask = np.hstack(_ALL_tau_V_neb_mask__g)
     ALL_tau_V_neb__g = np.ma.masked_array(aux, mask = auxMask)
-    ALL_tau_V_neb_err__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_tau_V_neb_err__g)), mask = auxMask)
+    ALL_tau_V_neb_err__g = np.ma.masked_array(np.hstack(_ALL_tau_V_neb_err__g), mask = auxMask)
 
-    aux = np.hstack(np.asarray(_ALL_L_int_Ha__g))
-    auxMask = np.hstack(np.asarray(_ALL_L_int_Ha_mask__g))
+    aux = np.hstack(_ALL_L_int_Ha__g)
+    auxMask = np.hstack(_ALL_L_int_Ha_mask__g)
     ALL_L_int_Ha__g = np.ma.masked_array(aux, mask = auxMask)
-    ALL_F_obs_Ha__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_F_obs_Ha__g)), mask = auxMask)
-    ALL_SFR_Ha__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR_Ha__g)), mask = auxMask)
-    ALL_SFRSD_Ha__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_Ha__g)), mask = auxMask)
-    ALL_SFRSD_Ha_kpc__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_Ha_kpc__g)), mask = auxMask)
+    ALL_F_obs_Ha__g = np.ma.masked_array(np.hstack(_ALL_F_obs_Ha__g), mask = auxMask)
+    ALL_SFR_Ha__g = np.ma.masked_array(np.hstack(_ALL_SFR_Ha__g), mask = auxMask)
+    ALL_SFRSD_Ha__g = np.ma.masked_array(np.hstack(_ALL_SFRSD_Ha__g), mask = auxMask)
+    ALL_SFRSD_Ha_kpc__g = np.ma.masked_array(np.hstack(_ALL_SFRSD_Ha_kpc__g), mask = auxMask)
     
-    ALL_Mcor__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_Mcor__g)))
-    ALL_McorSD__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_McorSD__g)))
-    ALL_Mcor_GAL_zones__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_Mcor_GAL_zones__g)))
-    ALL_McorSD_GAL_zones__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_McorSD_GAL_zones__g)))
-    ALL_morfType_GAL_zones__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_morfType_GAL_zones__g)))
-    ALL_at_flux_GAL_zones__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_at_flux_GAL_zones__g)))
+    ALL_Mcor__g = np.ma.masked_array(np.hstack(_ALL_Mcor__g))
+    ALL_McorSD__g = np.ma.masked_array(np.hstack(_ALL_McorSD__g))
+    ALL_Mcor_GAL_zones__g = np.ma.masked_array(np.hstack(_ALL_Mcor_GAL_zones__g))
+    ALL_McorSD_GAL_zones__g = np.ma.masked_array(np.hstack(_ALL_McorSD_GAL_zones__g))
+    ALL_morfType_GAL_zones__g = np.ma.masked_array(np.hstack(_ALL_morfType_GAL_zones__g))
+    ALL_at_flux_GAL_zones__g = np.ma.masked_array(np.hstack(_ALL_at_flux_GAL_zones__g))
+
+    ALL_Mr_GAL_zones__g = np.ma.masked_array(np.hstack(_ALL_Mr_GAL_zones__g))
+    ALL_ur_GAL_zones__g = np.ma.masked_array(np.hstack(_ALL_ur_GAL_zones__g))
+    ALL_califaID_GAL_zones__g = np.ma.masked_array(np.hstack(_ALL_califaID_GAL_zones__g))
 
     ALL_tau_V__Tg = []
     ALL_SFR__Tg = []
@@ -789,12 +809,12 @@ if __name__ == '__main__':
     correl_aSFRSD__rT = np.ones((1 + len(RRange), tSF__T.shape[0]))
 
     for iT, tSF in enumerate(tSF__T):
-        aux = np.hstack(np.asarray(_ALL_tau_V__Tg[iT]))
-        auxMask = np.hstack(np.asarray(_ALL_tau_V_mask__Tg[iT]))
+        aux = np.hstack(_ALL_tau_V__Tg[iT])
+        auxMask = np.hstack(_ALL_tau_V_mask__Tg[iT])
         ALL_tau_V__Tg.append(np.ma.masked_array(aux, mask = auxMask))
-        ALL_SFR__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFR__Tg[iT])), mask = auxMask))
-        ALL_SFRSD__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD__Tg[iT])), mask = auxMask))
-        ALL_SFRSD_kpc__Tg.append(np.ma.masked_array(np.hstack(np.asarray(_ALL_SFRSD_kpc__Tg[iT])), mask = auxMask))
+        ALL_SFR__Tg.append(np.ma.masked_array(np.hstack(_ALL_SFR__Tg[iT]), mask = auxMask))
+        ALL_SFRSD__Tg.append(np.ma.masked_array(np.hstack(_ALL_SFRSD__Tg[iT]), mask = auxMask))
+        ALL_SFRSD_kpc__Tg.append(np.ma.masked_array(np.hstack(_ALL_SFRSD_kpc__Tg[iT]), mask = auxMask))
 
         x = np.ma.log10(ALL_SFR__Tg[iT])
         y = np.ma.log10(ALL_SFR_Ha__g)
@@ -849,6 +869,8 @@ if __name__ == '__main__':
             '/masked/data/ALL_Mcor_GAL__g' : ALL_Mcor_GAL__g.data,
             '/masked/data/ALL_McorSD_GAL__g' : ALL_McorSD_GAL__g.data,
             '/masked/data/ALL_morfType_GAL_zones__rg' : ALL_morfType_GAL_zones__rg.data,
+            '/masked/data/ALL_Mr_GAL_zones__rg' : ALL_Mr_GAL_zones__rg.data,
+            '/masked/data/ALL_ur_GAL_zones__rg' : ALL_ur_GAL_zones__rg.data,
             '/masked/data/ALL_tau_V_neb__rg' : ALL_tau_V_neb__rg.data,
             '/masked/data/ALL_alogZ_mass_GAL__Tg' : ALL_alogZ_mass_GAL__Tg.data,
             '/masked/data/ALL_alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.data,
@@ -871,6 +893,9 @@ if __name__ == '__main__':
             '/masked/data/ALL_Mcor__g' : ALL_Mcor__g.data,
             '/masked/data/ALL_McorSD__g' : ALL_McorSD__g.data,
             '/masked/data/ALL_Mcor_GAL_zones__g' : ALL_Mcor_GAL_zones__g.data,
+            '/masked/data/ALL_Mr_GAL_zones__g' : ALL_Mr_GAL_zones__g.data,
+            '/masked/data/ALL_ur_GAL_zones__g' : ALL_ur_GAL_zones__g.data,
+            '/masked/data/ALL_califaID_GAL_zones__g' : ALL_califaID_GAL_zones__g.data,            
             '/masked/data/ALL_McorSD_GAL_zones__g' : ALL_McorSD_GAL_zones__g.data,
             '/masked/data/ALL_morfType_GAL_zones__g' : ALL_morfType_GAL_zones__g.data,
             '/masked/data/ALL_at_flux_GAL_zones__g' : ALL_at_flux_GAL_zones__g.data,
@@ -887,6 +912,8 @@ if __name__ == '__main__':
             '/masked/mask/ALL_Mcor_GAL__g' : ALL_Mcor_GAL__g.mask,
             '/masked/mask/ALL_McorSD_GAL__g' : ALL_McorSD_GAL__g.mask,
             '/masked/mask/ALL_morfType_GAL_zones__rg' : ALL_morfType_GAL_zones__rg.mask,
+            '/masked/mask/ALL_Mr_GAL_zones__rg' : ALL_Mr_GAL_zones__rg.mask,
+            '/masked/mask/ALL_ur_GAL_zones__rg' : ALL_ur_GAL_zones__rg.mask,
             '/masked/mask/ALL_tau_V_neb__rg' : ALL_tau_V_neb__rg.mask,
             '/masked/mask/ALL_alogZ_mass_GAL__Tg' : ALL_alogZ_mass_GAL__Tg.mask,
             '/masked/mask/ALL_alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.mask,
@@ -908,6 +935,9 @@ if __name__ == '__main__':
             '/masked/mask/ALL_SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.mask,
             '/masked/mask/ALL_Mcor__g' : ALL_Mcor__g.mask,
             '/masked/mask/ALL_McorSD__g' : ALL_McorSD__g.mask,
+            '/masked/mask/ALL_Mr_GAL_zones__g' : ALL_Mr_GAL_zones__g.mask,
+            '/masked/mask/ALL_ur_GAL_zones__g' : ALL_ur_GAL_zones__g.mask,
+            '/masked/mask/ALL_califaID_GAL_zones__g' : ALL_califaID_GAL_zones__g.mask,
             '/masked/mask/ALL_Mcor_GAL_zones__g' : ALL_Mcor_GAL_zones__g.mask,
             '/masked/mask/ALL_McorSD_GAL_zones__g' : ALL_McorSD_GAL_zones__g.mask,
             '/masked/mask/ALL_morfType_GAL_zones__g' : ALL_morfType_GAL_zones__g.mask,
