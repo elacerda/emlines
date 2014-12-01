@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 import sys
 from plot_aux import get_attrib_h5, density_contour
 from matplotlib.ticker import MultipleLocator
+from scipy import stats as st
 
 
 mpl.rcParams['font.size'] = 16
@@ -34,6 +35,7 @@ ALL_aSFRSD_kpc__Trg = get_attrib_h5(h5, 'ALL_aSFRSD_kpc__Trg')
 ALL_aSFRSD_Ha_kpc__rg = get_attrib_h5(h5, 'ALL_aSFRSD_Ha_kpc__rg')
 ALL_SFRSD_kpc__Tg = get_attrib_h5(h5, 'ALL_SFRSD_kpc__Tg')
 ALL_SFRSD_Ha_kpc__g = get_attrib_h5(h5, 'ALL_SFRSD_Ha_kpc__g')
+ALL_dist_zone__g = get_attrib_h5(h5, 'ALL_dist_zone__g')
 
 h5.close()
 
@@ -44,12 +46,12 @@ f.set_dpi(300)
 f.set_size_inches(11.69,8.27) 
 plt.setp([a.get_xticklabels() for a in f.axes], visible = False)
 plt.setp([a.get_yticklabels() for a in f.axes], visible = False)
-
+ 
 xlabel = r'$\log\ \overline{SFR_\star}(t_\star)\ [M_\odot yr^{-1}]$' 
 ylabel = r'$\log\ SFR_{neb}\ [M_\odot yr^{-1}]$'
-
+ 
 iT = 0
-
+ 
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
@@ -73,7 +75,76 @@ for i in range(0, NRows):
                 transform = ax.transAxes,
                 verticalalignment = 'top', horizontalalignment = 'left',
                 bbox = textbox)
-        txt = '$R_S$: %.2f' %  correl_SFR__T[iT]
+        txt = '$R_p:%.2f$ $R_S:%.2f$' %  (st.pearsonr(xm, ym)[0], correl_SFR__T[iT])
+        textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
+        ax.text(0.92, 0.05, txt, fontsize = 8,
+                transform = ax.transAxes,
+                verticalalignment = 'bottom', horizontalalignment = 'right',
+                bbox = textbox)
+        #ax.grid()
+        ax.set_xlim(xran)
+        ax.set_ylim(yran)
+        ax.xaxis.set_major_locator(MultipleLocator(1))
+        ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+        ax.yaxis.set_major_locator(MultipleLocator(1))
+        ax.yaxis.set_minor_locator(MultipleLocator(0.5))
+         
+        if i == NRows - 1 and j == 0:
+            plt.setp(ax.get_xticklabels(), visible = True)
+            plt.setp(ax.get_yticklabels(), visible = True)
+             
+        if i == NRows - 1 and j == 3:
+            ax.set_xlabel(xlabel)
+             
+        if i == 2 and j == 0:
+            ax.set_ylabel(ylabel)
+         
+        iT += 1
+ 
+f.subplots_adjust(hspace = 0.0)
+f.subplots_adjust(wspace = 0.0)
+f.savefig('SFR_report.png')
+plt.close(f)
+
+NRows = 5
+NCols = 8
+f, axArr = plt.subplots(NRows, NCols)
+f.set_dpi(300)
+f.set_size_inches(11.69,8.27) 
+plt.setp([a.get_xticklabels() for a in f.axes], visible = False)
+plt.setp([a.get_yticklabels() for a in f.axes], visible = False)
+
+xlabel = r'$\log\ \overline{SFR_\star}(t_\star)\ [M_\odot yr^{-1}]$' 
+ylabel = r'$\log\ SFR_{neb}\ [M_\odot yr^{-1}]$'
+
+iT = 0
+
+for i in range(0, NRows):
+    for j in range(0, NCols):
+        ax = axArr[i, j] 
+        x = np.ma.log10(ALL_SFR__Tg[iT])
+        y = np.ma.log10(ALL_SFR_Ha__g)
+        z = ALL_dist_zone__g
+        mask = x.mask | y.mask
+        xm = x[~mask]
+        ym = y[~mask]
+        zm = z[~mask]
+        age = tSF__T[iT]
+        print 'SFR x SFR_Ha Age: %.2f Myr: masked %d points of %d (total: %d)' % (age / 1e6, mask.sum(), len(x), len(x) - mask.sum())
+        xran = [-6, 0]
+        yran = [-6, 0]
+        scat = ax.scatter(xm, ym, c = zm, cmap = 'hot_r', vmax = 2., marker = 'o', s = 0.3, edgecolor = 'none') #, alpha = 0.4)
+        binsx = np.linspace(-6., 0., 31)
+        binsy = np.linspace(min(ym), max(ym), 31)
+        density_contour(xm, ym, binsx, binsy, ax = ax)
+        ax.plot(ax.get_xlim(), ax.get_xlim(), ls = "--", c = ".3")
+        txt = '%.2f Myr' % (age / 1e6)
+        textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
+        ax.text(0.05, 0.92, txt, fontsize = 8,
+                transform = ax.transAxes,
+                verticalalignment = 'top', horizontalalignment = 'left',
+                bbox = textbox)
+        txt = '$R_p:%.2f$ $R_S:%.2f$' %  (st.pearsonr(xm, ym)[0], correl_SFR__T[iT])
         textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
         ax.text(0.92, 0.05, txt, fontsize = 8,
                 transform = ax.transAxes,
@@ -91,7 +162,7 @@ for i in range(0, NRows):
             plt.setp(ax.get_xticklabels(), visible = True)
             plt.setp(ax.get_yticklabels(), visible = True)
             
-        if i == NRows - 1 and j == 3:
+        if i == NRows - 1 and j == 4:
             ax.set_xlabel(xlabel)
             
         if i == 2 and j == 0:
@@ -99,11 +170,14 @@ for i in range(0, NRows):
         
         iT += 1
 
-f.subplots_adjust(hspace = 0.0)
-f.subplots_adjust(wspace = 0.0)
-f.savefig('SFR_report.png')
-plt.close(f)
+f.subplots_adjust(hspace = 0.0, wspace = 0.0, left = 0.05, right=0.85, top = 0.95)
+cbar_ax = f.add_axes([0.88, 0.1, 0.05, 0.85])
+cb = f.colorbar(scat, ticks=[0, 0.5, 1., 1.5, 2.], cax=cbar_ax)
+cb.ax.set_yticklabels(['0 HLR', '0.5 HLR', '1 HLR', '1.5 HLR', '2 HLR'])
 
+f.savefig('SFR_dist_report.png')
+plt.close(f)
+ 
 NRows = 5
 NCols = 8
 f, axArr = plt.subplots(NRows, NCols)
@@ -112,8 +186,8 @@ f.set_size_inches(11.69,8.27)
 plt.setp([a.get_xticklabels() for a in f.axes], visible = False)
 plt.setp([a.get_yticklabels() for a in f.axes], visible = False)
 
-xlabel = r'$\log\ \overline{SFR_\star}(t_\star)\ [M_\odot yr^{-1}]$' 
-ylabel = r'$\log\ SFR_{neb}\ [M_\odot yr^{-1}]$'
+xlabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+ylabel = r'$\log\ \Sigma_{SFR}^{neb}\ [M_\odot yr^{-1} kpc^{-2}]$' 
 
 iT = 0
 
@@ -140,7 +214,7 @@ for i in range(0, NRows):
                 transform = ax.transAxes,
                 verticalalignment = 'top', horizontalalignment = 'left',
                 bbox = textbox)
-        txt = '$R_S$: %.2f' %  correl_SFRSD__T[iT]
+        txt = '$R_p:%.2f$ $R_S:%.2f$' %  (st.pearsonr(xm, ym)[0], correl_SFRSD__T[iT])
         textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
         ax.text(0.92, 0.05, txt, fontsize = 8,
                 transform = ax.transAxes,
@@ -169,6 +243,78 @@ for i in range(0, NRows):
 f.subplots_adjust(hspace = 0.0)
 f.subplots_adjust(wspace = 0.0)
 f.savefig('SFRSD_report.png')
+plt.close(f)
+
+NRows = 5
+NCols = 8
+f, axArr = plt.subplots(NRows, NCols)
+f.set_dpi(96)
+f.set_size_inches(11.69,8.27) 
+plt.setp([a.get_xticklabels() for a in f.axes], visible = False)
+plt.setp([a.get_yticklabels() for a in f.axes], visible = False)
+
+xlabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+ylabel = r'$\log\ \Sigma_{SFR}^{neb}\ [M_\odot yr^{-1} kpc^{-2}]$' 
+
+iT = 0
+
+for i in range(0, NRows):
+    for j in range(0, NCols):
+        ax = axArr[i, j] 
+        x = np.ma.log10(ALL_SFRSD_kpc__Tg[iT])
+        y = np.ma.log10(ALL_SFRSD_Ha_kpc__g)
+        z = ALL_dist_zone__g
+        mask = x.mask | y.mask
+        xm = x[~mask]
+        ym = y[~mask]
+        zm = z[~mask]
+        age = tSF__T[iT]
+        print 'SFRSD x SFRSD_Ha Age: %.2f Myr: masked %d points of %d (total: %d)' % (age / 1e6, mask.sum(), len(x), len(x) - mask.sum())
+        xran = [-3.5, 1]
+        yran = [-3.5, 1]
+        scat = ax.scatter(xm, ym, c = zm, cmap = 'hot_r', vmax = 2., marker = 'o', s = 0.3, edgecolor = 'none') #, alpha = 0.4)
+        binsx = np.linspace(-6., 0., 31)
+        binsy = np.linspace(min(ym), max(ym), 31)
+        density_contour(xm, ym, binsx, binsy, ax = ax)
+        ax.plot(ax.get_xlim(), ax.get_xlim(), ls = "--", c = ".3")
+        txt = '%.2f Myr' % (age / 1e6)
+        textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
+        ax.text(0.05, 0.92, txt, fontsize = 8,
+                transform = ax.transAxes,
+                verticalalignment = 'top', horizontalalignment = 'left',
+                bbox = textbox)
+        txt = '$R_p:%.2f$ $R_S:%.2f$' %  (st.pearsonr(xm, ym)[0], correl_SFRSD__T[iT])
+        textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
+        ax.text(0.92, 0.05, txt, fontsize = 8,
+                transform = ax.transAxes,
+                verticalalignment = 'bottom', horizontalalignment = 'right',
+                bbox = textbox)
+        #ax.grid()
+        ax.set_xlim(xran)
+        ax.set_ylim(yran)
+        ax.xaxis.set_major_locator(MultipleLocator(1))
+        ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+        ax.yaxis.set_major_locator(MultipleLocator(1))
+        ax.yaxis.set_minor_locator(MultipleLocator(0.5))
+        
+        if i == NRows - 1 and j == 0:
+            plt.setp(ax.get_xticklabels(), visible = True)
+            plt.setp(ax.get_yticklabels(), visible = True)
+            
+        if i == NRows - 1 and j == 3:
+            ax.set_xlabel(xlabel)
+            
+        if i == 2 and j == 0:
+            ax.set_ylabel(ylabel)
+        
+        iT += 1
+
+f.subplots_adjust(hspace = 0.0, wspace = 0.0, left = 0.05, right=0.85, top = 0.95)
+cbar_ax = f.add_axes([0.88, 0.1, 0.05, 0.85])
+cb = f.colorbar(scat, ticks=[0, 0.5, 1., 1.5, 2.], cax=cbar_ax)
+cb.ax.set_yticklabels(['0 HLR', '0.5 HLR', '1 HLR', '1.5 HLR', '2 HLR'])
+
+f.savefig('SFRSD_dist_report.png')
 plt.close(f)
 
 NRows = 5
@@ -248,7 +394,7 @@ for i in range(0, NRows):
                 transform = ax.transAxes,
                 verticalalignment = 'top', horizontalalignment = 'left',
                 bbox = textbox)
-        txt = '$R_S$: %.2f' %  correl_aSFRSD__rT[0, iT]
+        txt = '$R_p:%.2f$ $R_S:%.2f$' %  (st.pearsonr(xm, ym)[0], correl_aSFRSD__rT[0, iT])
         textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
         ax.text(0.92, 0.05, txt, fontsize = 8,
                 transform = ax.transAxes,
