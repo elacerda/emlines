@@ -134,6 +134,7 @@ listGal = list_gal_sorted_by_data(ALL_califaID_GAL_zones__g, sorted[sorted_by], 
 NGal = len(listGal)
 
 fname = 'SFRNeb_tauV_tauVNeb_sor%s' % sorted_by
+
 newImage = True
 NRows = 7
 NCols = 10

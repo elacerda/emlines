@@ -1,7 +1,8 @@
 #!/bin/bash
 HDF5FILE=data/SFR.h5
-sort=("MorphType" "McorSD" "u-r" "Mr" "Mcor")
-for s in $sort
+sortby=("MorphType McorSD u-r Mr Mcor")
+
+for s in $sortby
 do  
     i=0
     while [ $i != 40 ]
