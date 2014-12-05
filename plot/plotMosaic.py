@@ -9,7 +9,8 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 import sys
 from plot_aux import get_attrib_h5, density_contour, \
-                     list_gal_sorted_by_data, calcRunningStats
+                     list_gal_sorted_by_data, calcRunningStats, \
+                     data_uniq, plot_text_ax, plot_linreg_params
 from matplotlib.ticker import MultipleLocator
 from scipy import stats as st
 
@@ -18,37 +19,19 @@ def plot_gal_img_ax(ax, imgfile, gal):
     galimg = plt.imread(imgfile)
     ax.imshow(galimg)
     txt = '%s' %  gal
-    textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
-    ax.text(0.05, 0.92, txt, fontsize = 8, color = 'white',
-            transform = ax.transAxes,
-            verticalalignment = 'top', horizontalalignment = 'left',
-            bbox = textbox)
+    plot_text_ax(ax, txt, 0.05, 0.92, 8, 'top', 'left')
 
-def plot_reglin_ax(ax, SFR, tau_V):
+
+def plot_reglin_ax(ax, SFR, tau_V, txt_x_pos, txt_y_pos, color):
     step = (SFR.max() - SFR.min()) / len(SFR)
     X = np.linspace(SFR.min(), SFR.max() + step, len(SFR))
 
     y_slope, y_intercept, y_r_value, y_p_value, y_std_err = st.linregress(SFR, tau_V)
-    ax.plot(X, y_slope * X + y_intercept, 'b-', lw = 2)
+    ax.plot(X, y_slope * X + y_intercept, c = color, ls = '-', lw = 2)
     txt = 'y = %.2fx+%.2f' %  (y_slope, y_intercept)
-    textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
-    ax.text(0.05, 0.82, txt, fontsize = 8, color = 'blue',
-            transform = ax.transAxes,
-            verticalalignment = 'top', horizontalalignment = 'left',
-            bbox = textbox)
+    plot_text_ax(ax, txt, txt_x_pos, txt_y_pos, 8, 'top', 'left')
 
     return y_slope, y_intercept, y_r_value, y_p_value, y_std_err
-
-
-def plot_tau_SFR_ax(ax, SFR, tau_V, tau_V_neb, SFRlim, taulim, ticks): 
-    ax.scatter(SFR, tau_V, c = 'b', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.6, label = r'$\tau_V^\star$')
-    ax.scatter(SFR, tau_V_neb, c = 'r', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.6, label = r'$\tau_V^{neb}$')
-        
-    ax.set_ylim(taulim)
-    if ticks:
-        ax.set_xlim(SFRlim)
-    #ax.set_title(r'%.2f Myr' % (tSF__T[iT] / 1.e6))
-    #ax.legend(fontsize = 14, frameon = False, loc = 'upper right')
 
 
 def new_img_mosaic(NRows, NCols, age, ticks, sorted_by):
@@ -60,7 +43,7 @@ def new_img_mosaic(NRows, NCols, age, ticks, sorted_by):
         plot_suptitle = '%.2f Myr' % (age/1e6)
         if ticks:
             plot_suptitle = '%s xlim fixed' % plot_suptitle
-        plot_suptitle = '%s - sorted by %s' % (plot_suptitle, sorted_by)             
+        plot_suptitle = '%s - sort_param: %s' % (plot_suptitle, sorted_by)             
         f.suptitle(plot_suptitle)
         for ax in f.axes:
             ax.set_axis_off()
@@ -73,7 +56,8 @@ def save_img_mosaic(f, fname, ticks):
         fname = '%s_xfix' % (fname)
     f.savefig('%s.png' % fname)
 
-sorted = {
+
+sort_param = {
     'Mcor' : False,
     'McorSD' : False,
     'MorphType' : False,
@@ -86,7 +70,7 @@ try:
     iT = np.int(sys.argv[2])
     sorted_by = sys.argv[3]
 except IndexError:
-    print 'usage: %s HDF5FILE [0-39] %s' % (sys.argv[0], sorted.keys())
+    print 'usage: %s HDF5FILE [0-39] %s' % (sys.argv[0], sort_param.keys())
     exit(1)
 
 mpl.rcParams['font.size'] = 16
@@ -124,16 +108,30 @@ ALL_califaID_GAL_zones__g = get_attrib_h5(h5, 'ALL_califaID_GAL_zones__g')
 ALL_Mr_GAL_zones__g = get_attrib_h5(h5, 'ALL_Mr_GAL_zones__g')
 ALL_ur_GAL_zones__g = get_attrib_h5(h5, 'ALL_ur_GAL_zones__g')
 
-sorted['Mcor'] = ALL_Mcor_GAL_zones__g
-sorted['McorSD'] = ALL_McorSD_GAL_zones__g
-sorted['MorphType'] = ALL_morfType_GAL_zones__g
-sorted['Mr'] = ALL_Mr_GAL_zones__g
-sorted['u-r'] = ALL_ur_GAL_zones__g
+sort_param['Mcor'] = np.log10(ALL_Mcor_GAL_zones__g)
+sort_param['McorSD'] = np.log10(ALL_McorSD_GAL_zones__g)
+sort_param['MorphType'] = ALL_morfType_GAL_zones__g
+sort_param['Mr'] = ALL_Mr_GAL_zones__g
+sort_param['u-r'] = ALL_ur_GAL_zones__g
 
-listGal = list_gal_sorted_by_data(ALL_califaID_GAL_zones__g, sorted[sorted_by], 0)
-NGal = len(listGal)
+label = { '%s' % k : False for k in sort_param.keys()} 
 
-fname = 'SFRNeb_tauV_tauVNeb_sor%s' % sorted_by
+label['Mcor'] = r'$\log\ M_\star^{gal}\ [M_\odot]$'
+label['McorSD'] = r'$\log\ \mu_\star^{gal}\ [M_\odot\ pc^{-2}]$'
+label['MorphType'] = r'Morphological type'
+label['Mr'] = r'$M_r$'
+label['u-r'] = r'u - r'
+
+NGal, listGal_ns, sorted_data__g = data_uniq(ALL_califaID_GAL_zones__g, sort_param[sorted_by])
+listGal = list_gal_sorted_by_data(listGal_ns, sorted_data__g, -1)
+#ticks = True
+ticks = False
+min_pixel_to_plot = 5
+fname_suffix = 'sor%s_%.2fMyr' % (sorted_by, tSF__T[iT]/1e6)
+
+###################################################################################
+yname = 'dtau'
+xname = 'SFR_Ha'
 
 newImage = True
 NRows = 7
@@ -142,16 +140,12 @@ iGal = 0
 i = 0
 j = 0
 k = 0
-min_pixel_to_plot = 5
 last_row = 0
-ticks = True
-#ticks = False
-tau_V_slope = np.ma.masked_all((NGal))
-tau_V_x0 = np.ma.masked_all((NGal))
-tau_V_stderr = np.ma.masked_all((NGal))
-tau_V_neb_slope = np.ma.masked_all((NGal))
-tau_V_neb_x0 = np.ma.masked_all((NGal))
-tau_V_neb_stderr = np.ma.masked_all((NGal))
+
+dtau_slope = np.ma.masked_all((NGal))
+dtau_x0 = np.ma.masked_all((NGal))
+dtau_stderr = np.ma.masked_all((NGal))
+dtau_r = np.ma.masked_all((NGal))
 
 while iGal < NGal:
     if newImage:
@@ -169,7 +163,8 @@ while iGal < NGal:
     mask = ~(x.mask | y1.mask | y2.mask)
     xm = x[mask]
     y1m = y1[mask]
-    y2m = y2[mask]    
+    y2m = y2[mask]
+    ym = y2m - y1m    
 
     N_not_masked = mask.sum()
      
@@ -181,22 +176,26 @@ while iGal < NGal:
         ax1.set_axis_on()
         ax2.set_axis_on()
 
-        print '%s %d %d' % (gal, N_zone, N_not_masked)
+        #print '%s %d %d' % (gal, N_zone, N_not_masked)
         
         xlabel = r'$\log\ SFR_{neb}\ $[M${}_\odot$ yr${}^{-1}]$'
-        ylabel = r'$\tau_V$'
+        ylabel = r'$\tau_V^{neb}\ -\ \tau_V^\star$'
 
-        plot_tau_SFR_ax(ax1, xm, y1m, y2m, [-4., -0.5], [ 0.,  2. ], ticks)
+        ax1.scatter(xm, ym, c = 'k', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.6)
+        xlim = [-4., -0.5]
+        #ylim = [ -1,  2. ]    
+        #ax1.set_ylim(ylim)
         
-        aux = plot_reglin_ax(ax1, xm, y1m)
-        tau_V_slope[iGal] = aux[0]
-        tau_V_x0[iGal] = aux[1]
-        tau_V_stderr[iGal] = aux[4]
+        if ticks:
+            ax1.set_xlim(xlim)
+        #ax.set_title(r'%.2f Myr' % (tSF__T[iT] / 1.e6))
+        #ax.legend(fontsize = 14, frameon = False, loc = 'upper right')
         
-        aux = plot_reglin_ax(ax1, xm, y2m)            
-        tau_V_neb_slope[iGal] = aux[0]
-        tau_V_neb_x0[iGal] = aux[1]
-        tau_V_neb_stderr[iGal] = aux[4]
+        aux = plot_reglin_ax(ax1, xm, ym, 0.05, 0.92, 'k')
+        dtau_slope[iGal] = aux[0]
+        dtau_x0[iGal] = aux[1]
+        dtau_r[iGal] = aux[2]
+        dtau_stderr[iGal] = aux[4]
 
         plot_gal_img_ax(ax2, '/Users/lacerda/CALIFA/images/%s.jpg' % gal, gal)
         
@@ -214,7 +213,7 @@ while iGal < NGal:
             if i == NRows -1:
                 i = 0
                 newImage = True
-                save_img_mosaic(f, '%s_%.2fMyr_%d' % (fname, tSF__T[iT]/1e6, k), ticks)
+                save_img_mosaic(f, '%s_%s_%s_%d' % (xname, yname, fname_suffix, k), ticks)
                 plt.close(f)
                 k += 1
             else:
@@ -236,7 +235,166 @@ while iGal < NGal:
             if last_row < 3:
                 ax1.set_ylabel(ylabel)
         
-        save_img_mosaic(f, '%s_%.2fMyr_%d' % (fname, tSF__T[iT]/1e6, k), ticks)
+        save_img_mosaic(f, '%s_%s_%s_%d' % (xname, yname, fname_suffix, k), ticks)
         plt.close(f)
         
     iGal += 1
+
+ylab = r'$\delta\tau$'
+plot_linreg_params(dtau_slope, sorted_data__g, label[sorted_by], 
+                   r'%s slope' % ylab, '%s_slope_%s.png' % (yname, fname_suffix),
+                   best_param = 1., fontsize = 8)
+plot_linreg_params(dtau_x0, sorted_data__g, label[sorted_by], 
+                   r'%s x0' % ylab, '%s_x0_%s.png' % (yname, fname_suffix), 
+                   best_param = 0., fontsize = 8)
+plot_linreg_params(dtau_stderr, sorted_data__g, label[sorted_by], 
+                   r'%s stderr' % ylab, '%s_stderr_%s.png' % (yname, fname_suffix))
+plot_linreg_params(dtau_r**2., sorted_data__g, label[sorted_by], 
+                   r'%s $r^2$' % ylab, '%s_sqrcor_%s.png' % (yname, fname_suffix),
+                   best_param = 1., fontsize = 8)
+
+##########################################################################################
+y1name = 'tau_V'
+y2name = 'tau_V_neb'
+xname = 'SFR_Ha'
+newImage = True
+NRows = 7
+NCols = 10
+iGal = 0
+i = 0
+j = 0
+k = 0
+min_pixel_to_plot = 5
+last_row = 0
+tau_V_slope = np.ma.masked_all((NGal))
+tau_V_x0 = np.ma.masked_all((NGal))
+tau_V_stderr = np.ma.masked_all((NGal))
+tau_V_r = np.ma.masked_all((NGal))
+tau_V_neb_slope = np.ma.masked_all((NGal))
+tau_V_neb_x0 = np.ma.masked_all((NGal))
+tau_V_neb_stderr = np.ma.masked_all((NGal))
+tau_V_neb_r = np.ma.masked_all((NGal))
+ 
+while iGal < NGal:
+    if newImage:
+        f, axArr = new_img_mosaic(NRows, NCols, tSF__T[iT], ticks, sorted_by)
+        newImage = False
+         
+    gal = listGal[iGal]
+    where_slice = np.where(ALL_califaID_GAL_zones__g == gal)[0]
+    N_zone = len(where_slice)
+     
+    x = np.ma.log10(ALL_SFR_Ha__g[where_slice])
+    y1 = ALL_tau_V__Tg[iT][where_slice]
+    y2 = ALL_tau_V_neb__g[where_slice]
+     
+    mask = ~(x.mask | y1.mask | y2.mask)
+    xm = x[mask]
+    y1m = y1[mask]
+    y2m = y2[mask]    
+ 
+    N_not_masked = mask.sum()
+      
+    if N_not_masked >= min_pixel_to_plot:
+        last_row = i
+        ax1 = axArr[i, j]
+        j += 1
+        ax2 = axArr[i, j]
+        ax1.set_axis_on()
+        ax2.set_axis_on()
+
+        #print '%s %d %d' % (gal, N_zone, N_not_masked)
+        
+        xlabel = r'$\log\ SFR_{neb}\ $[M${}_\odot$ yr${}^{-1}]$'
+        ylabel = r'$\tau_V$'
+ 
+        ax1.scatter(xm, y1m, c = 'b', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.6, label = r'$\tau_V^\star$')
+        ax1.scatter(xm, y2m, c = 'r', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.6, label = r'$\tau_V^{neb}$')
+        xlim = [-4., -0.5]
+        ylim = [ 0.,  2. ]    
+        ax1.set_ylim(ylim)
+        if ticks:
+            ax1.set_xlim(xlim)
+        #ax.set_title(r'%.2f Myr' % (tSF__T[iT] / 1.e6))
+        #ax.legend(fontsize = 14, frameon = False, loc = 'upper right')
+         
+        aux = plot_reglin_ax(ax1, xm, y1m, 0.05, 0.82, 'b')
+        tau_V_slope[iGal] = aux[0]
+        tau_V_x0[iGal] = aux[1]
+        tau_V_r[iGal] = aux[2]
+        tau_V_stderr[iGal] = aux[4]
+         
+        aux = plot_reglin_ax(ax1, xm, y2m, 0.05, 0.92, 'r')            
+        tau_V_neb_slope[iGal] = aux[0]
+        tau_V_neb_x0[iGal] = aux[1]
+        tau_V_neb_r[iGal] = aux[2]
+        tau_V_neb_stderr[iGal] = aux[4]
+ 
+        plot_gal_img_ax(ax2, '/Users/lacerda/CALIFA/images/%s.jpg' % gal, gal)
+         
+        if ticks and i == NRows - 1 and j == 1:
+            plt.setp(ax1.get_xticklabels(), visible = True, rotation = 90)
+            plt.setp(ax1.get_yticklabels(), visible = True)
+             
+        if i == NRows - 1 and j == 5:
+            ax2.set_xlabel(xlabel)
+             
+        if i == 3 and j == 1:
+            ax1.set_ylabel(ylabel)
+         
+        if j == NCols - 1:
+            if i == NRows -1:
+                i = 0
+                newImage = True
+                save_img_mosaic(f, '%s_%s_%s_%s_%d' % (xname, y1name, y2name, fname_suffix, k), ticks)
+                plt.close(f)
+                k += 1
+            else:
+                i += 1
+            j = 0
+        else:
+            j += 1
+     
+    if newImage == False and iGal == NGal - 1:
+        ax1 = axArr[last_row, 0]
+        if ticks:
+            plt.setp(ax1.get_xticklabels(), visible = True, rotation = 90)
+            plt.setp(ax1.get_yticklabels(), visible = True)
+         
+        if last_row < NRows - 1:
+            ax = axArr[last_row, 5]
+            ax.set_xlabel(xlabel)
+         
+            if last_row < 3:
+                ax1.set_ylabel(ylabel)
+         
+        save_img_mosaic(f, '%s_%s_%s_%s_%d' % (xname, y1name, y2name, fname_suffix, k), ticks)
+        plt.close(f)
+         
+    iGal += 1
+
+y1lab = r'$\tau_V^\star$'
+plot_linreg_params(tau_V_slope, sorted_data__g, label[sorted_by], 
+                   r'%s slope' % y1lab, '%s_slope_%s.png' % (yname, fname_suffix),
+                   best_param = 1., fontsize = 8)
+plot_linreg_params(tau_V_x0, sorted_data__g, label[sorted_by], 
+                   r'%s x0' % y1lab, '%s_x0_%s.png' % (yname, fname_suffix), 
+                   best_param = 0., fontsize = 8)
+plot_linreg_params(tau_V_r**2., sorted_data__g, label[sorted_by], 
+                   r'%s $r^2$' % y1lab, '%s_sqrcor_%s.png' % (yname, fname_suffix),
+                   best_param = 1., fontsize = 8)
+plot_linreg_params(tau_V_stderr, sorted_data__g, label[sorted_by], 
+                   r'%s stderr' % y1lab, '%s_stderr_%s.png' % (yname, fname_suffix))
+
+y2lab = r'$\tau_V^{neb}$' 
+plot_linreg_params(tau_V_neb_slope, sorted_data__g, label[sorted_by], 
+                   r'%s slope' % y2lab, '%s_slope_%s.png' % (yname, fname_suffix),
+                   best_param = 1., fontsize = 8)
+plot_linreg_params(tau_V_neb_x0, sorted_data__g, label[sorted_by], 
+                   r'%s x0' % y2lab, '%s_x0_%s.png' % (yname, fname_suffix), 
+                   best_param = 0., fontsize = 8)
+plot_linreg_params(tau_V_neb_r**2., sorted_data__g, label[sorted_by], 
+                   r'%s $r^2$' % y2lab, '%s_sqrcor_%s.png' % (yname, fname_suffix),
+                   best_param = 1., fontsize = 8)
+plot_linreg_params(tau_V_neb_stderr, sorted_data__g, label[sorted_by], 
+                   r'%s stderr' % y2lab, '%s_stderr_%s.png' % (yname, fname_suffix))

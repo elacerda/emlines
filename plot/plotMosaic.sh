@@ -8,7 +8,7 @@ do
     while [ $i != 40 ]
     do
         echo "SORT: ${s} iT: ${i}"
-        ./plotMosaic.py ${HDF5FILE} ${i} ${s}
-       let "i = i + 1"
+        ./plotMosaic.py ${HDF5FILE} ${i} ${s} 
+        let "i = i + 1"
    done
 done

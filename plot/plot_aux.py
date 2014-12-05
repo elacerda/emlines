@@ -9,6 +9,55 @@ import scipy.optimize as so
 from matplotlib import pyplot as plt
 
 
+def plot_linreg_params(param, x, xlabel, ylabel, fname, best_param = None, fontsize = 12):
+    y = param
+    xm = x
+    ym = y
+    #xm = x[~y.mask]
+    #ym = y[~y.mask]
+    f = plt.figure()
+    ax = f.gca()
+    ax.scatter(xm, ym, c = 'k', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.6)
+    if best_param != None:
+        ax.axhline(y = best_param, c = 'k', ls = '--')
+        delta = np.abs(ym - best_param)
+        where = np.where(delta == delta.min())
+        txt = r'$x_{best}:$ %.2f ($\Delta$:%.2f)' % (x[where], delta[where])
+        textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
+        x_pos = xm[where]
+        y_pos = ym[where]
+        xlim_inf, xlim_sup = ax.get_xlim()
+        ylim_inf, ylim_sup = ax.get_ylim() 
+        arrow_size_x = (xlim_sup - x_pos) / 6
+        arrow_size_y = (ylim_sup - y_pos) / 3 
+        ax.annotate(txt,
+            xy=(x_pos, y_pos), xycoords='data',
+            xytext=(x_pos + arrow_size_x, y_pos + arrow_size_y), 
+            textcoords='data',
+            verticalalignment = 'top', horizontalalignment = 'left',
+            bbox = textbox,
+            arrowprops=dict(arrowstyle="->", 
+                            #linestyle="dashed",
+                            color="0.5",
+                            connectionstyle="angle3,angleA=90,angleB=0",
+                            ),
+            )
+#        ax.text(xm[where], ym[where], txt, fontsize = fontsize,
+#                verticalalignment = 'top', horizontalalignment = 'left',
+#                bbox = textbox)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    f.savefig(fname)
+
+
+def plot_text_ax(ax, txt, xpos, ypos, fontsize, va, ha):
+    textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
+    ax.text(xpos, ypos, txt, fontsize = fontsize,
+            transform = ax.transAxes,
+            verticalalignment = va, horizontalalignment = ha,
+            bbox = textbox)
+
+
 def plotRunningStatsAxis(ax, x, y, ylegend, plot_stats = 'mean', color = 'black', errorbar = True, nBox = 25):
     dxBox       = (x.max() - x.min()) / (nBox - 1.)
     aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
@@ -133,8 +182,7 @@ def calcRunningStats(x, y, dxBox = 0.3, xbinIni = 8.5, xbinFin = 12, xbinStep = 
 def plotStatCorreAxis(ax, x, y, pos_x, pos_y, fontsize):
     rhoSpearman, pvalSpearman = st.spearmanr(x, y)
     txt = '<y/x>:%.3f - (y/x) median:%.3f - $\sigma(y/x)$:%.3f - Rs: %.2f' % (np.mean(y/x), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
-    textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
-    ax.text(pos_x, pos_y, txt, fontsize = fontsize, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
+    plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'top', 'left')
 
 
 def gaussSmooth_YofX(x, y, FWHM):
@@ -168,8 +216,7 @@ def plotSFR(x,y,xlabel,ylabel,xlim,ylim,age,fname):
     rhoSpearman, pvalSpearman = st.spearmanr(x, y)
     yxlabel = r'$%s /\ %s $ ' % (ylabel.split('[')[0].strip('$ '), xlabel.split('[')[0].strip('$ '))
     txt = '%s mean:%.3f  median:%.3f  $\sigma(y/x)$:%.3f  Rs: %.2f' % (yxlabel, (y/x).mean(), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
-    textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
-    ax.text(0.03, 0.97, txt, fontsize = 16, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
+    plot_text_ax(ax, txt, 0.03, 0.97, 16, 'top', 'left')
     ax.grid()
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -192,8 +239,7 @@ def plotTau(x,y,xlabel,ylabel,xlim,ylim,age,fname):
     rhoSpearman, pvalSpearman = st.spearmanr(x, y)
     yxlabel = r'$%s /\ %s $ ' % (ylabel.split('[')[0].strip('$ '), xlabel.split('[')[0].strip('$ '))
     txt = '%s mean:%.3f  median:%.3f  $\sigma(y/x)$:%.3f  Rs: %.2f' % (yxlabel, (y/x).mean(), np.ma.median((y/x)), np.ma.std(y/x), rhoSpearman)
-    textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
-    ax.text(0.3, 0.97, txt, fontsize = 15, transform = ax.transAxes, verticalalignment = 'top', bbox = textbox)
+    plot_text_ax(ax, txt, 0.03, 0.97, 15, 'top', 'left')
     ax.grid()
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -272,21 +318,35 @@ def calcYofXStats_EqNumberBins(x, y, nPerBin = 25):
     return xMedian, xMean, xStd, yMedian, yMean , yStd, nInBin
 
 
+def data_uniq(list_gal, data):
+    list_uniq_gal = np.unique(list_gal)
+    NGal = len(list_uniq_gal)
+    data__g = np.ones((NGal))
+    
+    for i, g in enumerate(list_uniq_gal):
+        data__g[i] = np.unique(data[np.where(list_gal == g)])
+        
+    return NGal, list_uniq_gal, data__g
+
+
 def list_gal_sorted_by_data(list_gal, data, type):
     '''
     type = 0 - sort asc
-    type = other - sort desc
-    '''
-    list_tmp = np.unique(list_gal)
-    NGal = len(list_tmp)
-    var__g = np.ones((NGal))
+    type = 1 - sort desc
+    type = -1 - receives list_gal and data as uniq
+                aka. only sorts, list_gal by data
     
-    for i, g in enumerate(list_tmp):
-        var__g[i] = np.unique(data[np.where(list_gal == g)])
+    '''
+    if type >= 0:
+        NGal, list_uniq_gal, data__g = data_uniq(list_gal, data)
+    else:
+        NGal = len(list_gal)
+        list_uniq_gal = list_gal
+        data__g = data
         
-    iS = np.argsort(var__g)
+    iS = np.argsort(data__g)
     
     if type != 0:
         iS = iS[::-1]
     
-    return list_tmp[iS]
+    return list_uniq_gal[iS]
