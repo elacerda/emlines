@@ -3,16 +3,14 @@
 # Lacerda@Granada - 13/Oct/2014
 #
 import numpy as np
-import h5py
 import matplotlib as mpl
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MultipleLocator
 import sys
+import h5py
 from plot_aux import get_attrib_h5, density_contour, plot_text_ax, \
                      plot_linreg_params
-from matplotlib.ticker import MultipleLocator
 from scipy import stats as st
-
-
 
 mpl.rcParams['font.size'] = 16
 mpl.rcParams['axes.labelsize'] = 16

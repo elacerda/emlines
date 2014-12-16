@@ -50,9 +50,9 @@ def plot_linreg_params(param, x, xlabel, ylabel, fname, best_param = None, fonts
     f.savefig(fname)
 
 
-def plot_text_ax(ax, txt, xpos, ypos, fontsize, va, ha):
+def plot_text_ax(ax, txt, xpos, ypos, fontsize, va, ha, color = 'k'):
     textbox = dict(boxstyle = 'round', facecolor = 'wheat', alpha = 0.)
-    ax.text(xpos, ypos, txt, fontsize = fontsize,
+    ax.text(xpos, ypos, txt, fontsize = fontsize, color = color,
             transform = ax.transAxes,
             verticalalignment = va, horizontalalignment = ha,
             bbox = textbox)
