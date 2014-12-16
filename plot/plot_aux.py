@@ -329,6 +329,84 @@ def data_uniq(list_gal, data):
     return NGal, list_uniq_gal, data__g
 
 
+class H5SFRData:
+    def __init__(self, h5file):
+        self.h5file = h5file
+        self.h5 = h5py.File(self.h5file, 'r')
+        
+        try: 
+            #self.califaIDsbyzones = self.get_data_h5('ALL_califaID_GAL_zones__g')
+            self.califaIDsbyzones = self.get_data_h5('califaID_GAL_zones__g')
+            self.califaIDs = np.unique(self.califaIDsbyzones)
+            self.Ngals = len(self.califaIDs)
+        except:
+            print 'Missing califaID_GAL_zones__g on h5 file!'
+            
+    def get_data_h5(self, prop):
+        h5 = self.h5
+        if any([ prop in s for s in h5['masked/mask'].keys() ]):
+            node = '/masked/data/' + prop
+            ds = h5[node]
+            if type(ds) == h5py.Dataset:
+                data = h5.get('/masked/data/' + prop).value
+                mask = h5.get('/masked/mask/' + prop).value
+                arr = np.ma.masked_array(data, mask = mask)
+            else:
+                arr = []
+                tSF__T = h5.get('/data/tSF__T').value
+                
+                for iT, tSF in enumerate(tSF__T):
+                    group = '%s/%d' % (prop, iT)
+                    data = h5.get('/masked/data/' + group).value
+                    mask = h5.get('/masked/mask/' + group).value
+                    arr.append(np.ma.masked_array(data, mask = mask))
+            return arr 
+        else:
+            return h5.get('/data/' + prop).value
+        
+    def get_prop_gal(self, prop, gal = None):
+        data = self.get_data_h5(prop)
+        prop__z = None
+        print gal, type(gal)
+        
+        if gal:
+            where_slice = np.where(self.califaIDsbyzones == gal)
+            # by zone
+            prop__z = data[where_slice]
+            
+        return prop__z
+    
+    def get_prop_uniq(self, prop):
+        data = self.get_data_h5(prop)
+        data__g = np.ma.masked_all((self.Ngals), dtype = data.dtype)
+        
+        for i, g in enumerate(self.califaIDs):
+            data = self.get_prop_gal(prop, g)
+            data__g[i] = np.unique(data)[0]
+            
+        return data__g
+    
+    def sort_gal_by_prop(self, prop, type):
+        '''
+        type = 0 - sort asc
+        type = 1 - sort desc
+        For types different than those above the method does nothing.
+        '''
+        list_uniq_gal = self.califaIDs
+        
+        if type >= 0:
+            data__g = self.get_prop_uniq(prop)
+            
+            iS = np.argsort(data__g)
+            
+            if type != 0:
+                iS = iS[::-1]
+                
+            list_uniq_gal = self.califaIDs[iS]
+        
+        return list_uniq_gal
+
+        
 def list_gal_sorted_by_data(list_gal, data, type):
     '''
     type = 0 - sort asc
