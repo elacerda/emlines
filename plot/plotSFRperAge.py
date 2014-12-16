@@ -92,7 +92,10 @@ for iT, age in enumerate(tSF__T):
     ax.plot(X, A * X + B, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
     txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (\sigma:%.4f)$' %  (A, B, std_err)
     plot_text_ax(ax, txt, 0.98, 0.20 - (csig * 0.07), 14, 'bottom', 'right', c)
-        
+
+    ax.set_xlim(xran)
+    ax.set_ylim(yran)
+            
     ax.legend()
     f.savefig('SFR_SFRHa_%.2fMyr.png' % (age / 1e6))
 
@@ -157,6 +160,8 @@ for iT, age in enumerate(tSF__T):
     ax.plot(X, A * X + B, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
     txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (\sigma:%.4f)$' %  (A, B, std_err)
     plot_text_ax(ax, txt, 0.98, 0.20 - (csig * 0.07), 14, 'bottom', 'right', c)
-        
+
+    ax.set_xlim(xran)
+    ax.set_ylim(yran)
     ax.legend()
     f.savefig('aSFRSD_aSFRSDHa_%.2fMyr.png' % (age / 1e6))
