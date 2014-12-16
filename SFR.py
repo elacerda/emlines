@@ -313,9 +313,9 @@ if __name__ == '__main__':
     #########################################################################
     #########################################################################
 
-    ALL_zones_tau_V = 0
-    ALL_gals = 0
-    ALL_zones = 0
+    ALL_N_zones_tau_V = 0
+    ALL_N_gals = 0
+    ALL_N_zones = 0
         
     for iGal in np.arange(N_gals):
         galName = listOfPrefixes[iGal][:-1]
@@ -434,8 +434,8 @@ if __name__ == '__main__':
         ALL_morfType_GAL__g[iGal] = tipo
         print '>>> Doing' , iGal , galName , 'hubtyp=', ALL_morfType_GAL__g[iGal], '|  Nzones=' , K.N_zone
         ALL_N_zones__g[iGal] = K.N_zone
-        ALL_zones += K.N_zone
-        ALL_gals += 1
+        ALL_N_zones += K.N_zone
+        ALL_N_gals += 1
 
         # a fake morfType per zone for all galaxies, creating a stamp for each zone
         aux = np.ones_like(K.Mcor__z) * ALL_morfType_GAL__g[iGal]
@@ -561,7 +561,7 @@ if __name__ == '__main__':
         
         N_zones_tau_V = len(K.EL.tau_V_neb__z.compressed())
         print 'tauV calculated for %d zones (maskOK and maskOkTauVNeb)' % N_zones_tau_V
-        ALL_zones_tau_V += N_zones_tau_V
+        ALL_N_zones_tau_V += N_zones_tau_V
         
         tau_V_neb__z = K.EL.tau_V_neb__z
         tau_V_neb_err__z = K.EL.tau_V_neb_err__z
@@ -772,7 +772,7 @@ if __name__ == '__main__':
 
         K.close()
 
-    print 'Total of %d galaxies (%d zones): %s zones for tau_V' % (ALL_gals, ALL_zones, ALL_zones_tau_V)
+    print 'Total of %d galaxies (%d zones): %s zones for tau_V' % (ALL_N_gals, ALL_N_zones, ALL_N_zones_tau_V)
     
     ALL_dist_zone__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_dist_zone__g)))
 
@@ -864,98 +864,98 @@ if __name__ == '__main__':
         h5 = h5py.File(filename, 'w')
         
         D = {
-            '/masked/data/ALL_morfType_GAL__g' : ALL_morfType_GAL__g.data,
-            '/masked/data/ALL_at_flux_GAL__g' : ALL_at_flux_GAL__g.data,
-            '/masked/data/ALL_Mcor_GAL__g' : ALL_Mcor_GAL__g.data,
-            '/masked/data/ALL_McorSD_GAL__g' : ALL_McorSD_GAL__g.data,
-            '/masked/data/ALL_morfType_GAL_zones__rg' : ALL_morfType_GAL_zones__rg.data,
-            '/masked/data/ALL_Mr_GAL_zones__rg' : ALL_Mr_GAL_zones__rg.data,
-            '/masked/data/ALL_ur_GAL_zones__rg' : ALL_ur_GAL_zones__rg.data,
-            '/masked/data/ALL_tau_V_neb__rg' : ALL_tau_V_neb__rg.data,
-            '/masked/data/ALL_alogZ_mass_GAL__Tg' : ALL_alogZ_mass_GAL__Tg.data,
-            '/masked/data/ALL_alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.data,
-            '/masked/data/ALL_isOkFrac_GAL__Tg' : ALL_isOkFrac_GAL__Tg.data,
-            '/masked/data/ALL_aSFRSD_Ha__rg' : ALL_aSFRSD_Ha__rg.data,
-            '/masked/data/ALL_aSFRSD_Ha_kpc__rg' : ALL_aSFRSD_Ha_kpc__rg.data,
-            '/masked/data/ALL_aSFRSD__Trg' : ALL_aSFRSD__Trg.data,
-            '/masked/data/ALL_aSFRSD_kpc__Trg' : ALL_aSFRSD_kpc__Trg.data,
-            '/masked/data/ALL_tau_V__Trg' : ALL_tau_V__Trg.data,
-            '/masked/data/ALL_alogZ_mass__Trg' : ALL_alogZ_mass__Trg.data,
-            '/masked/data/ALL_alogZ_flux__Trg' : ALL_alogZ_flux__Trg.data,
-            '/masked/data/ALL_McorSD_GAL__rg' : ALL_McorSD_GAL__rg.data,
-            '/masked/data/ALL_tau_V_neb__g' :  ALL_tau_V_neb__g.data,
-            '/masked/data/ALL_tau_V_neb_err__g' : ALL_tau_V_neb_err__g.data,
-            '/masked/data/ALL_L_int_Ha__g' : ALL_L_int_Ha__g.data,
-            '/masked/data/ALL_F_obs_Ha__g' : ALL_F_obs_Ha__g.data,
-            '/masked/data/ALL_SFR_Ha__g' : ALL_SFR_Ha__g.data,
-            '/masked/data/ALL_SFRSD_Ha__g' : ALL_SFRSD_Ha__g.data,
-            '/masked/data/ALL_SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.data,
-            '/masked/data/ALL_Mcor__g' : ALL_Mcor__g.data,
-            '/masked/data/ALL_McorSD__g' : ALL_McorSD__g.data,
-            '/masked/data/ALL_Mcor_GAL_zones__g' : ALL_Mcor_GAL_zones__g.data,
-            '/masked/data/ALL_Mr_GAL_zones__g' : ALL_Mr_GAL_zones__g.data,
-            '/masked/data/ALL_ur_GAL_zones__g' : ALL_ur_GAL_zones__g.data,
-            '/masked/data/ALL_califaID_GAL_zones__g' : ALL_califaID_GAL_zones__g.data,            
-            '/masked/data/ALL_McorSD_GAL_zones__g' : ALL_McorSD_GAL_zones__g.data,
-            '/masked/data/ALL_morfType_GAL_zones__g' : ALL_morfType_GAL_zones__g.data,
-            '/masked/data/ALL_at_flux_GAL_zones__g' : ALL_at_flux_GAL_zones__g.data,
-            '/masked/data/ALL_integrated_SFR__Tg' : ALL_integrated_SFR__Tg.data,
-            '/masked/data/ALL_integrated_SFRSD__Tg' : ALL_integrated_SFRSD__Tg.data,
-            '/masked/data/ALL_integrated_SFRSD_kpc__Tg' : ALL_integrated_SFRSD_kpc__Tg.data,
-            '/masked/data/ALL_integrated_SFR_Ha__g' : ALL_integrated_SFR_Ha__g.data,
-            '/masked/data/ALL_integrated_SFRSD_Ha__g' : ALL_integrated_SFRSD_Ha__g.data,
-            '/masked/data/ALL_integrated_SFRSD_Ha_kpc__g' : ALL_integrated_SFRSD_Ha_kpc__g.data,
-            '/masked/data/ALL_dist_zone__g' : ALL_dist_zone__g.data,
-            '/masked/data/ALL_N_zones__g' : ALL_N_zones__g.data, 
-            '/masked/mask/ALL_morfType_GAL__g' : ALL_morfType_GAL__g.mask,
-            '/masked/mask/ALL_at_flux_GAL__g' : ALL_at_flux_GAL__g.mask,
-            '/masked/mask/ALL_Mcor_GAL__g' : ALL_Mcor_GAL__g.mask,
-            '/masked/mask/ALL_McorSD_GAL__g' : ALL_McorSD_GAL__g.mask,
-            '/masked/mask/ALL_morfType_GAL_zones__rg' : ALL_morfType_GAL_zones__rg.mask,
-            '/masked/mask/ALL_Mr_GAL_zones__rg' : ALL_Mr_GAL_zones__rg.mask,
-            '/masked/mask/ALL_ur_GAL_zones__rg' : ALL_ur_GAL_zones__rg.mask,
-            '/masked/mask/ALL_tau_V_neb__rg' : ALL_tau_V_neb__rg.mask,
-            '/masked/mask/ALL_alogZ_mass_GAL__Tg' : ALL_alogZ_mass_GAL__Tg.mask,
-            '/masked/mask/ALL_alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.mask,
-            '/masked/mask/ALL_isOkFrac_GAL__Tg' : ALL_isOkFrac_GAL__Tg.mask,
-            '/masked/mask/ALL_aSFRSD_Ha__rg' : ALL_aSFRSD_Ha__rg.mask,
-            '/masked/mask/ALL_aSFRSD_Ha_kpc__rg' : ALL_aSFRSD_Ha_kpc__rg.mask,
-            '/masked/mask/ALL_aSFRSD__Trg' : ALL_aSFRSD__Trg.mask,
-            '/masked/mask/ALL_aSFRSD_kpc__Trg' : ALL_aSFRSD_kpc__Trg.mask,
-            '/masked/mask/ALL_tau_V__Trg' : ALL_tau_V__Trg.mask,
-            '/masked/mask/ALL_alogZ_mass__Trg' : ALL_alogZ_mass__Trg.mask,
-            '/masked/mask/ALL_alogZ_flux__Trg' : ALL_alogZ_flux__Trg.mask,
-            '/masked/mask/ALL_McorSD_GAL__rg' : ALL_McorSD_GAL__rg.mask,
-            '/masked/mask/ALL_tau_V_neb__g' :  ALL_tau_V_neb__g.mask,
-            '/masked/mask/ALL_tau_V_neb_err__g' : ALL_tau_V_neb_err__g.mask,
-            '/masked/mask/ALL_L_int_Ha__g' : ALL_L_int_Ha__g.mask,
-            '/masked/mask/ALL_F_obs_Ha__g' : ALL_F_obs_Ha__g.mask,
-            '/masked/mask/ALL_SFR_Ha__g' : ALL_SFR_Ha__g.mask,
-            '/masked/mask/ALL_SFRSD_Ha__g' : ALL_SFRSD_Ha__g.mask,
-            '/masked/mask/ALL_SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.mask,
-            '/masked/mask/ALL_Mcor__g' : ALL_Mcor__g.mask,
-            '/masked/mask/ALL_McorSD__g' : ALL_McorSD__g.mask,
-            '/masked/mask/ALL_Mr_GAL_zones__g' : ALL_Mr_GAL_zones__g.mask,
-            '/masked/mask/ALL_ur_GAL_zones__g' : ALL_ur_GAL_zones__g.mask,
-            '/masked/mask/ALL_califaID_GAL_zones__g' : ALL_califaID_GAL_zones__g.mask,
-            '/masked/mask/ALL_Mcor_GAL_zones__g' : ALL_Mcor_GAL_zones__g.mask,
-            '/masked/mask/ALL_McorSD_GAL_zones__g' : ALL_McorSD_GAL_zones__g.mask,
-            '/masked/mask/ALL_morfType_GAL_zones__g' : ALL_morfType_GAL_zones__g.mask,
-            '/masked/mask/ALL_at_flux_GAL_zones__g' : ALL_at_flux_GAL_zones__g.mask,
-            '/masked/mask/ALL_integrated_SFR__Tg' : ALL_integrated_SFR__Tg.mask,
-            '/masked/mask/ALL_integrated_SFRSD__Tg' : ALL_integrated_SFRSD__Tg.mask,
-            '/masked/mask/ALL_integrated_SFRSD_kpc__Tg' : ALL_integrated_SFRSD_kpc__Tg.mask,
-            '/masked/mask/ALL_integrated_SFR_Ha__g' : ALL_integrated_SFR_Ha__g.mask,
-            '/masked/mask/ALL_integrated_SFRSD_Ha__g' : ALL_integrated_SFRSD_Ha__g.mask,
-            '/masked/mask/ALL_integrated_SFRSD_Ha_kpc__g' : ALL_integrated_SFRSD_Ha_kpc__g.mask,
-            '/masked/mask/ALL_dist_zone__g' : ALL_dist_zone__g.mask,
-            '/masked/mask/ALL_N_zones__g' : ALL_N_zones__g.mask,
+            '/masked/data/morfType_GAL__g' : ALL_morfType_GAL__g.data,
+            '/masked/data/at_flux_GAL__g' : ALL_at_flux_GAL__g.data,
+            '/masked/data/Mcor_GAL__g' : ALL_Mcor_GAL__g.data,
+            '/masked/data/McorSD_GAL__g' : ALL_McorSD_GAL__g.data,
+            '/masked/data/morfType_GAL_zones__rg' : ALL_morfType_GAL_zones__rg.data,
+            '/masked/data/Mr_GAL_zones__rg' : ALL_Mr_GAL_zones__rg.data,
+            '/masked/data/ur_GAL_zones__rg' : ALL_ur_GAL_zones__rg.data,
+            '/masked/data/tau_V_neb__rg' : ALL_tau_V_neb__rg.data,
+            '/masked/data/alogZ_mass_GAL__Tg' : ALL_alogZ_mass_GAL__Tg.data,
+            '/masked/data/alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.data,
+            '/masked/data/isOkFrac_GAL__Tg' : ALL_isOkFrac_GAL__Tg.data,
+            '/masked/data/aSFRSD_Ha__rg' : ALL_aSFRSD_Ha__rg.data,
+            '/masked/data/aSFRSD_Ha_kpc__rg' : ALL_aSFRSD_Ha_kpc__rg.data,
+            '/masked/data/aSFRSD__Trg' : ALL_aSFRSD__Trg.data,
+            '/masked/data/aSFRSD_kpc__Trg' : ALL_aSFRSD_kpc__Trg.data,
+            '/masked/data/tau_V__Trg' : ALL_tau_V__Trg.data,
+            '/masked/data/alogZ_mass__Trg' : ALL_alogZ_mass__Trg.data,
+            '/masked/data/alogZ_flux__Trg' : ALL_alogZ_flux__Trg.data,
+            '/masked/data/McorSD_GAL__rg' : ALL_McorSD_GAL__rg.data,
+            '/masked/data/tau_V_neb__g' :  ALL_tau_V_neb__g.data,
+            '/masked/data/tau_V_neb_err__g' : ALL_tau_V_neb_err__g.data,
+            '/masked/data/L_int_Ha__g' : ALL_L_int_Ha__g.data,
+            '/masked/data/F_obs_Ha__g' : ALL_F_obs_Ha__g.data,
+            '/masked/data/SFR_Ha__g' : ALL_SFR_Ha__g.data,
+            '/masked/data/SFRSD_Ha__g' : ALL_SFRSD_Ha__g.data,
+            '/masked/data/SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.data,
+            '/masked/data/Mcor__g' : ALL_Mcor__g.data,
+            '/masked/data/McorSD__g' : ALL_McorSD__g.data,
+            '/masked/data/Mcor_GAL_zones__g' : ALL_Mcor_GAL_zones__g.data,
+            '/masked/data/Mr_GAL_zones__g' : ALL_Mr_GAL_zones__g.data,
+            '/masked/data/ur_GAL_zones__g' : ALL_ur_GAL_zones__g.data,
+            '/masked/data/califaID_GAL_zones__g' : ALL_califaID_GAL_zones__g.data,            
+            '/masked/data/McorSD_GAL_zones__g' : ALL_McorSD_GAL_zones__g.data,
+            '/masked/data/morfType_GAL_zones__g' : ALL_morfType_GAL_zones__g.data,
+            '/masked/data/at_flux_GAL_zones__g' : ALL_at_flux_GAL_zones__g.data,
+            '/masked/data/integrated_SFR__Tg' : ALL_integrated_SFR__Tg.data,
+            '/masked/data/integrated_SFRSD__Tg' : ALL_integrated_SFRSD__Tg.data,
+            '/masked/data/integrated_SFRSD_kpc__Tg' : ALL_integrated_SFRSD_kpc__Tg.data,
+            '/masked/data/integrated_SFR_Ha__g' : ALL_integrated_SFR_Ha__g.data,
+            '/masked/data/integrated_SFRSD_Ha__g' : ALL_integrated_SFRSD_Ha__g.data,
+            '/masked/data/integrated_SFRSD_Ha_kpc__g' : ALL_integrated_SFRSD_Ha_kpc__g.data,
+            '/masked/data/dist_zone__g' : ALL_dist_zone__g.data,
+            '/masked/data/N_zones__g' : ALL_N_zones__g.data, 
+            '/masked/mask/morfType_GAL__g' : ALL_morfType_GAL__g.mask,
+            '/masked/mask/at_flux_GAL__g' : ALL_at_flux_GAL__g.mask,
+            '/masked/mask/Mcor_GAL__g' : ALL_Mcor_GAL__g.mask,
+            '/masked/mask/McorSD_GAL__g' : ALL_McorSD_GAL__g.mask,
+            '/masked/mask/morfType_GAL_zones__rg' : ALL_morfType_GAL_zones__rg.mask,
+            '/masked/mask/Mr_GAL_zones__rg' : ALL_Mr_GAL_zones__rg.mask,
+            '/masked/mask/ur_GAL_zones__rg' : ALL_ur_GAL_zones__rg.mask,
+            '/masked/mask/tau_V_neb__rg' : ALL_tau_V_neb__rg.mask,
+            '/masked/mask/alogZ_mass_GAL__Tg' : ALL_alogZ_mass_GAL__Tg.mask,
+            '/masked/mask/alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.mask,
+            '/masked/mask/isOkFrac_GAL__Tg' : ALL_isOkFrac_GAL__Tg.mask,
+            '/masked/mask/aSFRSD_Ha__rg' : ALL_aSFRSD_Ha__rg.mask,
+            '/masked/mask/aSFRSD_Ha_kpc__rg' : ALL_aSFRSD_Ha_kpc__rg.mask,
+            '/masked/mask/aSFRSD__Trg' : ALL_aSFRSD__Trg.mask,
+            '/masked/mask/aSFRSD_kpc__Trg' : ALL_aSFRSD_kpc__Trg.mask,
+            '/masked/mask/tau_V__Trg' : ALL_tau_V__Trg.mask,
+            '/masked/mask/alogZ_mass__Trg' : ALL_alogZ_mass__Trg.mask,
+            '/masked/mask/alogZ_flux__Trg' : ALL_alogZ_flux__Trg.mask,
+            '/masked/mask/McorSD_GAL__rg' : ALL_McorSD_GAL__rg.mask,
+            '/masked/mask/tau_V_neb__g' :  ALL_tau_V_neb__g.mask,
+            '/masked/mask/tau_V_neb_err__g' : ALL_tau_V_neb_err__g.mask,
+            '/masked/mask/L_int_Ha__g' : ALL_L_int_Ha__g.mask,
+            '/masked/mask/F_obs_Ha__g' : ALL_F_obs_Ha__g.mask,
+            '/masked/mask/SFR_Ha__g' : ALL_SFR_Ha__g.mask,
+            '/masked/mask/SFRSD_Ha__g' : ALL_SFRSD_Ha__g.mask,
+            '/masked/mask/SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.mask,
+            '/masked/mask/Mcor__g' : ALL_Mcor__g.mask,
+            '/masked/mask/McorSD__g' : ALL_McorSD__g.mask,
+            '/masked/mask/Mr_GAL_zones__g' : ALL_Mr_GAL_zones__g.mask,
+            '/masked/mask/ur_GAL_zones__g' : ALL_ur_GAL_zones__g.mask,
+            '/masked/mask/califaID_GAL_zones__g' : ALL_califaID_GAL_zones__g.mask,
+            '/masked/mask/Mcor_GAL_zones__g' : ALL_Mcor_GAL_zones__g.mask,
+            '/masked/mask/McorSD_GAL_zones__g' : ALL_McorSD_GAL_zones__g.mask,
+            '/masked/mask/morfType_GAL_zones__g' : ALL_morfType_GAL_zones__g.mask,
+            '/masked/mask/at_flux_GAL_zones__g' : ALL_at_flux_GAL_zones__g.mask,
+            '/masked/mask/integrated_SFR__Tg' : ALL_integrated_SFR__Tg.mask,
+            '/masked/mask/integrated_SFRSD__Tg' : ALL_integrated_SFRSD__Tg.mask,
+            '/masked/mask/integrated_SFRSD_kpc__Tg' : ALL_integrated_SFRSD_kpc__Tg.mask,
+            '/masked/mask/integrated_SFR_Ha__g' : ALL_integrated_SFR_Ha__g.mask,
+            '/masked/mask/integrated_SFRSD_Ha__g' : ALL_integrated_SFRSD_Ha__g.mask,
+            '/masked/mask/integrated_SFRSD_Ha_kpc__g' : ALL_integrated_SFRSD_Ha_kpc__g.mask,
+            '/masked/mask/dist_zone__g' : ALL_dist_zone__g.mask,
+            '/masked/mask/N_zones__g' : ALL_N_zones__g.mask,
             '/data/correl_SFR__T' : correl_SFR__T,
             '/data/correl_SFRSD__T' : correl_SFRSD__T,
             '/data/correl_aSFRSD__rT' : correl_aSFRSD__rT,
-            '/data/ALL_zones_tau_V' : ALL_zones_tau_V,
-            '/data/ALL_gals' : ALL_gals,
-            '/data/ALL_zones' : ALL_zones,
+            '/data/zones_tau_V' : ALL_N_zones_tau_V,
+            '/data/gals' : ALL_N_gals,
+            '/data/zones' : ALL_N_zones,
             '/data/RbinIni' : RbinIni,
             '/data/RbinFin' : RbinFin,
             '/data/RbinStep' : RbinStep,
@@ -973,14 +973,14 @@ if __name__ == '__main__':
         }
 
         for iT, tSF in enumerate(tSF__T):
-            D['/masked/data/ALL_tau_V__Tg/%d' % iT] = ALL_tau_V__Tg[iT].data
-            D['/masked/data/ALL_SFR__Tg/%d' % iT] = ALL_SFR__Tg[iT].data
-            D['/masked/data/ALL_SFRSD__Tg/%d' % iT] = ALL_SFRSD__Tg[iT].data
-            D['/masked/data/ALL_SFRSD_kpc__Tg/%d' % iT] = ALL_SFRSD_kpc__Tg[iT].data
-            D['/masked/mask/ALL_tau_V__Tg/%d' % iT] = ALL_tau_V__Tg[iT].mask
-            D['/masked/mask/ALL_SFR__Tg/%d' % iT] = ALL_SFR__Tg[iT].mask
-            D['/masked/mask/ALL_SFRSD__Tg/%d' % iT] = ALL_SFRSD__Tg[iT].mask
-            D['/masked/mask/ALL_SFRSD_kpc__Tg/%d' % iT] = ALL_SFRSD_kpc__Tg[iT].mask
+            D['/masked/data/tau_V__Tg/%d' % iT] = ALL_tau_V__Tg[iT].data
+            D['/masked/data/SFR__Tg/%d' % iT] = ALL_SFR__Tg[iT].data
+            D['/masked/data/SFRSD__Tg/%d' % iT] = ALL_SFRSD__Tg[iT].data
+            D['/masked/data/SFRSD_kpc__Tg/%d' % iT] = ALL_SFRSD_kpc__Tg[iT].data
+            D['/masked/mask/tau_V__Tg/%d' % iT] = ALL_tau_V__Tg[iT].mask
+            D['/masked/mask/SFR__Tg/%d' % iT] = ALL_SFR__Tg[iT].mask
+            D['/masked/mask/SFRSD__Tg/%d' % iT] = ALL_SFRSD__Tg[iT].mask
+            D['/masked/mask/SFRSD_kpc__Tg/%d' % iT] = ALL_SFRSD_kpc__Tg[iT].mask
 
         for k in D.keys():
             try:
