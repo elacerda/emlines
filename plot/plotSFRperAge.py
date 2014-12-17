@@ -53,32 +53,24 @@ for iT, age in enumerate(tSF__T):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     
-    xran = [-6, 0]
-    yran = [-6, 0]
+    xran = [-5, 0]
+    yran = [-5, 0]
+    ax.set_xlim(xran)
+    ax.set_ylim(yran)
+
     scat = ax.scatter(xm, ym, c = 'black', marker = 'o', s = 5, edgecolor = 'none', alpha = 0.5, label='')
     ax.plot(ax.get_xlim(), ax.get_xlim(), ls = "--", c = ".3", label = '')
       
     step = (xm.max() - xm.min()) / len(xm)
     X = np.linspace(xm.min(), xm.max() + step, len(xm))
     A, B, Rp, pval, std_err = st.linregress(xm, ym)
-    ax.plot(X, A * X + B, c = 'k', ls = '--', lw = 2)
+    Y = A * X + B
+    Yrms = ((Y - ym) ** 2.).mean() ** 0.5
+    ax.plot(X, Y, c = 'k', ls = '--', lw = 2)
     txt = '%.2f Myr' % (age / 1e6)
     plot_text_ax(ax, txt, 0.05, 0.92, 14, 'top', 'left')
-    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (\sigma:%.4f)$' %  (A, B, std_err)
+    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
     plot_text_ax(ax, txt, 0.98, 0.20, 14, 'bottom', 'right')
-    
-    csig = 1
-    c = 'r'
-    xclip = sigma_clip(xm, csig)
-    yclip = sigma_clip(ym, csig)
-    maskclip = ~(xclip.mask | yclip.mask)
-    xclipm = xclip[maskclip]
-    yclipm = yclip[maskclip]
-    A, B, Rp, pval, std_err = st.linregress(xclipm, yclipm)
-    X = np.linspace(xm.min(), xm.max(), len(xm))
-    ax.plot(X, A * X + B, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
-    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (\sigma:%.4f)$' %  (A, B, std_err)
-    plot_text_ax(ax, txt, 0.98, 0.20 - (csig * 0.07), 14, 'bottom', 'right', c)
 
     csig = 2
     c = 'b'
@@ -89,15 +81,30 @@ for iT, age in enumerate(tSF__T):
     yclipm = yclip[maskclip]
     A, B, Rp, pval, std_err = st.linregress(xclipm, yclipm)
     X = np.linspace(xm.min(), xm.max(), len(xm))
-    ax.plot(X, A * X + B, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
-    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (\sigma:%.4f)$' %  (A, B, std_err)
-    plot_text_ax(ax, txt, 0.98, 0.20 - (csig * 0.07), 14, 'bottom', 'right', c)
+    Y = A * X + B
+    Yrms = ((Y - ym) ** 2.).mean() ** 0.5
+    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
+    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
+    plot_text_ax(ax, txt, 0.98, 0.13, 14, 'bottom', 'right', c)
+    
+    csig = 1
+    c = 'r'
+    xclip = sigma_clip(xm, csig)
+    yclip = sigma_clip(ym, csig)
+    maskclip = ~(xclip.mask | yclip.mask)
+    xclipm = xclip[maskclip]
+    yclipm = yclip[maskclip]
+    A, B, Rp, pval, std_err = st.linregress(xclipm, yclipm)
+    X = np.linspace(xm.min(), xm.max(), len(xm))
+    Y = A * X + B
+    Yrms = ((Y - ym) ** 2.).mean() ** 0.5
+    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
+    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
+    plot_text_ax(ax, txt, 0.98, 0.06, 14, 'bottom', 'right', c)
 
-    ax.set_xlim(xran)
-    ax.set_ylim(yran)
-            
     ax.legend()
     f.savefig('SFR_SFRHa_%.2fMyr.png' % (age / 1e6))
+    plt.close(f)
 
 
 xlabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star, R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
@@ -123,31 +130,23 @@ for iT, age in enumerate(tSF__T):
     
     xran = [-3.5, 1.]
     yran = [-3.5, 1.]
+    ax.set_xlim(xran)
+    ax.set_ylim(yran)
+
     scat = ax.scatter(xm, ym, c = 'black', marker = 'o', s = 5, edgecolor = 'none', alpha = 0.5, label='')
     ax.plot(ax.get_xlim(), ax.get_xlim(), ls = "--", c = ".3", label = '')
       
     step = (xm.max() - xm.min()) / len(xm)
-    X = np.linspace(xm.min(), xm.max() + step, len(xm))
     A, B, Rp, pval, std_err = st.linregress(xm, ym)
-    ax.plot(X, A * X + B, c = 'k', ls = '--', lw = 2)
+    X = np.linspace(xm.min(), xm.max() + step, len(xm))
+    Y = A * X + B
+    Yrms = ((Y - ym) ** 2.).mean() ** 0.5
+    ax.plot(X, Y, c = 'k', ls = '--', lw = 2)
     txt = '%.2f Myr' % (age / 1e6)
     plot_text_ax(ax, txt, 0.05, 0.92, 14, 'top', 'left')
-    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (\sigma:%.4f)$' %  (A, B, std_err)
+    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
     plot_text_ax(ax, txt, 0.98, 0.20, 14, 'bottom', 'right')
     
-    csig = 1
-    c = 'r'
-    xclip = sigma_clip(xm, csig)
-    yclip = sigma_clip(ym, csig)
-    maskclip = ~(xclip.mask | yclip.mask)
-    xclipm = xclip[maskclip]
-    yclipm = yclip[maskclip]
-    A, B, Rp, pval, std_err = st.linregress(xclipm, yclipm)
-    X = np.linspace(xm.min(), xm.max(), len(xm))
-    ax.plot(X, A * X + B, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
-    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (\sigma:%.4f)$' %  (A, B, std_err)
-    plot_text_ax(ax, txt, 0.98, 0.20 - (csig * 0.07), 14, 'bottom', 'right', c)
-
     csig = 2
     c = 'b'
     xclip = sigma_clip(xm, csig)
@@ -157,11 +156,27 @@ for iT, age in enumerate(tSF__T):
     yclipm = yclip[maskclip]
     A, B, Rp, pval, std_err = st.linregress(xclipm, yclipm)
     X = np.linspace(xm.min(), xm.max(), len(xm))
-    ax.plot(X, A * X + B, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
-    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (\sigma:%.4f)$' %  (A, B, std_err)
-    plot_text_ax(ax, txt, 0.98, 0.20 - (csig * 0.07), 14, 'bottom', 'right', c)
+    Y = A * X + B
+    Yrms = ((Y - ym) ** 2.).mean() ** 0.5
+    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
+    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
+    plot_text_ax(ax, txt, 0.98, 0.13, 14, 'bottom', 'right', c)
 
-    ax.set_xlim(xran)
-    ax.set_ylim(yran)
+    csig = 1
+    c = 'r'
+    xclip = sigma_clip(xm, csig)
+    yclip = sigma_clip(ym, csig)
+    maskclip = ~(xclip.mask | yclip.mask)
+    xclipm = xclip[maskclip]
+    yclipm = yclip[maskclip]
+    A, B, Rp, pval, std_err = st.linregress(xclipm, yclipm)
+    X = np.linspace(xm.min(), xm.max(), len(xm))
+    Y = A * X + B
+    Yrms = ((Y - ym) ** 2.).mean() ** 0.5
+    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = r'$%d\sigma$' % csig)
+    txt = r'$\log\ SFR_{neb} = %.2f\ \log\ \overline{SFR_\star}(t_\star)\ +\ %.2f\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
+    plot_text_ax(ax, txt, 0.98, 0.06, 14, 'bottom', 'right', c)
+
     ax.legend()
     f.savefig('aSFRSD_aSFRSDHa_%.2fMyr.png' % (age / 1e6))
+    plt.close(f)
