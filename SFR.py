@@ -955,7 +955,7 @@ if __name__ == '__main__':
             '/data/correl_aSFRSD__rT' : correl_aSFRSD__rT,
             '/data/zones_tau_V' : ALL_N_zones_tau_V,
             '/data/gals' : ALL_N_gals,
-            '/data/zones' : ALL_N_zones,
+            '/data/Nzones' : ALL_N_zones,
             '/data/RbinIni' : RbinIni,
             '/data/RbinFin' : RbinFin,
             '/data/RbinStep' : RbinStep,

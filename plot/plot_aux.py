@@ -339,6 +339,21 @@ class H5SFRData:
             self.califaIDsbyzones = self.get_data_h5('califaID_GAL_zones__g')
             self.califaIDs = np.unique(self.califaIDsbyzones)
             self.Ngals = len(self.califaIDs)
+            self.Nzones = self.get_data_h5('Nzones')
+            self.tSF__T = self.get_data_h5('tSF__T')
+            self.zones_tau_V = self.get_data_h5('zones_tau_V')
+            self.RbinIni = self.get_data_h5('RbinIni')
+            self.RbinFin = self.get_data_h5('RbinFin')
+            self.RbinStep = self.get_data_h5('RbinStep')
+            self.Rbin__r = self.get_data_h5('Rbin__r')
+            self.RbinCenter__r = self.get_data_h5('RbinCenter__r')
+            self.NRbins = self.get_data_h5('NRbins')
+            self.RColor = self.get_data_h5('RColor')
+            self.RRange = self.get_data_h5('RRange')
+            self.xOkMin = self.get_data_h5('xOkMin')
+            self.tauVOkMin = self.get_data_h5('tauVOkMin')
+            self.tauVNebOkMin = self.get_data_h5('tauVNebOkMin')
+            self.tauVNebErrMax = self.get_data_h5('tauVNebErrMax')
         except:
             print 'Missing califaID_GAL_zones__g on h5 file!'
             
@@ -353,9 +368,7 @@ class H5SFRData:
                 arr = np.ma.masked_array(data, mask = mask)
             else:
                 arr = []
-                tSF__T = h5.get('/data/tSF__T').value
-                
-                for iT, tSF in enumerate(tSF__T):
+                for iT, tSF in enumerate(self.tSF__T):
                     group = '%s/%d' % (prop, iT)
                     data = h5.get('/masked/data/' + group).value
                     mask = h5.get('/masked/mask/' + group).value
@@ -367,12 +380,19 @@ class H5SFRData:
     def get_prop_gal(self, prop, gal = None):
         data = self.get_data_h5(prop)
         prop__z = None
-        print gal, type(gal)
         
         if gal:
             where_slice = np.where(self.califaIDsbyzones == gal)
-            # by zone
-            prop__z = data[where_slice]
+            
+            if type(data) is list:
+                #prop__z here is prop__Tz
+                prop__z = []
+            
+                for iT, tSF in enumerate(self.tSF__T):
+                    prop__z[iT] = data[iT][where_slice]
+            else:
+                # by zone
+                prop__z = data[where_slice]
             
         return prop__z
     
