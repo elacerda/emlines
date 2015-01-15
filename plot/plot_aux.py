@@ -185,6 +185,19 @@ def plotStatCorreAxis(ax, x, y, pos_x, pos_y, fontsize):
     plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'top', 'left')
 
 
+def plotOLSbisectorAxis(ax, x, y, pos_x, pos_y, fontsize):
+    step = (x.max() - x.min()) / len(x)
+    A, B = OLS_bisector(x, y)
+    X = np.linspace(x.min(), x.max() + step, len(x))
+    Y = A * X + B
+    Yrms = (y - (A * x + B)).std()
+    ax.plot(X, Y, c = 'k', ls = '--', lw = 2)
+    txt = r'y = %.2fx+%.2f $Y_{rms}$:%.2f' %  (A, B, Yrms)
+    plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'bottom', 'right')
+    
+    return A, B
+
+
 def gaussSmooth_YofX(x, y, FWHM):
     '''
     Sloppy function to return the gaussian-smoothed version of an y(x) relation.
@@ -271,7 +284,8 @@ def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, zlim, age, fna
         ax.set_xlim(xlim)
     if ylim != None:
         ax.set_ylim(ylim)
-    plotStatCorreAxis(ax, x, y, 0.03, 0.97, 16)
+    #plotStatCorreAxis(ax, x, y, 0.03, 0.97, 16)
+    A, B = plotOLSbisectorAxis(ax, x, y, 0.92, 0.05, 16)
     #plotRunningStatsAxis(ax, x, y, 'k')    
     nBox = 20
     dxBox       = (x.max() - x.min()) / (nBox - 1.)
@@ -459,3 +473,69 @@ def list_gal_sorted_by_data(list_gal, data, type):
         iS = iS[::-1]
     
     return list_uniq_gal[iS]
+
+def OLS_bisector(x, y):
+    A1, B1, Rp1, pval1, std_err1 = st.linregress(x, y)
+    A2, B2, Rp2, pval2, std_err2 = st.linregress(y, x)
+    A = ((A1 / A2 - 1. + ((1. + A1 ** 2.) * (1. + A2 ** -2.)) ** 0.5) / (A1 + (1. / A2)))
+    B = y.mean() - A * x.mean()
+    return A, B
+    
+
+def plotLinRegAge(x, y, xlabel, ylabel, xlim, ylim, age, fname):
+    f = plt.figure()
+    f.set_dpi(100)
+    f.set_size_inches(11.69,8.27) 
+    plot_suptitle = '%.2f Myr' % (age/1e6)
+    f.suptitle(plot_suptitle)
+    ax = f.gca()
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    
+    if xlim != None:
+        ax.set_xlim(xlim)
+        
+    if ylim != None:
+        ax.set_ylim(ylim)
+
+    ax.scatter(x, y, c = 'black', marker = 'o', s = 5, edgecolor = 'none', alpha = 0.5, label='')
+    
+    c = 'b'
+    step = (x.max() - x.min()) / len(x)
+    A1, B1, Rp, pval, std_err = st.linregress(x, y)
+    X = np.linspace(x.min(), x.max() + step, len(x))
+    Y = A1 * X + B1
+    Yrms = (Y - y).std()
+    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = 'least squares')
+    txt = '%.2f Myr' % (age / 1e6)
+    plot_text_ax(ax, txt, 0.05, 0.92, 14, 'top', 'left')
+    txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A1, B1, Yrms)
+    plot_text_ax(ax, txt, 0.98, 0.21, 14, 'bottom', 'right', c)
+    
+    c = 'g'
+    model_ransac = linear_model.RANSACRegressor(linear_model.LinearRegression())
+    model_ransac.fit(np.vstack(x),np.vstack(y))
+    Y = model_ransac.predict(X[:, np.newaxis])
+    Yrms = (Y - y).std()
+    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = 'RANSAC')
+    A = model_ransac.estimator_.coef_
+    B = model_ransac.estimator_.intercept_
+    inlier_mask = model_ransac.inlier_mask_
+    #outlier_mask = np.logical_not(inlier_mask)
+    txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
+    plot_text_ax(ax, txt, 0.98, 0.14, 14, 'bottom', 'right', c)
+    ax.scatter(x[inlier_mask], y[inlier_mask], c = c, marker = 'x', s = 20, facecolor = 'k', edgecolor = c, alpha = 0.3, label='')
+    
+    c = 'r'
+    A, B = OLS_bisector(x, y)
+    X = np.linspace(x.min(), x.max() + step, len(x))
+    Y = A * X + B
+    Yrms = (Y - y).std()
+    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = 'OLS bisector')
+    txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
+    plot_text_ax(ax, txt, 0.98, 0.07, 14, 'bottom', 'right')
+
+    ax.plot(ax.get_xlim(), ax.get_xlim(), ls = "--", c = ".3", label = '')
+    ax.legend()
+    f.savefig(fname)
+    plt.close(f)
