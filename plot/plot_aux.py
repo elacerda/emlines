@@ -7,7 +7,7 @@ import h5py
 from scipy import stats as st
 import scipy.optimize as so
 from matplotlib import pyplot as plt
-
+from sklearn import linear_model
 
 def plot_linreg_params(param, x, xlabel, ylabel, fname, best_param = None, fontsize = 12):
     y = param
@@ -335,12 +335,14 @@ class H5SFRData:
         self.h5 = h5py.File(self.h5file, 'r')
         
         try: 
-            #self.califaIDsbyzones = self.get_data_h5('ALL_califaID_GAL_zones__g')
-            self.califaIDsbyzones = self.get_data_h5('califaID_GAL_zones__g')
-            self.califaIDs = np.unique(self.califaIDsbyzones)
+            self.califaIDs__z = self.get_data_h5('califaID_GAL_zones__g')
+            self.califaIDs__rg = self.get_data_h5('califaID__rg')
+            self.califaIDs__Trg = self.get_data_h5('califaID__Trg')
+            self.califaIDs = np.unique(self.califaIDs__z)
             self.Ngals = len(self.califaIDs)
             self.Nzones = self.get_data_h5('Nzones')
             self.tSF__T = self.get_data_h5('tSF__T')
+            self.N_T = len(self.tSF__T)
             self.zones_tau_V = self.get_data_h5('zones_tau_V')
             self.RbinIni = self.get_data_h5('RbinIni')
             self.RbinFin = self.get_data_h5('RbinFin')
@@ -379,22 +381,31 @@ class H5SFRData:
         
     def get_prop_gal(self, prop, gal = None):
         data = self.get_data_h5(prop)
-        prop__z = None
+        prop__dim = None
+        suffix = prop[-3:]
         
         if gal:
-            where_slice = np.where(self.califaIDsbyzones == gal)
-            
-            if type(data) is list:
-                #prop__z here is prop__Tz
-                prop__z = []
-            
-                for iT, tSF in enumerate(self.tSF__T):
-                    prop__z[iT] = data[iT][where_slice]
+            if suffix[1:] == 'rg':
+                if suffix[0] == '_':
+                    where_slice = np.where(self.califaIDs__rg == gal)
+                    prop__dim = data[where_slice]
+                else:
+                    where_slice = np.where(self.califaIDs__Trg == gal)
+                    prop__dim = (data[where_slice]).reshape(self.N_T, self.NRbins)
             else:
-                # by zone
-                prop__z = data[where_slice]
+                where_slice = np.where(self.califaIDs__z == gal)
             
-        return prop__z
+                if type(data) is list:
+                    #prop__dim here is prop__Tz
+                    prop__dim = []
+                
+                    for iT, tSF in enumerate(self.tSF__T):
+                        prop__dim.append(data[iT][where_slice])
+                else:
+                    # by zone
+                    prop__dim = data[where_slice]
+            
+        return prop__dim
     
     def get_prop_uniq(self, prop):
         data = self.get_data_h5(prop)
