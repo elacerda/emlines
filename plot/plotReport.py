@@ -7,9 +7,8 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
 import sys
-import h5py
-from plot_aux import get_attrib_h5, density_contour, plot_text_ax, \
-                     plot_linreg_params
+from plot_aux import H5SFRData, density_contour, plot_text_ax, \
+                     plot_linreg_params, OLS_bisector
 from scipy import stats as st
 
 mpl.rcParams['font.size'] = 16
@@ -20,27 +19,31 @@ mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
-h5 = h5py.File(sys.argv[1], 'r')
+try:
+    h5file = sys.argv[1]
+except IndexError:
+    print 'usage: %s HDF5FILE' % (sys.argv[0])
+    exit(1)
+    
+H = H5SFRData(h5file)    
 
-tSF__T = get_attrib_h5(h5, 'tSF__T')
-RbinCenter__r = get_attrib_h5(h5, 'RbinCenter__r')
-RRange = get_attrib_h5(h5, 'RRange')
-RColor = get_attrib_h5(h5, 'RColor')
-correl_SFR__T = get_attrib_h5(h5, 'correl_SFR__T')
-correl_SFRSD__T = get_attrib_h5(h5, 'correl_SFRSD__T')
-correl_aSFRSD__rT = get_attrib_h5(h5, 'correl_aSFRSD__rT')
-ALL_SFR__Tg = get_attrib_h5(h5, 'ALL_SFR__Tg')
-ALL_SFR_Ha__g = get_attrib_h5(h5, 'ALL_SFR_Ha__g')
-ALL_aSFRSD_kpc__Trg = get_attrib_h5(h5, 'ALL_aSFRSD_kpc__Trg')
-ALL_aSFRSD_Ha_kpc__rg = get_attrib_h5(h5, 'ALL_aSFRSD_Ha_kpc__rg')
-ALL_SFRSD_kpc__Tg = get_attrib_h5(h5, 'ALL_SFRSD_kpc__Tg')
-ALL_SFRSD_Ha_kpc__g = get_attrib_h5(h5, 'ALL_SFRSD_Ha_kpc__g')
-ALL_dist_zone__g = get_attrib_h5(h5, 'ALL_dist_zone__g')
+tSF__T              = H.tSF__T[0:20]
+RbinCenter__r       = H.RbinCenter__r
+RRange              = H.RRange
+RColor              = H.RColor
+SFR__Tg             = H.get_data_h5('SFR__Tg')
+correl_SFR__T       = H.get_data_h5('correl_SFR__T')
+correl_SFRSD__T     = H.get_data_h5('correl_SFRSD__T')
+correl_aSFRSD__rT   = H.get_data_h5('correl_aSFRSD__rT')
+SFR_Ha__g           = H.get_data_h5('SFR_Ha__g')
+aSFRSD_kpc__Trg     = H.get_data_h5('aSFRSD_kpc__Trg')
+aSFRSD_Ha_kpc__rg   = H.get_data_h5('aSFRSD_Ha_kpc__rg')
+SFRSD_kpc__Tg       = H.get_data_h5('SFRSD_kpc__Tg')
+SFRSD_Ha_kpc__g     = H.get_data_h5('SFRSD_Ha_kpc__g')
+dist_zone__g        = H.get_data_h5('dist_zone__g')
 
-h5.close()
-
-NRows = 5
-NCols = 8
+NRows = 4
+NCols = 5
 f, axArr = plt.subplots(NRows, NCols)
 f.set_dpi(300)
 f.set_size_inches(11.69,8.27) 
@@ -60,8 +63,8 @@ sigma = np.ones_like(tSF__T)
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
-        x = np.ma.log10(ALL_SFR__Tg[iT])
-        y = np.ma.log10(ALL_SFR_Ha__g)
+        x = np.ma.log10(SFR__Tg[iT])
+        y = np.ma.log10(SFR_Ha__g)
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -75,11 +78,14 @@ for i in range(0, NRows):
         step = (xm.max() - xm.min()) / len(xm)
         X = np.linspace(xm.min(), xm.max() + step, len(xm))
         # aX + b
-        a[iT], b[iT], r[iT], pval, sigma[iT] = st.linregress(xm, ym)
-        ax.plot(X, a[iT] * X + b[iT], c = 'k', ls = '--', lw = 2)
+        a[iT], b[iT] = OLS_bisector(xm, ym)
+        #a[iT], b[iT], r[iT], pval, sigma[iT] = st.linregress(xm, ym)
+        Y = a[iT] * X + b[iT]
+        Yrms = (ym - (a[iT] * xm + b[iT])).std()
+        ax.plot(X, Y, c = 'k', ls = '--', lw = 2)
         txt = '%.2f Myr' % (age / 1e6)
         plot_text_ax(ax, txt, 0.05, 0.92, 8, 'top', 'left')
-        txt = 'y = %.2fx+%.2f r:%.2f' %  (a[iT], b[iT], r[iT])
+        txt = r'y = %.2fx+%.2f $Y_{rms}:%.2f' %  (a[iT], b[iT], Yrms)
         plot_text_ax(ax, txt, 0.92, 0.05, 8, 'bottom', 'right')
   
         ax.set_xlim(xran)
@@ -112,13 +118,15 @@ plot_linreg_params(a, x, xlabel,
                    'a', 'SFR_linregress_slope_age.png', 1., 16) 
 plot_linreg_params(b, x, xlabel, 
                    r'b [$M_\odot\ yr^{-1}\ kpc^{-2}$]', 'SFR_linregress_x0_age.png', 0., 16)
-plot_linreg_params(sigma, x, xlabel, 
-                   r'$\sigma$', 'SFR_linregress_sigma_age.png')
-plot_linreg_params(r**2., x, xlabel, 
-                   r'$r^2$', 'SFR_linregress_sqrcorr_age.png', 1., 16) 
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+# plot_linreg_params(sigma, x, xlabel, 
+#                    r'$\sigma$', 'SFR_linregress_sigma_age.png')
+# plot_linreg_params(r**2., x, xlabel, 
+#                    r'$r^2$', 'SFR_linregress_sqrcorr_age.png', 1., 16) 
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-NRows = 5
-NCols = 8
+NRows = 4
+NCols = 5
 f, axArr = plt.subplots(NRows, NCols)
 f.set_dpi(300)
 f.set_size_inches(11.69,8.27) 
@@ -133,8 +141,8 @@ iT = 0
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
-        x = np.ma.log10(ALL_SFR__Tg[iT])
-        y = np.ma.log10(ALL_SFR_Ha__g)
+        x = np.ma.log10(SFR__Tg[iT])
+        y = np.ma.log10(SFR_Ha__g)
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -183,8 +191,8 @@ f.subplots_adjust(wspace=0, hspace=0, left=0.1, bottom=0.1, right=0.9, top=0.95)
 f.savefig('SFR_report.png')
 plt.close(f)
    
-NRows = 5
-NCols = 8
+NRows = 4
+NCols = 5
 f, axArr = plt.subplots(NRows, NCols)
 f.set_dpi(300)
 f.set_size_inches(11.69,8.27) 
@@ -199,9 +207,9 @@ iT = 0
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
-        x = np.ma.log10(ALL_SFR__Tg[iT])
-        y = np.ma.log10(ALL_SFR_Ha__g)
-        z = ALL_dist_zone__g
+        x = np.ma.log10(SFR__Tg[iT])
+        y = np.ma.log10(SFR_Ha__g)
+        z = dist_zone__g
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -256,8 +264,8 @@ cb.ax.set_yticklabels(['0 HLR', '0.5 HLR', '1 HLR', '1.5 HLR', '2 HLR'])
 f.savefig('SFR_dist_report.png')
 plt.close(f)
    
-NRows = 5
-NCols = 8
+NRows = 4
+NCols = 5
 f, axArr = plt.subplots(NRows, NCols)
 f.set_dpi(96)
 f.set_size_inches(11.69,8.27) 
@@ -276,8 +284,8 @@ sigma = np.ones_like(tSF__T)
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
-        x = np.ma.log10(ALL_SFRSD_kpc__Tg[iT])
-        y = np.ma.log10(ALL_SFRSD_Ha_kpc__g)
+        x = np.ma.log10(SFRSD_kpc__Tg[iT])
+        y = np.ma.log10(SFRSD_Ha_kpc__g)
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -290,11 +298,14 @@ for i in range(0, NRows):
         step = (xm.max() - xm.min()) / len(xm)
         X = np.linspace(xm.min(), xm.max() + step, len(xm))
         # aX + b
-        a[iT], b[iT], r[iT], pval, sigma[iT] = st.linregress(xm, ym)
-        ax.plot(X, a[iT] * X + b[iT], c = 'k', ls = '--', lw = 2)
+        a[iT], b[iT] = OLS_bisector(xm, ym)
+        Y = a[iT] * X + b[iT]
+        Yrms = (ym - (a[iT] * xm + b[iT])).std()
+        #a[iT], b[iT], r[iT], pval, sigma[iT] = st.linregress(xm, ym)
+        ax.plot(X, Y, c = 'k', ls = '--', lw = 2)
         txt = '%.2f Myr' % (age / 1e6)
         plot_text_ax(ax, txt, 0.05, 0.92, 8, 'top', 'left')
-        txt = 'y = %.2fx+%.2f r:%.2f' %  (a[iT], b[iT], r[iT])
+        txt = r'y = %.2fx+%.2f $Y_{rms}$:%.2f' %  (a[iT], b[iT], Yrms)
         plot_text_ax(ax, txt, 0.92, 0.05, 8, 'bottom', 'right')
  
         ax.set_xlim(xran)
@@ -327,13 +338,9 @@ plot_linreg_params(a, x, xlabel,
                    'a', 'SFRSD_linregress_slope_age.png', 1., 16) 
 plot_linreg_params(b, x, xlabel, 
                    r'b [$M_\odot\ yr^{-1}\ kpc^{-2}$]', 'SFRSD_linregress_x0_age.png', 0., 16)
-plot_linreg_params(sigma, x, xlabel, 
-                   r'$\sigma$', 'SFRSD_linregress_sigma_age.png')
-plot_linreg_params(r**2., x, xlabel, 
-                   r'$r^2$', 'SFRSD_linregress_sqrcorr_age.png', 1., 16) 
-  
-NRows = 5
-NCols = 8
+
+NRows = 4
+NCols = 5
 f, axArr = plt.subplots(NRows, NCols)
 f.set_dpi(96)
 f.set_size_inches(11.69,8.27) 
@@ -348,8 +355,8 @@ iT = 0
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
-        x = np.ma.log10(ALL_SFRSD_kpc__Tg[iT])
-        y = np.ma.log10(ALL_SFRSD_Ha_kpc__g)
+        x = np.ma.log10(SFRSD_kpc__Tg[iT])
+        y = np.ma.log10(SFRSD_Ha_kpc__g)
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -398,8 +405,8 @@ f.subplots_adjust(wspace=0, hspace=0, left=0.1, bottom=0.1, right=0.9, top=0.95)
 f.savefig('SFRSD_report.png')
 plt.close(f)
    
-NRows = 5
-NCols = 8
+NRows = 4
+NCols = 5
 f, axArr = plt.subplots(NRows, NCols)
 f.set_dpi(96)
 f.set_size_inches(11.69,8.27) 
@@ -414,9 +421,9 @@ iT = 0
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
-        x = np.ma.log10(ALL_SFRSD_kpc__Tg[iT])
-        y = np.ma.log10(ALL_SFRSD_Ha_kpc__g)
-        z = ALL_dist_zone__g
+        x = np.ma.log10(SFRSD_kpc__Tg[iT])
+        y = np.ma.log10(SFRSD_Ha_kpc__g)
+        z = dist_zone__g
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -471,8 +478,8 @@ cb.ax.set_yticklabels(['0 HLR', '0.5 HLR', '1 HLR', '1.5 HLR', '2 HLR'])
 f.savefig('SFRSD_dist_report.png')
 plt.close(f)
    
-NRows = 5
-NCols = 8
+NRows = 4
+NCols = 5
     
 pos_y_ini = 0.38
 pos_step = 0.09
@@ -508,8 +515,8 @@ for i in range(0, NRows):
                 txt = '%.1f < R <= %.1f HLR' % (RDown, RUp)
                      
             c = RColor[iR] 
-            x = np.ma.log10(ALL_aSFRSD_kpc__Trg[iT, RMask, :].flatten())
-            y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg[RMask, :].flatten())
+            x = np.ma.log10(aSFRSD_kpc__Trg[iT, RMask, :].flatten())
+            y = np.ma.log10(aSFRSD_Ha_kpc__rg[RMask, :].flatten())
             mask = x.mask | y.mask
             xm = x[~mask]
             ym = y[~mask]
@@ -578,8 +585,8 @@ f.subplots_adjust(wspace=0, hspace=0, left=0.1, bottom=0.1, right=0.9, top=0.95)
 f.savefig('aSFRSD_report.png')
 plt.close(f)
  
-NRows = 5
-NCols = 8
+NRows = 4
+NCols = 5
    
 pos_y_ini = 0.38
 pos_step = 0.09
@@ -620,8 +627,8 @@ for i in range(0, NRows):
                 txt = '%.1f < R <= %.1f HLR' % (RDown, RUp)
                     
             c = RColor[iR] 
-            x = np.ma.log10(ALL_aSFRSD_kpc__Trg[iT, RMask, :].flatten())
-            y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg[RMask, :].flatten())
+            x = np.ma.log10(aSFRSD_kpc__Trg[iT, RMask, :].flatten())
+            y = np.ma.log10(aSFRSD_Ha_kpc__rg[RMask, :].flatten())
             mask = x.mask | y.mask
             xm = x[~mask]
             ym = y[~mask]
@@ -655,8 +662,8 @@ for i in range(0, NRows):
         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
         ax.plot(ax.get_xlim(), ax.get_xlim(), ls = "--", c = ".3")
  
-        x = np.ma.log10(ALL_aSFRSD_kpc__Trg[iT].flatten())
-        y = np.ma.log10(ALL_aSFRSD_Ha_kpc__rg.flatten())
+        x = np.ma.log10(aSFRSD_kpc__Trg[iT].flatten())
+        y = np.ma.log10(aSFRSD_Ha_kpc__rg.flatten())
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -664,11 +671,15 @@ for i in range(0, NRows):
         step = (xm.max() - xm.min()) / len(xm)
         X = np.linspace(xm.min(), xm.max() + step, len(xm))
         # aX + b
-        a[iT], b[iT], r[iT], pval, sigma[iT] = st.linregress(xm, ym)
-        ax.plot(X, a[iT] * X + b[iT], c = 'k', ls = '--', lw = 2)
+        a[iT], b[iT] = OLS_bisector(xm, ym)
+        #a[iT], b[iT], r[iT], pval, sigma[iT] = st.linregress(xm, ym)
+        Y = a[iT] * X + b[iT]
+        Yrms = (ym - (a[iT] * xm + b[iT])).std()
+        ax.plot(X, Y, c = 'k', ls = '--', lw = 2)
         txt = '%.2f Myr' % (age / 1e6)
         plot_text_ax(ax, txt, 0.05, 0.92, 8, 'top', 'left')
-        txt = 'y = %.2fx+%.2f r:%.2f' %  (a[iT], b[iT], r[iT])
+        
+        txt = r'y = %.2fx+%.2f $Y_{rms}$:%.2f' %  (a[iT], b[iT], Yrms)
         plot_text_ax(ax, txt, 0.92, 0.05, 8, 'bottom', 'right')
          
         ax.set_xlim(xran)
@@ -701,7 +712,3 @@ plot_linreg_params(a, x, xlabel,
                    'a', 'aSFRSD_linregress_slope_age.png', 1., 16) 
 plot_linreg_params(b, x, xlabel, 
                    r'b [$M_\odot\ yr^{-1}\ kpc^{-2}$]', 'aSFRSD_linregress_x0_age.png', 0., 16)
-plot_linreg_params(sigma, x, xlabel, 
-                   r'$\sigma$', 'aSFRSD_linregress_sigma_age.png')
-plot_linreg_params(r**2., x, xlabel, 
-                   r'$r^2$', 'aSFRSD_linregress_sqrcorr_age.png', 1., 16) 
