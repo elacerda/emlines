@@ -87,33 +87,33 @@ h5 = h5py.File(h5file, 'r')
 tSF__T = get_attrib_h5(h5, 'tSF__T')
 
 # zones
-ALL_SFR__Tg = get_attrib_h5(h5, 'ALL_SFR__Tg')
-ALL_SFR_Ha__g = get_attrib_h5(h5, 'ALL_SFR_Ha__g')
-ALL_SFRSD__Tg = get_attrib_h5(h5, 'ALL_SFRSD__Tg')
-ALL_SFRSD_Ha__g = get_attrib_h5(h5, 'ALL_SFRSD_Ha__g')
-ALL_SFRSD_Ha_kpc__g = get_attrib_h5(h5, 'ALL_SFRSD_Ha_kpc__g')
-ALL_dist_zone__g = get_attrib_h5(h5, 'ALL_dist_zone__g')
-ALL_tau_V__Tg = get_attrib_h5(h5, 'ALL_tau_V__Tg')
-ALL_tau_V_neb__g = get_attrib_h5(h5, 'ALL_tau_V_neb__g')
-ALL_L_int_Ha__g = get_attrib_h5(h5, 'ALL_L_int_Ha__g')
-ALL_F_obs_Ha__g = get_attrib_h5(h5, 'ALL_F_obs_Ha__g')
-ALL_Mcor__g = get_attrib_h5(h5, 'ALL_Mcor__g')
-ALL_McorSD__g = get_attrib_h5(h5, 'ALL_McorSD__g')
+SFR__Tg = get_attrib_h5(h5, 'SFR__Tg')
+SFR_Ha__g = get_attrib_h5(h5, 'SFR_Ha__g')
+SFRSD__Tg = get_attrib_h5(h5, 'SFRSD__Tg')
+SFRSD_Ha__g = get_attrib_h5(h5, 'SFRSD_Ha__g')
+SFRSD_Ha_kpc__g = get_attrib_h5(h5, 'SFRSD_Ha_kpc__g')
+dist_zone__g = get_attrib_h5(h5, 'dist_zone__g')
+tau_V__Tg = get_attrib_h5(h5, 'tau_V__Tg')
+tau_V_neb__g = get_attrib_h5(h5, 'tau_V_neb__g')
+L_int_Ha__g = get_attrib_h5(h5, 'L_int_Ha__g')
+F_obs_Ha__g = get_attrib_h5(h5, 'F_obs_Ha__g')
+Mcor__g = get_attrib_h5(h5, 'Mcor__g')
+McorSD__g = get_attrib_h5(h5, 'McorSD__g')
 
 # galaxy wide quantities replicated by zones
-ALL_Mcor_GAL_zones__g = get_attrib_h5(h5, 'ALL_Mcor_GAL_zones__g')
-ALL_McorSD_GAL_zones__g = get_attrib_h5(h5, 'ALL_McorSD_GAL_zones__g')
-ALL_morfType_GAL_zones__g = get_attrib_h5(h5, 'ALL_morfType_GAL_zones__g')
-ALL_at_flux_GAL_zones__g = get_attrib_h5(h5, 'ALL_at_flux_GAL_zones__g')
-ALL_califaID_GAL_zones__g = get_attrib_h5(h5, 'ALL_califaID_GAL_zones__g')
-ALL_Mr_GAL_zones__g = get_attrib_h5(h5, 'ALL_Mr_GAL_zones__g')
-ALL_ur_GAL_zones__g = get_attrib_h5(h5, 'ALL_ur_GAL_zones__g')
+Mcor_GAL_zones__g = get_attrib_h5(h5, 'Mcor_GAL_zones__g')
+McorSD_GAL_zones__g = get_attrib_h5(h5, 'McorSD_GAL_zones__g')
+morfType_GAL_zones__g = get_attrib_h5(h5, 'morfType_GAL_zones__g')
+at_flux_GAL_zones__g = get_attrib_h5(h5, 'at_flux_GAL_zones__g')
+califaID_GAL_zones__g = get_attrib_h5(h5, 'califaID_GAL_zones__g')
+Mr_GAL_zones__g = get_attrib_h5(h5, 'Mr_GAL_zones__g')
+ur_GAL_zones__g = get_attrib_h5(h5, 'ur_GAL_zones__g')
 
-sort_param['Mcor'] = np.log10(ALL_Mcor_GAL_zones__g)
-sort_param['McorSD'] = np.log10(ALL_McorSD_GAL_zones__g)
-sort_param['MorphType'] = ALL_morfType_GAL_zones__g
-sort_param['Mr'] = ALL_Mr_GAL_zones__g
-sort_param['u-r'] = ALL_ur_GAL_zones__g
+sort_param['Mcor'] = np.log10(Mcor_GAL_zones__g)
+sort_param['McorSD'] = np.log10(McorSD_GAL_zones__g)
+sort_param['MorphType'] = morfType_GAL_zones__g
+sort_param['Mr'] = Mr_GAL_zones__g
+sort_param['u-r'] = ur_GAL_zones__g
 
 label = { '%s' % k : False for k in sort_param.keys()} 
 
@@ -123,7 +123,7 @@ label['MorphType'] = r'Morphological type'
 label['Mr'] = r'$M_r$'
 label['u-r'] = r'u - r'
 
-NGal, listGal_ns, sorted_data__g = data_uniq(ALL_califaID_GAL_zones__g, sort_param[sorted_by])
+NGal, listGal_ns, sorted_data__g = data_uniq(califaID_GAL_zones__g, sort_param[sorted_by])
 listGal = list_gal_sorted_by_data(listGal_ns, sorted_data__g, -1)
 #ticks = True
 ticks = False
@@ -154,12 +154,12 @@ while iGal < NGal:
         newImage = False
         
     gal = listGal[iGal]
-    where_slice = np.where(ALL_califaID_GAL_zones__g == gal)[0]
+    where_slice = np.where(califaID_GAL_zones__g == gal)[0]
     N_zone = len(where_slice)
     
-    x1 = ALL_tau_V__Tg[iT][where_slice]
-    x2 = ALL_tau_V_neb__g[where_slice]
-    y = np.ma.log10(ALL_SFR_Ha__g[where_slice])
+    x1 = tau_V__Tg[iT][where_slice]
+    x2 = tau_V_neb__g[where_slice]
+    y = np.ma.log10(SFR_Ha__g[where_slice])
     
     mask = ~(x1.mask | x2.mask | y.mask)
     x1m = x1[mask]
@@ -286,12 +286,12 @@ while iGal < NGal:
         newImage = False
          
     gal = listGal[iGal]
-    where_slice = np.where(ALL_califaID_GAL_zones__g == gal)[0]
+    where_slice = np.where(califaID_GAL_zones__g == gal)[0]
     N_zone = len(where_slice)
      
-    x1 = ALL_tau_V__Tg[iT][where_slice]
-    x2 = ALL_tau_V_neb__g[where_slice]
-    y = np.ma.log10(ALL_SFR_Ha__g[where_slice])
+    x1 = tau_V__Tg[iT][where_slice]
+    x2 = tau_V_neb__g[where_slice]
+    y = np.ma.log10(SFR_Ha__g[where_slice])
      
     mask = ~(y.mask | x1.mask | x2.mask)
     x1m = x1[mask]
