@@ -304,7 +304,7 @@ for iT,tSF in enumerate(tSF__T):
     ylabel = r'$\tau_V^{neb}$'
     zlabel = 'pixel distance (HLR)'
     fname = 'tauV_tauVNeb_pixDistHLR_age_%sMyr.png' % str(tSF / 1.e6)
-    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, [0, 2.5], [0, 2.5], [0, 2.0], tSF, fname)
+    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, [0, 2.5], [0, 2.5], fname, [0, 2.0], tSF)
     
     x = tau_V__Tg[iT]
     y = tau_V_neb__g
@@ -317,7 +317,7 @@ for iT,tSF in enumerate(tSF__T):
     ylabel = r'$\tau_V^{neb}$'
     zlabel = r'$\log\ L_{H\alpha}\ [L_\odot]$'
     fname = 'tauV_tauVNeb_LHa_age_%sMyr.png' % str(tSF / 1.e6)
-    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, [0, 2.5], [0, 2.5], [4.,6.], tSF, fname)
+    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, [0, 2.5], [0, 2.5], fname, [4.,6.], tSF)
 
     x = tau_V__Tg[iT]
     y = tau_V_neb__g
@@ -330,7 +330,7 @@ for iT,tSF in enumerate(tSF__T):
     ylabel = r'$\tau_V^{neb}$'
     zlabel = r'$\log\ F_{H\alpha}^{obs}\ [L_\odot]$'
     fname = 'tauV_tauVNeb_FobsHa_age_%sMyr.png' % str(tSF / 1.e6)
-    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, [0, 2.5], [0, 2.5], [-15.5,-14.0], tSF, fname)
+    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, [0, 2.5], [0, 2.5], fname, [-15.5,-14.0], tSF)
 
 
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
