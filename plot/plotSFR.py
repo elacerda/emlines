@@ -25,33 +25,33 @@ h5 = h5py.File(sys.argv[1], 'r')
 tSF__T = get_attrib_h5(h5, 'tSF__T')
 
 # zones
-ALL_SFR__Tg = get_attrib_h5(h5, 'ALL_SFR__Tg')
-ALL_SFR_Ha__g = get_attrib_h5(h5, 'ALL_SFR_Ha__g')
-ALL_SFRSD__Tg = get_attrib_h5(h5, 'ALL_SFRSD__Tg')
-ALL_SFRSD_kpc__Tg = get_attrib_h5(h5, 'ALL_SFRSD_kpc__Tg')
-ALL_SFRSD_Ha__g = get_attrib_h5(h5, 'ALL_SFRSD_Ha__g')
-ALL_dist_zone__g = get_attrib_h5(h5, 'ALL_dist_zone__g')
-ALL_tau_V__Tg = get_attrib_h5(h5, 'ALL_tau_V__Tg')
-ALL_tau_V_neb__g = get_attrib_h5(h5, 'ALL_tau_V_neb__g')
-ALL_L_int_Ha__g = get_attrib_h5(h5, 'ALL_L_int_Ha__g')
+ALL_SFR__Tg = get_attrib_h5(h5, 'SFR__Tg')
+#ALL_SFR_Ha__g = get_attrib_h5(h5, 'ALL_SFR_Ha__g')
+#ALL_SFRSD__Tg = get_attrib_h5(h5, 'ALL_SFRSD__Tg')
+ALL_SFRSD_kpc__Tg = get_attrib_h5(h5, 'SFRSD_kpc__Tg')
+#ALL_SFRSD_Ha__g = get_attrib_h5(h5, 'ALL_SFRSD_Ha__g')
+ALL_dist_zone__g = get_attrib_h5(h5, 'dist_zone__g')
+#ALL_tau_V__Tg = get_attrib_h5(h5, 'ALL_tau_V__Tg')
+ALL_tau_V_neb__g = get_attrib_h5(h5, 'tau_V_neb__g')
+#ALL_L_int_Ha__g = get_attrib_h5(h5, 'ALL_L_int_Ha__g')
 
 # Mcor and McorSD by zones for all galaxies
-ALL_Mcor__g = get_attrib_h5(h5, 'ALL_Mcor__g')
-ALL_McorSD__g = get_attrib_h5(h5, 'ALL_McorSD__g')
+#ALL_Mcor__g = get_attrib_h5(h5, 'ALL_Mcor__g')
+#ALL_McorSD__g = get_attrib_h5(h5, 'ALL_McorSD__g')
 
 # galaxy wide quantities replicated by zones
-ALL_Mcor_GAL_zones__g = get_attrib_h5(h5, 'ALL_Mcor_GAL_zones__g')
-ALL_McorSD_GAL_zones__g = get_attrib_h5(h5, 'ALL_McorSD_GAL_zones__g')
-ALL_morfType_GAL_zones__g = get_attrib_h5(h5, 'ALL_morfType_GAL_zones__g')
-ALL_at_flux_GAL_zones__g = get_attrib_h5(h5, 'ALL_at_flux_GAL_zones__g')
+#ALL_Mcor_GAL_zones__g = get_attrib_h5(h5, 'ALL_Mcor_GAL_zones__g')
+#ALL_McorSD_GAL_zones__g = get_attrib_h5(h5, 'ALL_McorSD_GAL_zones__g')
+#ALL_morfType_GAL_zones__g = get_attrib_h5(h5, 'ALL_morfType_GAL_zones__g')
+#ALL_at_flux_GAL_zones__g = get_attrib_h5(h5, 'ALL_at_flux_GAL_zones__g')
 
 # radius
-ALL_aSFRSD_kpc__Trg = get_attrib_h5(h5, 'ALL_aSFRSD_kpc__Trg')
-ALL_aSFRSD_Ha_kpc__rg = get_attrib_h5(h5, 'ALL_aSFRSD_Ha_kpc__rg')
-ALL_tau_V__Trg = get_attrib_h5(h5, 'ALL_tau_V__Trg')
-ALL_tau_V_neb__rg = get_attrib_h5(h5, 'ALL_tau_V_neb__rg')
+#ALL_aSFRSD_kpc__Trg = get_attrib_h5(h5, 'ALL_aSFRSD_kpc__Trg')
+#ALL_aSFRSD_Ha_kpc__rg = get_attrib_h5(h5, 'ALL_aSFRSD_Ha_kpc__rg')
+#ALL_tau_V__Trg = get_attrib_h5(h5, 'ALL_tau_V__Trg')
+#ALL_tau_V_neb__rg = get_attrib_h5(h5, 'ALL_tau_V_neb__rg')
 
-correl_SFR__T = get_attrib_h5(h5, 'correl_SFR__T')
+#correl_SFR__T = get_attrib_h5(h5, 'correl_SFR__T')
  
 h5.close()
 
@@ -113,7 +113,7 @@ for iT,tSF in enumerate(tSF__T):
     fname = 'logSigmaGas_logSFR_distZone_age_%sMyr.png' % str(tSF / 1.e6)
     #xlim = np.percentile(xm, [1, 100 * (xm.shape[0] - xm.mask.sum()) / xm.shape[0] - 1])
     #ylim = np.percentile(ym, [1, 100 * (ym.shape[0] - ym.mask.sum()) / ym.shape[0] - 1])
-    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, None, None, None, tSF, fname)
+    plotScatterColor(xm, ym, zm, xlabel, ylabel, zlabel, None, None, fname, None, tSF)
     
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
     # x = np.ma.log10(ALL_SFR__Tg[iT])
