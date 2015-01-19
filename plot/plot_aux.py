@@ -281,9 +281,9 @@ def plotTau(x,y,xlabel,ylabel,xlim,ylim,age,fname):
     plt.close(f)
     
     
-def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, zlim, age, fname):
+def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, fname = 'PlotScatter.png', zlim = None, age = None):
     f = plt.figure()
-    f.set_size_inches(10,9)
+    f.set_size_inches(10,8)
     ax = f.gca()
     if zlim != None:
         sc = ax.scatter(x, y, c = z, cmap = 'spectral_r', vmin = zlim[0], vmax = zlim[1], marker = 'o', s = 5., edgecolor = 'none')
@@ -316,10 +316,11 @@ def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, zlim, age, fna
     ax.plot(xMedian, yMedian, 'k', lw = 2)
     cb = f.colorbar(sc)
     cb.set_label(zlabel)
-    ax.set_title(r'$%s$ Myr' % str(age / 1.e6))
+    if age != None:
+        ax.set_title(r'$%s$ Myr' % str(age / 1.e6))
     f.savefig(fname)
     plt.close(f)
-    
+
 
 def calcYofXStats_EqNumberBins(x, y, nPerBin = 25):
     '''
