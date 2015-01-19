@@ -166,6 +166,9 @@ def calcRunningStats(x, y, dxBox = 0.3, xbinIni = 8.5, xbinFin = 12, xbinStep = 
     # Reset in-bin stats arrays
     xMedian , xMean , xStd = np.zeros(Nbins) , np.zeros(Nbins) , np.zeros(Nbins)
     yMedian , yMean , yStd = np.zeros(Nbins) , np.zeros(Nbins) , np.zeros(Nbins)
+    xPrc16, yPrc16 = np.zeros(Nbins) , np.zeros(Nbins)
+    xPrc84, yPrc84 = np.zeros(Nbins) , np.zeros(Nbins)
+    
     nInBin = np.zeros(Nbins)
 
     # fill up in x & y stats for each x-bin
@@ -174,9 +177,21 @@ def calcRunningStats(x, y, dxBox = 0.3, xbinIni = 8.5, xbinFin = 12, xbinStep = 
         xx , yy = x[isInBin] , y[isInBin]
         xMedian[ixBin] , xMean[ixBin] , xStd[ixBin] = np.median(xx) , xx.mean() , xx.std()
         yMedian[ixBin] , yMean[ixBin] , yStd[ixBin] = np.median(yy) , yy.mean() , yy.std()
+        
+        if (len(xx) > 2):
+            xPrc16[ixBin], xPrc84[ixBin] = np.percentile(xx, [16, 84])
+            yPrc16[ixBin], yPrc84[ixBin] = np.percentile(yy, [16, 84])
+        else:
+            xPrc16[ixBin] = np.median(xx)
+            xPrc84[ixBin] = np.median(xx)
+            
+            yPrc16[ixBin] = np.median(yy)
+            yPrc84[ixBin] = np.median(yy)
+        
         nInBin[ixBin] = isInBin.sum()
 
-    return xbinCenter, xMedian, xMean, xStd, yMedian, yMean, yStd, nInBin
+    return xbinCenter, xMedian, xMean, xStd, yMedian, yMean, yStd, \
+           nInBin, [xPrc16, xPrc84], [yPrc16, yPrc84]
 
 
 def plotStatCorreAxis(ax, x, y, pos_x, pos_y, fontsize):
@@ -285,7 +300,7 @@ def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, zlim, age, fna
     if ylim != None:
         ax.set_ylim(ylim)
     #plotStatCorreAxis(ax, x, y, 0.03, 0.97, 16)
-    A, B = plotOLSbisectorAxis(ax, x, y, 0.92, 0.05, 16)
+    #A, B = plotOLSbisectorAxis(ax, x, y, 0.92, 0.05, 16)
     #plotRunningStatsAxis(ax, x, y, 'k')    
     nBox = 20
     dxBox       = (x.max() - x.min()) / (nBox - 1.)
