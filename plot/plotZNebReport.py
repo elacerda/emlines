@@ -40,18 +40,18 @@ if __name__ == '__main__':
     plt.setp([a.get_yticklabels() for a in f.axes], visible = False)
        
     xlabel = r'$\log\ Z_\star(t)$' 
-    ylabel = r'$\log\ Z_{neb}(t)$'
+    ylabel = r'$\log\ Z_{neb}$'
        
     iT = 0
     
     tSF__T = K.tSF__T
-    aZ_mass__Tg = K.get_data_h5('aZ_mass__Tg')
+    alogZ_mass__Tg = K.get_data_h5('alogZ_mass__Tg')
     logZ_neb_S06__g = K.get_data_h5('logZ_neb_S06__g')
        
     for i in range(0, NRows):
         for j in range(0, NCols):
             ax = axArr[i, j] 
-            x = np.log10(aZ_mass__Tg[iT] / 0.019)
+            x = alogZ_mass__Tg[iT] 
             y = logZ_neb_S06__g
             mask = x.mask | y.mask
             xm = x[~mask]
@@ -70,9 +70,11 @@ if __name__ == '__main__':
             #ax.set_xlim(xran)
             ax.set_ylim(yran)
             ax.xaxis.set_major_locator(MultipleLocator(1))
-            ax.xaxis.set_minor_locator(MultipleLocator(0.5))
+            ax.xaxis.set_minor_locator(MultipleLocator(0.2))
             ax.yaxis.set_major_locator(MultipleLocator(0.5))
             ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+            
+            ax.grid(which = 'major')
                
             if i == NRows - 1 and j == 0:
                 plt.setp(ax.get_xticklabels(), visible = True)
