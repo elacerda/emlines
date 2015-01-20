@@ -527,7 +527,7 @@ def plotLinRegAge(x, y, xlabel, ylabel, xlim, ylim, age, fname):
     plot_text_ax(ax, txt, 0.05, 0.92, 14, 'top', 'left')
     txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A1, B1, Yrms)
     plot_text_ax(ax, txt, 0.98, 0.21, 14, 'bottom', 'right', c)
-    
+     
     c = 'g'
     model_ransac = linear_model.RANSACRegressor(linear_model.LinearRegression())
     model_ransac.fit(np.vstack(x),np.vstack(y))
@@ -541,7 +541,7 @@ def plotLinRegAge(x, y, xlabel, ylabel, xlim, ylim, age, fname):
     txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
     plot_text_ax(ax, txt, 0.98, 0.14, 14, 'bottom', 'right', c)
     ax.scatter(x[inlier_mask], y[inlier_mask], c = c, marker = 'x', s = 20, facecolor = 'k', edgecolor = c, alpha = 0.3, label='')
-    
+     
     c = 'r'
     A, B = OLS_bisector(x, y)
     X = np.linspace(x.min(), x.max() + step, len(x))
@@ -550,7 +550,7 @@ def plotLinRegAge(x, y, xlabel, ylabel, xlim, ylim, age, fname):
     ax.plot(X, Y, c = c, ls = '--', lw = 2, label = 'OLS bisector')
     txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
     plot_text_ax(ax, txt, 0.98, 0.07, 14, 'bottom', 'right')
-
+    
     ax.plot(ax.get_xlim(), ax.get_xlim(), ls = "--", c = ".3", label = '')
     ax.legend()
     f.savefig(fname)

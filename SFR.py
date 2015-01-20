@@ -5,37 +5,118 @@
 import numpy as np
 from pycasso import fitsQ3DataCube
 import matplotlib as mpl
-from matplotlib import pyplot as plt
 from get_morfologia import get_morfologia
 from scipy import stats as st
 from lines import *
 import os
 from pystarlight.util.constants import L_sun
 from pystarlight.util.base import StarlightBase
+import time
+import sys
+import argparse as ap
+
+default = {
+    'debug' : False,
+    'underS06' : False,
+    'hdf5' : None,
+    'spiral' : False,
+    'weiradprof' : True,
+    'minpopx' : 0.05,
+    'mintauv' : 0.05,
+    'mintauvneb' : 0.05,
+    'maxtauvneberr' : 999.,
+    'rbinini' : 0.0,
+    'rbinfin' : 2.0,
+    'rbinstep' : 0.1,
+}
+
+def parser_args():
+    parser = ap.ArgumentParser(description = '%s' % sys.argv[0])
+    parser.add_argument('--debug', '-D',
+                        action = 'store_true',
+                        default = default['debug'])
+    parser.add_argument('--spiral', '-S',
+                        action = 'store_true',
+                        default = default['spiral'])
+    parser.add_argument('--underS06', 
+                        action = 'store_true',
+                        default = default['underS06'])
+    parser.add_argument('--weiradprof', '-W',
+                        action = 'store_true',
+                        default = default['weiradprof'])
+    parser.add_argument('--hdf5', '-H',
+                        metavar = 'FILE',
+                        type = str,
+                        default = default['hdf5'])
+    parser.add_argument('--minpopx', 
+                        help = 'Negative to disable mask in popx',
+                        metavar = 'FRAC',
+                        type = float,
+                        default = default['minpopx'])
+    parser.add_argument('--mintauv', 
+                        metavar = 'FRAC',
+                        type = float,
+                        default = default['mintauv'])
+    parser.add_argument('--mintauvneb', 
+                        metavar = 'FRAC',
+                        type = float,
+                        default = default['mintauvneb'])
+    parser.add_argument('--maxtauvneberr', 
+                        metavar = 'FRAC',
+                        type = float,
+                        default = default['maxtauvneberr'])
+    parser.add_argument('--rbinini', 
+                        metavar = 'FRAC',
+                        type = float,
+                        default = default['rbinini'])
+    parser.add_argument('--rbinfin', 
+                        metavar = 'FRAC',
+                        type = float,
+                        default = default['rbinfin'])
+    parser.add_argument('--rbinstep', 
+                        metavar = 'FRAC',
+                        type = float,
+                        default = default['rbinstep'])
+
+    return parser.parse_args()
 
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-#nebular_plot = True
-nebular_plot = False
-debug = False
-#debug = True
-BPTLowS06 = True
-#BPTLowS06 = False
-#hdf5 = False
-hdf5 = True
+args = parser_args()
 
-mpl.rcParams['font.size'] = 20
-mpl.rcParams['axes.labelsize'] = 20
-mpl.rcParams['axes.titlesize'] = 22
-mpl.rcParams['xtick.labelsize'] = 16
-mpl.rcParams['ytick.labelsize'] = 16 
-mpl.rcParams['font.family'] = 'serif'
-mpl.rcParams['font.serif'] = 'Times New Roman'
+debug = args.debug
+BPTLowS06 = args.underS06
+hdf5 = args.hdf5
+onlySpiral = args.spiral
+weiRadProf = args.weiradprof
+mask_xOk = True
+# Def smallest light fraction (in the flag__t-ageMax age-range) deemed to be Ok for our stats ...
+xOkMin = args.minpopx
+# Minimum tauV to be taken seriously ...
+tauVOkMin = args.mintauv
+tauVNebOkMin = args.mintauvneb
+#tauVNebErrMax = 0.15
+tauVNebErrMax = args.maxtauvneberr
+RbinIni = args.rbinini
+RbinFin = args.rbinfin
+RbinStep = args.rbinstep
+
+print 'debug: ', debug
+print 'BPTLowS06: ', BPTLowS06
+print 'hdf5: ', hdf5
+print 'onlySpiral: ', onlySpiral
+print 'weiRadProf: ', weiRadProf
+print 'xOkMin: ', xOkMin
+print 'tauVOkMin: ', tauVOkMin
+print 'tauVNebOkMin: ', tauVNebOkMin
+print 'tauVNebErrMax: ', tauVNebErrMax
+print 'RbinIni: ', RbinIni
+print 'RbinFin: ', RbinFin
+print 'RbinStep: ', RbinStep
 
 CALIFAWorkDir = '/Users/lacerda/CALIFA/'
-    
 galaxiesListFile = CALIFAWorkDir + 'listOf300GalPrefixes.txt'
 #galaxiesListFile    = CALIFAWorkDir + 'listAll.txt'
 baseCode = 'Bgsd6e'
@@ -60,7 +141,6 @@ f = open(galaxiesListFile, 'r')
 listOfPrefixes = f.readlines()
 f.close()
 
-RbinIni , RbinFin , RbinStep = 0.0 , 2.0 , 0.1
 Rbin__r = np.arange(RbinIni, RbinFin + RbinStep, RbinStep)
 RbinCenter__r = (Rbin__r[:-1] + Rbin__r[1:]) / 2.0
 NRbins = len(RbinCenter__r)
@@ -78,17 +158,6 @@ N_gals = len(listOfPrefixes)
 base = StarlightBase('/Users/lacerda/LOCAL/data/BASE.CALIFA.gsd6.h5', 'gsd6e', hdf5 = True)
 tSF__T = base.ageBase
 N_T = base.nAges
-
-mask_xOk = True
-
-# Def smallest light fraction (in the flag__t-ageMax age-range) deemed to be Ok for our stats ...
-xOkMin = 0.05
-
-# Minimum tauV to be taken seriously ...
-tauVOkMin = 0.05
-tauVNebOkMin = 0.05
-tauVNebErrMax = 0.15
-
 
 def calc_Lint_Ha(L_obs__Lz, L_obs_err__Lz, tau_V_neb__z, lines):
     i_Ha = lines.index('6563')
@@ -117,6 +186,32 @@ def radialProfileWeighted(v__yx, w__yx, bins, rad_scale, func_radialProfile = No
         v__r = v_w__r / w__r
 
     return v__r
+
+def calc_SFR_Stuff(K, flag__t, xOkMin, tauVOkMin):
+    # SRFSD "raw" image
+    # Note that we are NOT dezonifying SFR__z, since it will be compared to the un-dezonifiable tauV!
+    aux = K.Mini__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) / tSF
+    SFR__z = np.ma.masked_array(aux)
+    SFRSD__z = SFR__z / K.zoneArea_pc2
+                            
+    aux = K.integrated_Mini__tZ[flag__t, :].sum() / tSF
+    integrated_SFR = np.ma.masked_array(aux)
+    integrated_SFRSD = integrated_SFR / K.zoneArea_pc2.sum()
+    
+    tau_V__z = np.ma.masked_array(K.tau_V__z)
+                    
+    if xOkMin >= 0.:
+        # Compute xOk "raw" image
+        x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
+        xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
+        
+        maskNotOk__z = (xOk__z < xOkMin) | (tau_V__z < tauVOkMin) 
+         
+        tau_V__z[maskNotOk__z] = np.ma.masked
+        SFR__z[maskNotOk__z] = np.ma.masked
+        SFRSD__z[maskNotOk__z] = np.ma.masked
+        
+    return SFR__z, SFRSD__z, integrated_SFR, integrated_SFRSD, tau_V__z 
 
 
 #ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -172,12 +267,14 @@ def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
     #--------------------------------------------------------------------------
     # Def galaxy-wide averages of alogZ in light & mass, but **discards** zones having
     # too little light fractions in the ages given by flag__t
-
+    isOk__z = np.ones_like(K.Mcor__z, dtype = np.bool)
+    
     # Define Ok flag: Zones with light fraction x < xOkMin are not reliable for alogZ (& etc) estimation!
-    x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
-    xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-    isOk__z = xOk__z > xOkMin
-
+    if xOkMin >= 0.:
+        x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
+        xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
+        isOk__z = xOk__z > xOkMin
+        
     # Fraction of all zones which are Ok in the isOk__z sense. Useful to censor galaxies whose
     # galaxy-wide averages are based on too few zones (hence not representative)
     # OBS: isOkFrac_GAL is not used in this function, but it's returned to be used by the caller
@@ -220,6 +317,7 @@ def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
 
 
 if __name__ == '__main__':
+    t_init_prog = time.clock()
     ALL_N_zones__g = np.ma.zeros((N_gals))
 
     #########################################################################        
@@ -239,13 +337,11 @@ if __name__ == '__main__':
     ALL_ur_GAL_zones__rg        = np.ma.zeros((NRbins, N_gals))
     ALL_tau_V_neb__rg           = np.ma.zeros((NRbins, N_gals))
     ALL_aSFRSD_Ha__rg           = np.ma.zeros((NRbins, N_gals))
-    ALL_aSFRSD_Ha_kpc__rg       = np.ma.zeros((NRbins, N_gals))
     ALL_McorSD_GAL__rg          = np.ma.zeros((NRbins, N_gals))
     ALL_logZ_neb_S06__rg        = np.ma.zeros((NRbins, N_gals))
     
     ALL_califaID__Trg   = np.ma.zeros((N_T, NRbins, N_gals), dtype = '|S5')
     ALL_aSFRSD__Trg     = np.ma.zeros((N_T, NRbins, N_gals))
-    ALL_aSFRSD_kpc__Trg = np.ma.zeros((N_T, NRbins, N_gals))
     ALL_tau_V__Trg      = np.ma.zeros((N_T, NRbins, N_gals))
     #ALL_at_flux__Trg    = np.ma.zeros((N_T, NRbins, N_gals))
     ALL_alogZ_mass__Trg = np.ma.zeros((N_T, NRbins, N_gals))
@@ -258,11 +354,9 @@ if __name__ == '__main__':
     #ALL_integrated_at_flux__Tg      = np.ma.zeros((N_T, N_gals))
     ALL_integrated_SFR__Tg          = np.ma.zeros((N_T, N_gals))
     ALL_integrated_SFRSD__Tg        = np.ma.zeros((N_T, N_gals))
-    ALL_integrated_SFRSD_kpc__Tg    = np.ma.zeros((N_T, N_gals))
     
     ALL_integrated_SFR_Ha__g        = np.ma.zeros((N_gals))
     ALL_integrated_SFRSD_Ha__g      = np.ma.zeros((N_gals))
-    ALL_integrated_SFRSD_Ha_kpc__g  = np.ma.zeros((N_gals))
     ALL_integrated_L_int_Ha__g      = np.ma.zeros((N_gals))
     
     #########################################################################
@@ -285,7 +379,6 @@ if __name__ == '__main__':
     _ALL_logZ_neb_S06_mask__g= []
     _ALL_SFR_Ha__g = []
     _ALL_SFRSD_Ha__g = []
-    _ALL_SFRSD_Ha_kpc__g = []
     _ALL_F_obs_Ha__g = []
     _ALL_L_int_Ha__g = []
     _ALL_L_int_Ha_err__g = []
@@ -319,8 +412,6 @@ if __name__ == '__main__':
     _ALL_SFR_mask__Tg = []
     _ALL_SFRSD__Tg = []
     _ALL_SFRSD_mask__Tg = []
-    _ALL_SFRSD_kpc__Tg = []
-    _ALL_SFRSD_kpc_mask__Tg = []
     
     _ALL_alogZ_mass__Tg = []
     _ALL_alogZ_mass_mask__Tg = []
@@ -337,8 +428,6 @@ if __name__ == '__main__':
         _ALL_SFR_mask__Tg.append([])
         _ALL_SFRSD__Tg.append([])
         _ALL_SFRSD_mask__Tg.append([])
-        _ALL_SFRSD_kpc__Tg.append([])
-        _ALL_SFRSD_kpc_mask__Tg.append([])
         _ALL_alogZ_mass__Tg.append([])
         _ALL_alogZ_mass_mask__Tg.append([])
         _ALL_alogZ_flux__Tg.append([])
@@ -355,6 +444,7 @@ if __name__ == '__main__':
     ALL_N_zones = 0
         
     for iGal in np.arange(N_gals):
+        t_init_gal = time.clock()
         galName = listOfPrefixes[iGal][:-1]
 
         CALIFASuffix = '_synthesis_eBR_' + versionSuffix + '512.ps03.k1.mE.CCM.' + baseCode + '.fits'
@@ -362,6 +452,7 @@ if __name__ == '__main__':
         emLinesSuffix = '_synthesis_eBR_' + versionSuffix + '512.ps03.k1.mE.CCM.' + baseCode + '.EML.MC100.fits'
         emLinesFitsFile = emLinesFitsDir + galName + emLinesSuffix
         
+        # both files
         if not (os.path.isfile(CALIFAFitsFile) and os.path.isfile(emLinesFitsFile)):
             ALL_N_zones__g[iGal] = np.ma.masked
             ALL_morfType_GAL__g[iGal] = np.ma.masked
@@ -377,69 +468,65 @@ if __name__ == '__main__':
             ALL_alogZ_flux_GAL__Tg[:, iGal] = np.ma.masked
             ALL_isOkFrac_GAL__Tg[:, iGal] = np.ma.masked
             ALL_aSFRSD_Ha__rg[:, iGal] = np.ma.masked
-            ALL_aSFRSD_Ha_kpc__rg[:, iGal] = np.ma.masked
             ALL_aSFRSD__Trg[:, :, iGal] = np.ma.masked
-            ALL_aSFRSD_kpc__Trg[:, :, iGal] = np.ma.masked
             ALL_tau_V__Trg[:, :, iGal] = np.ma.masked
             ALL_alogZ_mass__Trg[:, :, iGal] = np.ma.masked
             ALL_alogZ_flux__Trg[:, :, iGal] = np.ma.masked
             ALL_McorSD_GAL__rg[:, iGal] = np.ma.masked
             ALL_integrated_SFR__Tg[:, iGal] = np.ma.masked
             ALL_integrated_SFRSD__Tg[:, iGal] = np.ma.masked
-            ALL_integrated_SFRSD_kpc__Tg[:, iGal] = np.ma.masked
             ALL_integrated_SFR_Ha__g[iGal] = np.ma.masked
             ALL_integrated_SFRSD_Ha__g[iGal] = np.ma.masked
-            ALL_integrated_SFRSD_Ha_kpc__g[iGal] = np.ma.masked
             ALL_integrated_L_int_Ha__g[iGal] = np.ma.masked
             ALL_califaID__rg[:, iGal] = np.ma.masked
             ALL_califaID__Trg[:, :, iGal] = np.ma.masked
 
-            print '<<< %s galaxy: miss files' & galName 
+            print '<<< %s galaxy: miss files' % galName 
             continue
         
         K = fitsQ3DataCube(CALIFAFitsFile)
+        tipos, tipo, tipo_m, tipo_p = get_morfologia(galName)
+        ALL_morfType_GAL__g[iGal] = tipo
         
-        # Setup elliptical-rings geometry
-        pa, ba = K.getEllipseParams()
-        K.setGeometry(pa, ba)
+        # Only spiral
+        if onlySpiral and tipo <= 8: 
+            ALL_N_zones__g[iGal] = np.ma.masked
+            ALL_morfType_GAL__g[iGal] = np.ma.masked
+            ALL_at_flux_GAL__g[iGal] = np.ma.masked
+            ALL_Mcor_GAL__g[iGal] = np.ma.masked
+            ALL_McorSD_GAL__g[iGal] = np.ma.masked
+            ALL_Mr_GAL_zones__rg[:, iGal] = np.ma.masked
+            ALL_ur_GAL_zones__rg[:, iGal] = np.ma.masked 
+            ALL_morfType_GAL_zones__rg[:, iGal] = np.ma.masked
+            ALL_tau_V_neb__rg[:, iGal] = np.ma.masked
+            ALL_logZ_neb_S06__rg[:, iGal] = np.ma.masked
+            ALL_alogZ_mass_GAL__Tg[:, iGal] = np.ma.masked
+            ALL_alogZ_flux_GAL__Tg[:, iGal] = np.ma.masked
+            ALL_isOkFrac_GAL__Tg[:, iGal] = np.ma.masked
+            ALL_aSFRSD_Ha__rg[:, iGal] = np.ma.masked
+            ALL_aSFRSD__Trg[:, :, iGal] = np.ma.masked
+            ALL_tau_V__Trg[:, :, iGal] = np.ma.masked
+            ALL_alogZ_mass__Trg[:, :, iGal] = np.ma.masked
+            ALL_alogZ_flux__Trg[:, :, iGal] = np.ma.masked
+            ALL_McorSD_GAL__rg[:, iGal] = np.ma.masked
+            ALL_integrated_SFR__Tg[:, iGal] = np.ma.masked
+            ALL_integrated_SFRSD__Tg[:, iGal] = np.ma.masked
+            ALL_integrated_SFR_Ha__g[iGal] = np.ma.masked
+            ALL_integrated_SFRSD_Ha__g[iGal] = np.ma.masked
+            ALL_integrated_L_int_Ha__g[iGal] = np.ma.masked
+            ALL_califaID__rg[:, iGal] = np.ma.masked
+            ALL_califaID__Trg[:, :, iGal] = np.ma.masked
+
+            print '<<< %s galaxy: is not a spiral (type: %d)' % (galName, tipo) 
+            continue
         
         # read FITSFILE containing galaxy emission lines measured by R.G.B.
         # read_rgb_fits returns False if emLinesFitsFile does not exists.
         #read = read_rgb_fits(emLinesFitsFile, read_lines)
         K.loadEmLinesDataCube(emLinesFitsFile)
         
-        ##########################
-        ###### MASK EmLines ######
-        ##########################        
-        # minimum value of f_lz / err_f_lz
-        minSNR = 3.
-        
-        i_Hb = K.EL.lines.index('4861')
-        i_O3 = K.EL.lines.index('5007')
-        i_Ha = K.EL.lines.index('6563')
-        i_N2 = K.EL.lines.index('6583')
-        
-        HbOk = np.array((K.EL.flux[i_Hb, :] / K.EL.eflux[i_Hb, :]) >= minSNR, dtype = np.bool)
-        O3Ok = np.array((K.EL.flux[i_O3, :] / K.EL.eflux[i_O3, :]) >= minSNR, dtype = np.bool)
-        HaOk = np.array((K.EL.flux[i_Ha, :] / K.EL.eflux[i_Ha, :]) >= minSNR, dtype = np.bool)
-        N2Ok = np.array((K.EL.flux[i_N2, :] / K.EL.eflux[i_N2, :]) >= minSNR, dtype = np.bool)
-        
-        N2Ha = np.ma.log10(K.EL.N2_obs__z / K.EL.Ha_obs__z)
-        O3Hb = np.ma.log10(K.EL.O3_obs__z / K.EL.Hb_obs__z)
-        
-        maskOk = HbOk & O3Ok & HaOk & N2Ok
-        maskBPT = None
-        
-        if BPTLowS06:
-            L = Lines()
-            maskBPT = L.maskBelowlinebpt('S06', N2Ha, O3Hb)
-        ##########################
-        ##########################
-        ##########################
-        
-        K.EL._forceMask = ~maskOk
-        
-        if len(K.EL.flux[0, :].compressed()) == 0:
+        # Problem in FITS file
+        if K.EL.flux[0, :].sum() == 0.:
             ALL_N_zones__g[iGal] = np.ma.masked
             ALL_morfType_GAL__g[iGal] = np.ma.masked
             ALL_at_flux_GAL__g[iGal] = np.ma.masked
@@ -454,28 +541,65 @@ if __name__ == '__main__':
             ALL_alogZ_flux_GAL__Tg[:, iGal] = np.ma.masked
             ALL_isOkFrac_GAL__Tg[:, iGal] = np.ma.masked
             ALL_aSFRSD_Ha__rg[:, iGal] = np.ma.masked
-            ALL_aSFRSD_Ha_kpc__rg[:, iGal] = np.ma.masked
             ALL_aSFRSD__Trg[:, :, iGal] = np.ma.masked
-            ALL_aSFRSD_kpc__Trg[:, :, iGal] = np.ma.masked
             ALL_tau_V__Trg[:, :, iGal] = np.ma.masked
             ALL_alogZ_mass__Trg[:, :, iGal] = np.ma.masked
             ALL_alogZ_flux__Trg[:, :, iGal] = np.ma.masked
             ALL_McorSD_GAL__rg[:, iGal] = np.ma.masked
             ALL_integrated_SFR__Tg[:, iGal] = np.ma.masked
             ALL_integrated_SFRSD__Tg[:, iGal] = np.ma.masked
-            ALL_integrated_SFRSD_kpc__Tg[:, iGal] = np.ma.masked
             ALL_integrated_SFR_Ha__g[iGal] = np.ma.masked
             ALL_integrated_SFRSD_Ha__g[iGal] = np.ma.masked
-            ALL_integrated_SFRSD_Ha_kpc__g[iGal] = np.ma.masked
             ALL_integrated_L_int_Ha__g[iGal] = np.ma.masked
             ALL_califaID__rg[:, iGal] = np.ma.masked
             ALL_califaID__Trg[:, :, iGal] = np.ma.masked
             
-            print '<<< %s galaxy: no minSNR (%.1f) in 4 BPT lines' % (galName, minSNR)
+            print '<<< %s EmLines FITS problem' % galName
             continue
 
-        tipos, tipo, tipo_m, tipo_p = get_morfologia(galName)
-        ALL_morfType_GAL__g[iGal] = tipo
+        # Setup elliptical-rings geometry
+        pa, ba = K.getEllipseParams()
+        K.setGeometry(pa, ba)
+        
+        ##########################
+        ###### MASK EmLines ######
+        ##########################        
+        # minimum value of f_lz / err_f_lz
+        minSNR = 3.
+        
+        i_Hb = K.EL.lines.index('4861')
+        i_O3 = K.EL.lines.index('5007')
+        i_Ha = K.EL.lines.index('6563')
+        i_N2 = K.EL.lines.index('6583')
+        
+        Ha = K.EL.flux[i_Ha, :]
+        eHa = K.EL.eflux[i_Ha, :]
+        Hb = K.EL.flux[i_Hb, :]
+        eHb = K.EL.eflux[i_Hb, :]
+        O3 = K.EL.flux[i_O3, :]
+        eO3 = K.EL.eflux[i_O3, :]
+        N2 = K.EL.flux[i_N2, :]
+        eN2 = K.EL.eflux[i_N2, :]
+        
+        HbOk = np.array((Hb / eHb) >= minSNR, dtype = np.bool)
+        O3Ok = np.array((O3 / eO3) >= minSNR, dtype = np.bool)
+        HaOk = np.array((Ha / eHa) >= minSNR, dtype = np.bool)
+        N2Ok = np.array((N2 / eN2) >= minSNR, dtype = np.bool)
+        
+        maskLinesSNR__z = HbOk & O3Ok & HaOk & N2Ok
+        maskFluxOk__z = (Ha >= 0) & (Hb >= 0) & (O3 >= 0) & (N2 >= 0)
+        
+        maskBPT__z = None
+        
+        if BPTLowS06:
+            L = Lines()
+            N2Ha = np.ma.log10(K.EL.N2_obs__z / K.EL.Ha_obs__z)
+            O3Hb = np.ma.log10(K.EL.O3_obs__z / K.EL.Hb_obs__z)
+            maskBPT__z = L.maskBelowlinebpt('S06', N2Ha, O3Hb)
+        ##########################
+        ##########################
+        ##########################
+                
         print '>>> Doing' , iGal , galName , 'hubtyp=', ALL_morfType_GAL__g[iGal], '|  Nzones=' , K.N_zone
         ALL_N_zones__g[iGal] = K.N_zone
         ALL_N_zones += K.N_zone
@@ -500,18 +624,13 @@ if __name__ == '__main__':
         
         ALL_califaID__rg[:,iGal] = np.asarray([ K.califaID for i in range(NRbins) ])
         ALL_califaID__Trg[...,iGal] = np.asarray([ K.califaID for i in range(N_T * NRbins) ]).reshape(N_T, NRbins)
-        
-        K.EL._forceMask = None
-        
+
         ##########################
         ####### STARLIGHT ########
         ##########################        
         # Compute galaxy-wide mu (cf eq 2 in GD14) - following Andre's tip.
         ALL_McorSD_GAL__g[iGal] = K.McorSD__yx.mean()
 
-        # a fake all galaxy mass in stars per zone for all galaxies, creating a stamp for each zone
-        aux = np.ones_like(K.Mcor__z) * ALL_Mcor_GAL__g[iGal]
-        _ALL_Mcor_GAL_zones__g.append(aux)
 
         # a fake McorSD per zone for all galaxies, creating a stamp for each zone
         aux = np.ones_like(K.Mcor__z) * ALL_McorSD_GAL__g[iGal]
@@ -522,10 +641,15 @@ if __name__ == '__main__':
         # McorSD by radius
         ALL_McorSD_GAL__rg[:, iGal] = K.radialProfile(K.McorSD__yx, Rbin__r, rad_scale = K.HLR_pix)
 
+        # a fake all galaxy mass in stars per zone for all galaxies, creating a stamp for each zone
+        aux = np.ones_like(K.Mcor__z) * ALL_Mcor_GAL__g[iGal]
+        _ALL_Mcor_GAL_zones__g.append(aux)
+
         # Compute & store galaxy-wide at_flux
         numerator__z = K.Lobn__tZz.sum(axis = 1).sum(axis = 0) * K.at_flux__z
         denominator__z = K.Lobn__tZz.sum(axis = 1).sum(axis = 0)
         ALL_at_flux_GAL__g[iGal] = numerator__z.sum() / denominator__z.sum()
+        
         aux = np.ones_like(K.Mcor__z) * ALL_at_flux_GAL__g[iGal] 
         _ALL_at_flux_GAL_zones__g.append(aux)
         
@@ -543,49 +667,47 @@ if __name__ == '__main__':
             #--------------------------------------------------------------------------
             # Define mask to pick only populations younger than the input tSF in the computation of SFR & SFRSD.
             flag__t = K.ageBase <= tSF
-        
-            # SRFSD "raw" image
-            # Note that we are NOT dezonifying SFR__z, since it will be compared to the un-dezonifiable tauV!
-            aux = K.Mini__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) / tSF
-            SFR__z = np.ma.masked_array(aux)
-            SFRSD__z = SFR__z / K.zoneArea_pc2
-            SFRSD_kpc__z = SFRSD__z * 1e6
-                                    
-            #at_flux(t)
-            #at_flux__z = np.ma.masked_array(K.at_flux__z)
-            popx_sumZ = K.popx[flag__t, :, :].sum(axis=1)
-            popx_sum = popx_sumZ.sum(axis=0)
-            popx_sumZ /= popx_sum
-            aux = np.tensordot(popx_sumZ, np.log10(K.ageBase[flag__t]), (0, 0))
-            at_flux__z = np.ma.masked_array(aux)
-            at_flux__z[np.isnan(aux)] = np.ma.masked
-
-            aux = K.integrated_Mini__tZ[flag__t, :].sum() / tSF
-            integrated_SFR = np.ma.masked_array(aux)
-            integrated_SFRSD = integrated_SFR / K.zoneArea_pc2.sum()
-            integrated_SFRSD_kpc = integrated_SFRSD * 1e6
             
-            tau_V__z = np.ma.masked_array(K.tau_V__z)
+            aux = calc_SFR_Stuff(K, flag__t, xOkMin, tauVOkMin)
+            SFR__z = aux[0]
+            SFRSD__z = aux[1]
+            integrated_SFR = aux[2]
+            integrated_SFRSD = aux[3]
+            tau_V__z = aux[4]
+            
+            _ALL_tau_V__Tg[iT].append(tau_V__z.data)
+            _ALL_tau_V_mask__Tg[iT].append(tau_V__z.mask)
                             
-            if mask_xOk:
-                # Compute xOk "raw" image
-                x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
-                xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-                
-                maskNotOk__z = (xOk__z < xOkMin) | (tau_V__z < tauVOkMin) 
-                 
-                if BPTLowS06:
-                    maskNotOk__z |= ~maskBPT
+            ALL_integrated_SFR__Tg[iT, iGal] = integrated_SFR
+            ALL_integrated_SFRSD__Tg[iT, iGal] = integrated_SFRSD
+            aSFRSD__yx = K.zoneToYX(SFR__z, extensive = True)
+            aSFRSD__r = K.radialProfile(aSFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
+            ALL_aSFRSD__Trg[iT, :, iGal] = aSFRSD__r
+            tau_V__yx = K.zoneToYX(tau_V__z, extensive = False)
+            ALL_tau_V__Trg[iT, :, iGal] = K.radialProfile(tau_V__yx, Rbin__r, rad_scale = K.HLR_pix)
+            _ALL_SFR__Tg[iT].append(SFR__z.data)
+            _ALL_SFR_mask__Tg[iT].append(SFR__z.mask)
+            _ALL_SFRSD__Tg[iT].append(SFRSD__z.data)
+            _ALL_SFRSD_mask__Tg[iT].append(SFRSD__z.mask)
+            
+        for iT, tSF in enumerate(tSF__T):
+            #--------------------------------------------------------------------------
+            # Define mask to pick only populations younger than the input tSF in the computation of SFR & SFRSD.
+            flag__t = K.ageBase <= tSF
 
-                tau_V__z[maskNotOk__z] = np.ma.masked
-                SFR__z[maskNotOk__z] = np.ma.masked
-                SFRSD__z[maskNotOk__z] = np.ma.masked
-                SFRSD_kpc__z[maskNotOk__z] = np.ma.masked
-                #aZ_mass__z[maskNotOk__z] = np.ma.masked
-                #at_flux__z[maskNotOk__z] = np.ma.masked
-                
-            weiRadProf = True
-                            
+            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+            # #at_flux(t)
+            # #at_flux__z = np.ma.masked_array(K.at_flux__z)
+            # popx_sumZ = K.popx[flag__t, :, :].sum(axis=1)
+            # popx_sum = popx_sumZ.sum(axis=0)
+            # popx_sumZ /= popx_sum
+            # aux = np.tensordot(popx_sumZ, np.log10(K.ageBase[flag__t]), (0, 0))
+            # at_flux__z = np.ma.masked_array(aux)
+            # at_flux__z[np.isnan(aux)] = np.ma.masked
+            # _ALL_at_flux__Tg[iT].append(at_flux__z.data)
+            # _ALL_at_flux_mask__Tg[iT].append(at_flux__z.mask)
+            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
             aux = calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf, xOkMin = xOkMin)
             _ALL_alogZ_mass__Tg[iT].append(aux[0])
             _ALL_alogZ_mass_mask__Tg[iT].append(aux[0].mask)
@@ -596,35 +718,7 @@ if __name__ == '__main__':
             ALL_isOkFrac_GAL__Tg[iT, iGal] = aux[4]
             ALL_alogZ_mass__Trg[iT, :, iGal] = aux[5]
             ALL_alogZ_flux__Trg[iT, :, iGal] = aux[6]
-            ALL_integrated_SFR__Tg[iT, iGal] = integrated_SFR
-            ALL_integrated_SFRSD__Tg[iT, iGal] = integrated_SFRSD
-            ALL_integrated_SFRSD_kpc__Tg[iT, iGal] = integrated_SFRSD_kpc
-
-            aSFRSD__yx = K.zoneToYX(SFR__z, extensive = True)
-            aSFRSD__r = K.radialProfile(aSFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
-            aSFRSD_kpc__r = K.radialProfile(aSFRSD__yx * 1e6, Rbin__r, rad_scale = K.HLR_pix)
-
-            ALL_aSFRSD__Trg[iT, :, iGal] = aSFRSD__r
-            ALL_aSFRSD_kpc__Trg[iT, :, iGal] = aSFRSD_kpc__r
-
-            _ALL_tau_V__Tg[iT].append(tau_V__z.data)
-            _ALL_tau_V_mask__Tg[iT].append(tau_V__z.mask)
-            
-            tau_V__yx = K.zoneToYX(tau_V__z, extensive = False)
-            ALL_tau_V__Trg[iT, :, iGal] = K.radialProfile(tau_V__yx, Rbin__r, rad_scale = K.HLR_pix)
-                        
-            _ALL_SFR__Tg[iT].append(SFR__z.data)
-            _ALL_SFR_mask__Tg[iT].append(SFR__z.mask)
-
-            _ALL_SFRSD__Tg[iT].append(SFRSD__z.data)
-            _ALL_SFRSD_mask__Tg[iT].append(SFRSD__z.mask)
-            
-            _ALL_SFRSD_kpc__Tg[iT].append(SFRSD_kpc__z.data)
-            _ALL_SFRSD_kpc_mask__Tg[iT].append(SFRSD_kpc__z.mask)
-            
-            _ALL_at_flux__Tg[iT].append(at_flux__z.data)
-            _ALL_at_flux_mask__Tg[iT].append(at_flux__z.mask)
-
+                
         ##########################
         ##########################
         ##########################    
@@ -632,14 +726,16 @@ if __name__ == '__main__':
         ##########################
         ########## tau_V #########
         ##########################
+        mask_tmp = maskFluxOk__z & maskLinesSNR__z
+        
+        K.EL._forceMask = ~mask_tmp #Changing global EL mask
+
         if BPTLowS06:
-            K.EL._forceMask = ~(maskOk & maskBPT) #Changing global EL mask
-        else:
-            K.EL._forceMask = ~maskOk #Changing global EL mask
-            
+            K.EL._forceMask = ~(mask_tmp & maskBPT__z) #Changing global EL mask
+        
         maskOkTauVNeb = (K.EL.tau_V_neb__z >= tauVNebOkMin) & (K.EL.tau_V_neb_err__z <= tauVNebErrMax)
-        mask_temp = maskOk & maskOkTauVNeb
-        K.EL._forceMask = ~mask_temp #Changing global EL mask 
+        
+        K.EL._forceMask = ~(mask_tmp & maskOkTauVNeb) #Changing global EL mask 
         
         N_zones_tau_V = len(K.EL.tau_V_neb__z.compressed())
         print 'tauV calculated for %d zones (maskOK and maskOkTauVNeb)' % N_zones_tau_V
@@ -721,30 +817,26 @@ if __name__ == '__main__':
         # 3.17 M_sun/yr was calculated using BC03 + Padova1994 + Salpeter        
         SFR_Ha__z = 3.13 * L_int_Ha__z / (1.e8)
         SFRSD_Ha__z = SFR_Ha__z / K.zoneArea_pc2
-        SFRSD_Ha_kpc__z = SFRSD_Ha__z * 1e6
         
         integrated_SFR_Ha = 3.13 * integrated_L_int_Ha / (1.e8)
         integrated_SFRSD_Ha = integrated_SFR_Ha / K.zoneArea_pc2.sum()
-        integrated_SFRSD_Ha_kpc = integrated_SFRSD_Ha * 1e6
         
         SFRSD_Ha__yx = K.zoneToYX(SFR_Ha__z, extensive = True)
         aSFRSD_Ha__r = K.radialProfile(SFRSD_Ha__yx, Rbin__r, rad_scale = K.HLR_pix)
-        aSFRSD_Ha_kpc__r = K.radialProfile(SFRSD_Ha__yx * 1e6, Rbin__r, rad_scale = K.HLR_pix)
 
         ALL_aSFRSD_Ha__rg[:, iGal] = aSFRSD_Ha__r
-        ALL_aSFRSD_Ha_kpc__rg[:, iGal] = aSFRSD_Ha_kpc__r
         
         ALL_integrated_SFR_Ha__g[iGal] = integrated_SFR_Ha
         ALL_integrated_SFRSD_Ha__g[iGal] = integrated_SFRSD_Ha
-        ALL_integrated_SFRSD_Ha_kpc__g[iGal] = integrated_SFRSD_Ha_kpc
         
         _ALL_SFR_Ha__g.append(SFR_Ha__z)
         _ALL_SFRSD_Ha__g.append(SFRSD_Ha__z)
-        _ALL_SFRSD_Ha_kpc__g.append(SFRSD_Ha__z * 1e6)
         ##########################
         ##########################
         ##########################
         
+        print 'time per galaxy: %s %.2f' % (galName, time.clock() - t_init_gal)
+    
     print 'Total of %d galaxies (%d zones): %s zones for tau_V' % (ALL_N_gals, ALL_N_zones, ALL_N_zones_tau_V)
     
     ALL_dist_zone__g = np.ma.masked_array(np.hstack(np.asarray(_ALL_dist_zone__g)))
@@ -765,7 +857,6 @@ if __name__ == '__main__':
     ALL_F_obs_Ha__g = np.ma.masked_array(np.hstack(_ALL_F_obs_Ha__g), mask = auxMask)
     ALL_SFR_Ha__g = np.ma.masked_array(np.hstack(_ALL_SFR_Ha__g), mask = auxMask)
     ALL_SFRSD_Ha__g = np.ma.masked_array(np.hstack(_ALL_SFRSD_Ha__g), mask = auxMask)
-    ALL_SFRSD_Ha_kpc__g = np.ma.masked_array(np.hstack(_ALL_SFRSD_Ha_kpc__g), mask = auxMask)
     
     ALL_Mcor__g = np.ma.masked_array(np.hstack(_ALL_Mcor__g))
     ALL_McorSD__g = np.ma.masked_array(np.hstack(_ALL_McorSD__g))
@@ -787,10 +878,9 @@ if __name__ == '__main__':
     ALL_tau_V__Tg = []
     ALL_SFR__Tg = []
     ALL_SFRSD__Tg = []
-    ALL_SFRSD_kpc__Tg = []
     ALL_alogZ_mass__Tg = []
     ALL_alogZ_flux__Tg = []
-    ALL_at_flux__Tg = []
+    #ALL_at_flux__Tg = []
     
     correl_SFR__T = np.ones_like(tSF__T)
     correl_SFRSD__T = np.ones_like(tSF__T)
@@ -809,10 +899,6 @@ if __name__ == '__main__':
         auxMask = np.hstack(_ALL_SFRSD_mask__Tg[iT])
         ALL_SFRSD__Tg.append(np.ma.masked_array(aux, mask = auxMask))
 
-        aux = np.hstack(_ALL_SFRSD_kpc__Tg[iT])
-        auxMask = np.hstack(_ALL_SFRSD_kpc_mask__Tg[iT])
-        ALL_SFRSD_kpc__Tg.append(np.ma.masked_array(aux, mask = auxMask))
-
         aux = np.hstack(_ALL_alogZ_mass__Tg[iT])
         auxMask = np.hstack(_ALL_alogZ_mass_mask__Tg[iT])
         #ALL_aZ_mass__Tg.append(np.ma.masked_array(aux, mask = auxMask))
@@ -823,9 +909,11 @@ if __name__ == '__main__':
         #ALL_aZ_flux__Tg.append(np.ma.masked_array(aux, mask = auxMask))
         ALL_alogZ_flux__Tg.append(np.ma.masked_array(aux))
 
-        aux = np.hstack(_ALL_at_flux__Tg[iT])
-        auxMask = np.hstack(_ALL_at_flux_mask__Tg[iT])
-        ALL_at_flux__Tg.append(np.ma.masked_array(aux, mask = auxMask))
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        # aux = np.hstack(_ALL_at_flux__Tg[iT])
+        # auxMask = np.hstack(_ALL_at_flux_mask__Tg[iT])
+        # ALL_at_flux__Tg.append(np.ma.masked_array(aux, mask = auxMask))
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
         x = np.ma.log10(ALL_SFR__Tg[iT])
         y = np.ma.log10(ALL_SFR_Ha__g)
@@ -864,13 +952,10 @@ if __name__ == '__main__':
             ym = y[~mask]
             correl_aSFRSD__rT[iiR, iT] = st.spearmanr(xm, ym)[0]
 
-    if hdf5:
+    if hdf5 != None:
         import h5py
         
-        if BPTLowS06:       
-            filename = 'SFR_BelowS06.h5'
-        else:
-            filename = 'SFR.h5'
+        filename = args.hdf5
             
         h5 = h5py.File(filename, 'w')
         
@@ -887,9 +972,7 @@ if __name__ == '__main__':
             '/masked/data/alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.data,
             '/masked/data/isOkFrac_GAL__Tg' : ALL_isOkFrac_GAL__Tg.data,
             '/masked/data/aSFRSD_Ha__rg' : ALL_aSFRSD_Ha__rg.data,
-            '/masked/data/aSFRSD_Ha_kpc__rg' : ALL_aSFRSD_Ha_kpc__rg.data,
             '/masked/data/aSFRSD__Trg' : ALL_aSFRSD__Trg.data,
-            '/masked/data/aSFRSD_kpc__Trg' : ALL_aSFRSD_kpc__Trg.data,
             '/masked/data/logZ_neb_S06__rg': ALL_logZ_neb_S06__rg.data,
             '/masked/data/tau_V__Trg' : ALL_tau_V__Trg.data,
             '/masked/data/alogZ_mass__Trg' : ALL_alogZ_mass__Trg.data,
@@ -901,7 +984,6 @@ if __name__ == '__main__':
             '/masked/data/F_obs_Ha__g' : ALL_F_obs_Ha__g.data,
             '/masked/data/SFR_Ha__g' : ALL_SFR_Ha__g.data,
             '/masked/data/SFRSD_Ha__g' : ALL_SFRSD_Ha__g.data,
-            '/masked/data/SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.data,
             '/masked/data/Mcor__g' : ALL_Mcor__g.data,
             '/masked/data/McorSD__g' : ALL_McorSD__g.data,
             '/masked/data/Mcor_GAL_zones__g' : ALL_Mcor_GAL_zones__g.data,
@@ -913,10 +995,8 @@ if __name__ == '__main__':
             '/masked/data/at_flux_GAL_zones__g' : ALL_at_flux_GAL_zones__g.data,
             '/masked/data/integrated_SFR__Tg' : ALL_integrated_SFR__Tg.data,
             '/masked/data/integrated_SFRSD__Tg' : ALL_integrated_SFRSD__Tg.data,
-            '/masked/data/integrated_SFRSD_kpc__Tg' : ALL_integrated_SFRSD_kpc__Tg.data,
             '/masked/data/integrated_SFR_Ha__g' : ALL_integrated_SFR_Ha__g.data,
             '/masked/data/integrated_SFRSD_Ha__g' : ALL_integrated_SFRSD_Ha__g.data,
-            '/masked/data/integrated_SFRSD_Ha_kpc__g' : ALL_integrated_SFRSD_Ha_kpc__g.data,
             '/masked/data/dist_zone__g' : ALL_dist_zone__g.data,
             '/masked/data/N_zones__g' : ALL_N_zones__g.data,
             '/masked/data/califaID__rg' : ALL_califaID__rg.data,
@@ -939,9 +1019,7 @@ if __name__ == '__main__':
             '/masked/mask/alogZ_flux_GAL__Tg' : ALL_alogZ_flux_GAL__Tg.mask,
             '/masked/mask/isOkFrac_GAL__Tg' : ALL_isOkFrac_GAL__Tg.mask,
             '/masked/mask/aSFRSD_Ha__rg' : ALL_aSFRSD_Ha__rg.mask,
-            '/masked/mask/aSFRSD_Ha_kpc__rg' : ALL_aSFRSD_Ha_kpc__rg.mask,
             '/masked/mask/aSFRSD__Trg' : ALL_aSFRSD__Trg.mask,
-            '/masked/mask/aSFRSD_kpc__Trg' : ALL_aSFRSD_kpc__Trg.mask,
             '/masked/mask/logZ_neb_S06__rg': ALL_logZ_neb_S06__rg.mask,
             '/masked/mask/tau_V__Trg' : ALL_tau_V__Trg.mask,
             '/masked/mask/alogZ_mass__Trg' : ALL_alogZ_mass__Trg.mask,
@@ -953,7 +1031,6 @@ if __name__ == '__main__':
             '/masked/mask/F_obs_Ha__g' : ALL_F_obs_Ha__g.mask,
             '/masked/mask/SFR_Ha__g' : ALL_SFR_Ha__g.mask,
             '/masked/mask/SFRSD_Ha__g' : ALL_SFRSD_Ha__g.mask,
-            '/masked/mask/SFRSD_Ha_kpc__g' : ALL_SFRSD_Ha_kpc__g.mask,
             '/masked/mask/Mcor__g' : ALL_Mcor__g.mask,
             '/masked/mask/McorSD__g' : ALL_McorSD__g.mask,
             '/masked/mask/Mr_GAL_zones__g' : ALL_Mr_GAL_zones__g.mask,
@@ -965,10 +1042,8 @@ if __name__ == '__main__':
             '/masked/mask/at_flux_GAL_zones__g' : ALL_at_flux_GAL_zones__g.mask,
             '/masked/mask/integrated_SFR__Tg' : ALL_integrated_SFR__Tg.mask,
             '/masked/mask/integrated_SFRSD__Tg' : ALL_integrated_SFRSD__Tg.mask,
-            '/masked/mask/integrated_SFRSD_kpc__Tg' : ALL_integrated_SFRSD_kpc__Tg.mask,
             '/masked/mask/integrated_SFR_Ha__g' : ALL_integrated_SFR_Ha__g.mask,
             '/masked/mask/integrated_SFRSD_Ha__g' : ALL_integrated_SFRSD_Ha__g.mask,
-            '/masked/mask/integrated_SFRSD_Ha_kpc__g' : ALL_integrated_SFRSD_Ha_kpc__g.mask,
             '/masked/mask/dist_zone__g' : ALL_dist_zone__g.mask,
             '/masked/mask/N_zones__g' : ALL_N_zones__g.mask,
             '/masked/mask/califaID__rg' : ALL_califaID__rg.mask,
@@ -1005,17 +1080,15 @@ if __name__ == '__main__':
             D['/masked/data/tau_V__Tg/%d' % iT] = ALL_tau_V__Tg[iT].data
             D['/masked/data/SFR__Tg/%d' % iT] = ALL_SFR__Tg[iT].data
             D['/masked/data/SFRSD__Tg/%d' % iT] = ALL_SFRSD__Tg[iT].data
-            D['/masked/data/SFRSD_kpc__Tg/%d' % iT] = ALL_SFRSD_kpc__Tg[iT].data
             D['/masked/data/alogZ_mass__Tg/%d' % iT] = ALL_alogZ_mass__Tg[iT].data
             D['/masked/data/alogZ_flux__Tg/%d' % iT] = ALL_alogZ_flux__Tg[iT].data
-            D['/masked/data/at_flux__Tg/%d' % iT] = ALL_at_flux__Tg[iT].data
+            #D['/masked/data/at_flux__Tg/%d' % iT] = ALL_at_flux__Tg[iT].data
             D['/masked/mask/tau_V__Tg/%d' % iT] = ALL_tau_V__Tg[iT].mask
             D['/masked/mask/SFR__Tg/%d' % iT] = ALL_SFR__Tg[iT].mask
             D['/masked/mask/SFRSD__Tg/%d' % iT] = ALL_SFRSD__Tg[iT].mask
-            D['/masked/mask/SFRSD_kpc__Tg/%d' % iT] = ALL_SFRSD_kpc__Tg[iT].mask
             D['/masked/mask/alogZ_mass__Tg/%d' % iT] = ALL_alogZ_mass__Tg[iT].mask
             D['/masked/mask/alogZ_flux__Tg/%d' % iT] = ALL_alogZ_flux__Tg[iT].mask
-            D['/masked/mask/at_flux__Tg/%d' % iT] = ALL_at_flux__Tg[iT].mask
+            #D['/masked/mask/at_flux__Tg/%d' % iT] = ALL_at_flux__Tg[iT].mask
 
         for k in D.keys():
             try:
@@ -1024,3 +1097,5 @@ if __name__ == '__main__':
                 h5.create_dataset(k, data = D[k])
                 
         h5.close()
+        
+    print 'total time: %.2f' % (time.clock() - t_init_prog)

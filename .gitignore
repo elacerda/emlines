@@ -16,3 +16,6 @@ teste.py
 latex/nathesis.cls
 /latex
 plot/data
+plotMosaic.sh
+ransac.py
+galzone.txt
