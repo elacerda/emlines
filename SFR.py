@@ -150,7 +150,7 @@ RRange = [  .5, 1., 1.5, 2.  ]
 
 if debug:
     listOfPrefixes = listOfPrefixes[1:20]        # Q&D tests ...
-    #listOfPrefixes = ['K0277\n']
+    listOfPrefixes = ['K0073\n']
     
 N_gals = len(listOfPrefixes)
 
@@ -186,33 +186,6 @@ def radialProfileWeighted(v__yx, w__yx, bins, rad_scale, func_radialProfile = No
         v__r = v_w__r / w__r
 
     return v__r
-
-def calc_SFR_Stuff(K, flag__t, xOkMin, tauVOkMin):
-    # SRFSD "raw" image
-    # Note that we are NOT dezonifying SFR__z, since it will be compared to the un-dezonifiable tauV!
-    aux = K.Mini__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) / tSF
-    SFR__z = np.ma.masked_array(aux)
-    SFRSD__z = SFR__z / K.zoneArea_pc2
-                            
-    aux = K.integrated_Mini__tZ[flag__t, :].sum() / tSF
-    integrated_SFR = np.ma.masked_array(aux)
-    integrated_SFRSD = integrated_SFR / K.zoneArea_pc2.sum()
-    
-    tau_V__z = np.ma.masked_array(K.tau_V__z)
-                    
-    if xOkMin >= 0.:
-        # Compute xOk "raw" image
-        x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
-        xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-        
-        maskNotOk__z = (xOk__z < xOkMin) | (tau_V__z < tauVOkMin) 
-         
-        tau_V__z[maskNotOk__z] = np.ma.masked
-        SFR__z[maskNotOk__z] = np.ma.masked
-        SFRSD__z[maskNotOk__z] = np.ma.masked
-        
-    return SFR__z, SFRSD__z, integrated_SFR, integrated_SFRSD, tau_V__z 
-
 
 #ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
@@ -631,7 +604,6 @@ if __name__ == '__main__':
         # Compute galaxy-wide mu (cf eq 2 in GD14) - following Andre's tip.
         ALL_McorSD_GAL__g[iGal] = K.McorSD__yx.mean()
 
-
         # a fake McorSD per zone for all galaxies, creating a stamp for each zone
         aux = np.ones_like(K.Mcor__z) * ALL_McorSD_GAL__g[iGal]
         _ALL_McorSD_GAL_zones__g.append(aux)
@@ -667,14 +639,28 @@ if __name__ == '__main__':
             #--------------------------------------------------------------------------
             # Define mask to pick only populations younger than the input tSF in the computation of SFR & SFRSD.
             flag__t = K.ageBase <= tSF
-            
-            aux = calc_SFR_Stuff(K, flag__t, xOkMin, tauVOkMin)
-            SFR__z = aux[0]
-            SFRSD__z = aux[1]
-            integrated_SFR = aux[2]
-            integrated_SFRSD = aux[3]
-            tau_V__z = aux[4]
-            
+            # SRFSD "raw" image
+            # Note that we are NOT dezonifying SFR__z, since it will be compared to the un-dezonifiable tauV!
+            aux = K.Mini__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) / tSF
+            SFR__z = np.ma.masked_array(aux)
+            SFRSD__z = SFR__z / K.zoneArea_pc2
+                                        
+            tau_V__z = np.ma.masked_array(K.tau_V__z)
+                            
+            if xOkMin >= 0.:
+                # Compute xOk "raw" image
+                x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
+                xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
+                
+                maskNotOk__z = (xOk__z < xOkMin) | (tau_V__z < tauVOkMin) 
+                 
+                tau_V__z[maskNotOk__z] = np.ma.masked
+                SFR__z[maskNotOk__z] = np.ma.masked
+                SFRSD__z[maskNotOk__z] = np.ma.masked
+                
+            integrated_SFR = SFR__z.sum()
+            integrated_SFRSD = integrated_SFR / K.zoneArea_pc2.sum()
+                        
             _ALL_tau_V__Tg[iT].append(tau_V__z.data)
             _ALL_tau_V_mask__Tg[iT].append(tau_V__z.mask)
                             
@@ -776,7 +762,7 @@ if __name__ == '__main__':
         ########### EW ###########
         ##########################
         _ALL_EW_Ha__g.append(K.EL.EW[i_Ha, :])
-        _ALL_EW_Hb__g.append(K.EL.EW[i_Ha, :])
+        _ALL_EW_Hb__g.append(K.EL.EW[i_Hb, :])
         ##########################
         ##########################
         ##########################
