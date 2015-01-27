@@ -9,6 +9,25 @@ import scipy.optimize as so
 from matplotlib import pyplot as plt
 from sklearn import linear_model
 
+
+def DrawHLRCircleInSDSSImage(ax, HLR_pix, pa, ba):
+    from matplotlib.patches import Ellipse
+    center , a , b_a , theta = np.array([ 256 , 256]) , HLR_pix * 512.0/75.0 , ba ,  pa*180/np.pi 
+    e1 = Ellipse(center, height=2*a*b_a, width=2*a, angle=theta, fill=False, color='white',lw=2,ls='dotted')
+    e2 = Ellipse(center, height=4*a*b_a, width=4*a, angle=theta, fill=False, color='white',lw=2,ls='dotted')
+    ax.add_artist(e1)
+    ax.add_artist(e2)
+
+    
+def DrawHLRCircle(ax, K, color='white', lw=1.5):
+    from matplotlib.patches import Ellipse
+    center , a , b_a , theta = np.array([ K.x0 , K.y0]) , K.HLR_pix , K.ba ,  K.pa*180/np.pi 
+    e1 = Ellipse(center, height=2*a*b_a, width=2*a, angle=theta, fill=False, color=color,lw=lw,ls='dotted')
+    e2 = Ellipse(center, height=4*a*b_a, width=4*a, angle=theta, fill=False, color=color,lw=lw,ls='dotted')
+    ax.add_artist(e1)
+    ax.add_artist(e2)
+
+
 def plot_linreg_params(param, x, xlabel, ylabel, fname, best_param = None, fontsize = 12):
     y = param
     xm = x
@@ -200,15 +219,19 @@ def plotStatCorreAxis(ax, x, y, pos_x, pos_y, fontsize):
     plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'top', 'left')
 
 
-def plotOLSbisectorAxis(ax, x, y, pos_x, pos_y, fontsize):
+def plotOLSbisectorAxis(ax, x, y, pos_x, pos_y, fontsize, color = 'r'):
+    c = color
     step = (x.max() - x.min()) / len(x)
     A, B = OLS_bisector(x, y)
     X = np.linspace(x.min(), x.max() + step, len(x))
     Y = A * X + B
     Yrms = (y - (A * x + B)).std()
-    ax.plot(X, Y, c = 'k', ls = '--', lw = 2)
-    txt = r'y = %.2fx+%.2f $Y_{rms}$:%.2f' %  (A, B, Yrms)
-    plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'bottom', 'right')
+    ax.plot(X, Y, c = c, ls = '--', lw = 2)
+    if B > 0:
+        txt = r'$y_{OLS}$ = %.2f$x$ + %.2f : $y_{rms}$:%.2f' %  (A, B, Yrms)
+    else:
+        txt = r'$y_{OLS}$ = %.2f$x$ - %.2f : $y_{rms}$:%.2f' %  (A, B * -1., Yrms)
+    plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'bottom', 'right', color = c)
     
     return A, B
 
@@ -289,7 +312,7 @@ def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, fname = 'PlotS
         sc = ax.scatter(x, y, c = z, cmap = 'spectral_r', vmin = zlim[0], vmax = zlim[1], marker = 'o', s = 5., edgecolor = 'none')
     else:
         sc = ax.scatter(x, y, c = z, cmap = 'spectral_r', marker = 'o', s = 5., edgecolor = 'none')
-    ax.plot((y - np.log10(1.6e-4))/1.4, y, 'k--')
+    #ax.plot((y - np.log10(1.6e-4))/1.4, y, 'k--')
     binsx = np.linspace(min(x), max(x), 21)
     binsy = np.linspace(min(y), max(y), 21)
     density_contour(x, y, binsx, binsy, ax = ax, color = 'k')
