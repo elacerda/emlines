@@ -37,10 +37,10 @@ correl_SFR__T       = H.get_data_h5('correl_SFR__T')
 correl_SFRSD__T     = H.get_data_h5('correl_SFRSD__T')
 correl_aSFRSD__rT   = H.get_data_h5('correl_aSFRSD__rT')
 SFR_Ha__g           = H.get_data_h5('SFR_Ha__g')
-aSFRSD_kpc__Trg     = H.get_data_h5('aSFRSD_kpc__Trg')
-aSFRSD_Ha_kpc__rg   = H.get_data_h5('aSFRSD_Ha_kpc__rg')
-SFRSD_kpc__Tg       = H.get_data_h5('SFRSD_kpc__Tg')
-SFRSD_Ha_kpc__g     = H.get_data_h5('SFRSD_Ha_kpc__g')
+aSFRSD__Trg         = H.get_data_h5('aSFRSD__Trg')
+aSFRSD_Ha__rg       = H.get_data_h5('aSFRSD_Ha__rg')
+SFRSD__Tg           = H.get_data_h5('SFRSD__Tg')
+SFRSD_Ha__g         = H.get_data_h5('SFRSD_Ha__g')
 dist_zone__g        = H.get_data_h5('dist_zone__g')
 
 NRows = 4
@@ -284,8 +284,8 @@ b2 = np.ones_like(tSF__T)
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
-        x = np.ma.log10(SFRSD_kpc__Tg[iT])
-        y = np.ma.log10(SFRSD_Ha_kpc__g)
+        x = np.ma.log10(SFRSD__Tg[iT] * 1e6)
+        y = np.ma.log10(SFRSD_Ha__g  * 1e6)
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -357,8 +357,8 @@ iT = 0
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
-        x = np.ma.log10(SFRSD_kpc__Tg[iT])
-        y = np.ma.log10(SFRSD_Ha_kpc__g)
+        x = np.ma.log10(SFRSD__Tg[iT] * 1e6)
+        y = np.ma.log10(SFRSD_Ha__g * 1e6)
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
@@ -423,8 +423,8 @@ iT = 0
 for i in range(0, NRows):
     for j in range(0, NCols):
         ax = axArr[i, j] 
-        x = np.ma.log10(SFRSD_kpc__Tg[iT])
-        y = np.ma.log10(SFRSD_Ha_kpc__g)
+        x = np.ma.log10(SFRSD__Tg[iT] * 1e6)
+        y = np.ma.log10(SFRSD_Ha__g * 1e6)
         z = dist_zone__g
         mask = x.mask | y.mask
         xm = x[~mask]
@@ -517,8 +517,8 @@ for i in range(0, NRows):
                 txt = '%.1f < R <= %.1f HLR' % (RDown, RUp)
                      
             c = RColor[iR] 
-            x = np.ma.log10(aSFRSD_kpc__Trg[iT, RMask, :].flatten())
-            y = np.ma.log10(aSFRSD_Ha_kpc__rg[RMask, :].flatten())
+            x = np.ma.log10(aSFRSD__Trg[iT, RMask, :].flatten() * 1e6)
+            y = np.ma.log10(aSFRSD_Ha__rg[RMask, :].flatten() * 1e6)
             mask = x.mask | y.mask
             xm = x[~mask]
             ym = y[~mask]
@@ -628,8 +628,8 @@ for i in range(0, NRows):
                 txt = '%.1f < R <= %.1f HLR' % (RDown, RUp)
                     
             c = RColor[iR] 
-            x = np.ma.log10(aSFRSD_kpc__Trg[iT, RMask, :].flatten())
-            y = np.ma.log10(aSFRSD_Ha_kpc__rg[RMask, :].flatten())
+            x = np.ma.log10(aSFRSD__Trg[iT, RMask, :].flatten() * 1e6)
+            y = np.ma.log10(aSFRSD_Ha__rg[RMask, :].flatten() * 1e6)
             mask = x.mask | y.mask
             xm = x[~mask]
             ym = y[~mask]
@@ -662,8 +662,8 @@ for i in range(0, NRows):
         # density_contour(xm, ym, binsx, binsy, ax=ax)
         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
  
-        x = np.ma.log10(aSFRSD_kpc__Trg[iT].flatten())
-        y = np.ma.log10(aSFRSD_Ha_kpc__rg.flatten())
+        x = np.ma.log10(aSFRSD__Trg[iT].flatten() * 1e6)
+        y = np.ma.log10(aSFRSD_Ha__rg.flatten() * 1e6)
         mask = x.mask | y.mask
         xm = x[~mask]
         ym = y[~mask]
