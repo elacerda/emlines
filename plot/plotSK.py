@@ -87,10 +87,10 @@ McorSD__g = H.get_data_h5('McorSD__g')
 logZ_neb_S06__g = H.get_data_h5('logZ_neb_S06__g')
 
 # galaxy wide quantities replicated by zones
-Mcor_GAL_zones__g = H.get_data_h5('Mcor_GAL_zones__g')
-McorSD_GAL_zones__g = H.get_data_h5('McorSD_GAL_zones__g')
-morfType_GAL_zones__g = H.get_data_h5('morfType_GAL_zones__g')
-at_flux_GAL_zones__g = H.get_data_h5('at_flux_GAL_zones__g')
+Mcor_GAL_zones__g = H.reply_arr_by_zones(H.Mcor_GAL__g)
+McorSD_GAL_zones__g = H.reply_arr_by_zones(H.McorSD_GAL__g)
+morfType_GAL_zones__g = H.reply_arr_by_zones(H.morfType_GAL__g)
+#at_flux_GAL_zones__g = H.get_data_h5('at_flux_GAL_zones__g')
 
 # radius
 aSFRSD__Trg = H.get_data_h5('aSFRSD__Trg')
@@ -123,22 +123,21 @@ for iT,tSF in enumerate(tSF__T):
     plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
         
     ###
-    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    # x = np.ma.log10(tau_V__Tg[iT])
-    # y = np.ma.log10(SFRSD__Tg[iT] * 1e6)
-    # z = alogZ_mass__g
-    # mask = x.mask | y.mask
-    # xm = x[~mask]
-    # ym = y[~mask]
-    # zm = z[~mask]
-    # xlabel = r'$\log\ \tau_V^{\star}$'
-    # ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    # zlabel = r'$\langle \log\ Z_\star \rangle_M$ [$Z_\odot$]'
-    # fname = 'tauV_SFRSD_alogZmass_age_%sMyr.png' % str(tSF / 1.e6)
-    # xlim = [-1.5, 0.5]
-    # ylim = [-3.0, 1]
-    # plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
-    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    x = np.ma.log10(tau_V__Tg[iT])
+    y = np.ma.log10(SFRSD__Tg[iT] * 1e6)
+    z = 10**H.alogZ_mass__Ug[-1]
+    mask = x.mask | y.mask | z.mask
+    xm = x[~mask]
+    ym = y[~mask]
+    zm = z[~mask]
+    xlabel = r'$\log\ \tau_V^{\star}$'
+    ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+    zlabel = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[-1] / 1e9)
+    fname = 'tauV_SFRSD_alogZmass_age_%sMyr.png' % str(tSF / 1.e6)
+    xlim = [-1.5, 0.5]
+    ylim = [-3.0, 1]
+    plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
+
  
     ###
     x = np.ma.log10(tau_V__Tg[iT])
@@ -152,6 +151,22 @@ for iT,tSF in enumerate(tSF__T):
     ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
     zlabel = r'$Z_{neb}$ [$Z_\odot$]'
     fname = 'tauV_SFRSD_Zneb_age_%sMyr.png' % str(tSF / 1.e6)
+    xlim = [-1.5, 0.5]
+    ylim = [-3.0, 1]
+    plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
+
+    ###
+    x = np.ma.log10(H.tau_V_neb__g)
+    y = np.ma.log10(SFRSD__Tg[iT] * 1e6)
+    z = 10.**logZ_neb_S06__g
+    mask = x.mask | y.mask
+    xm = x[~mask]
+    ym = y[~mask]
+    zm = z[~mask]
+    xlabel = r'$\log\ \tau_V^{neb}$'
+    ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+    zlabel = r'$Z_{neb}$ [$Z_\odot$]'
+    fname = 'tauVneb_SFRSD_Zneb_age_%sMyr.png' % str(tSF / 1.e6)
     xlim = [-1.5, 0.5]
     ylim = [-3.0, 1]
     plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)

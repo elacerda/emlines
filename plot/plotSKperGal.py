@@ -82,34 +82,34 @@ if __name__ == '__main__':
         exit('<<< plot: %s: no data.' % galName)
     
     # global
-    xOkMin              = H.xOkMin
-    tauVOkMin           = H.tauVOkMin
-    tauVNebOkMin        = H.tauVNebOkMin
-    tauVNebErrMax       = H.tauVNebErrMax
-    RbinCenter__r       = H.RbinCenter__r
+    xOkMin = H.xOkMin
+    tauVOkMin = H.tauVOkMin
+    tauVNebOkMin = H.tauVNebOkMin
+    tauVNebErrMax = H.tauVNebErrMax
+    RbinCenter__r = H.RbinCenter__r
     # ALL gal
     ##stellar
-    x_Y__g              = H.get_data_h5('x_Y__Tg')[iT]
-    aSFRSD__rg          = H.get_data_h5('aSFRSD__Trg')[iT]
-    tau_V__rg           = H.get_data_h5('tau_V__Trg')[iT]
+    x_Y__g = H.x_Y__Tg[iT]
+    aSFRSD__rg = H.aSFRSD__Trg[iT]
+    tau_V__rg = H.tau_V__Trg[iT]
     ##nebular
-    aSFRSD_Ha__rg       = H.get_data_h5('aSFRSD_Ha__rg')
-    tau_V_neb__rg       = H.get_data_h5('tau_V_neb__rg')
+    aSFRSD_Ha__rg = H.aSFRSD_Ha__rg
+    tau_V_neb__rg = H.tau_V_neb__rg
     # one gal
     ##stellar
-    tau_V__z            = H.get_prop_gal('tau_V__Tg', galName)[iT]
-    atau_V__r           = H.get_prop_gal('tau_V__Trg', galName)[iT]
-    SFRSD__z            = H.get_prop_gal('SFRSD__Tg', galName)[iT]
-    aSFRSD__r           = H.get_prop_gal('aSFRSD__Trg', galName)[iT]
-    x_Y__z              = H.get_prop_gal('x_Y__Tg', galName)[iT]
+    tau_V__z = getattr(H, '%s_tau_V__Tg' % galName)[iT]
+    atau_V__r = getattr(H, '%s_tau_V__Trg' % galName)[iT]
+    SFRSD__z = getattr(H, '%s_SFRSD__Tg' % galName)[iT]
+    aSFRSD__r = getattr(H, '%s_aSFRSD__Trg' % galName)[iT]
+    x_Y__z = getattr(H, '%s_x_Y__Tg' % galName)[iT]
     ##nebular
-    EW_Ha__z            = H.get_prop_gal('EW_Ha__g', galName)
-    EW_Hb__z            = H.get_prop_gal('EW_Hb__g', galName)
-    tau_V_neb__z        = H.get_prop_gal('tau_V_neb__g', galName)
-    atau_V_neb__r       = H.get_prop_gal('tau_V_neb__rg', galName)
-    tau_V_neb_err__z    = H.get_prop_gal('tau_V_neb_err__g', galName)
-    SFRSD_Ha__z         = H.get_prop_gal('SFRSD_Ha__g', galName)
-    aSFRSD_Ha__r        = H.get_prop_gal('aSFRSD_Ha__rg', galName)
+    EW_Ha__z = getattr(H, '%s_EW_Ha__g' % galName)
+    EW_Hb__z = getattr(H, '%s_EW_Hb__g' % galName)
+    tau_V_neb__z = getattr(H, '%s_tau_V_neb__g' % galName)
+    atau_V_neb__r = getattr(H, '%s_tau_V_neb__rg' % galName)
+    tau_V_neb_err__z = getattr(H, '%s_tau_V_neb_err__g' % galName)
+    SFRSD_Ha__z = getattr(H, '%s_SFRSD_Ha__g' % galName)
+    aSFRSD_Ha__r = getattr(H, '%s_aSFRSD_Ha__rg' % galName)
     
     galaxyImgFile = imgDir + galName + '.jpg'
     K = read_one_cube(galName, EL = True)
@@ -426,7 +426,7 @@ if __name__ == '__main__':
     # f.colorbar(ax = ax, mappable = im, use_gridspec = True)
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-    f.suptitle(r'%s - morph:%s  b/a:%.2f  age:%.2fMyr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (galName, tipos, ba, ageMyr, xOkMin * 100., tauVOkMin, tauVNebOkMin, tauVNebErrMax), fontsize=24)
+    f.suptitle(r'%s - morph:%s  b/a:%.2f  age:%.2fMyr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (galName, tipos, ba, ageMyr, xOkMin * 100., tauVOkMin, tauVNebOkMin, tauVNebErrMax), fontsize = 24)
     f.subplots_adjust(left = 0.07, bottom = 0.1, right = 0.99, wspace = 0.1, top = 0.9)
     f.savefig('%s_mosaic.png' % galName)
     plt.close(f)

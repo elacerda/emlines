@@ -50,8 +50,8 @@ if __name__ == '__main__':
     tauVNebOkMin = H.tauVNebOkMin
     tauVNebErrMax = H.tauVNebErrMax
 
-    aSFRSD__rg = H.get_data_h5('aSFRSD__Trg')[iT]
-    tau_V__rg = H.get_data_h5('tau_V__Trg')[iT]
+    aSFRSD__rg = H.aSFRSD__Trg[iT]
+    tau_V__rg = H.tau_V__Trg[iT]
     x = np.ma.log10(tau_V__rg.flatten())
     y = np.ma.log10(aSFRSD__rg.flatten() * 1e6)
     mask = x.mask | y.mask
@@ -116,8 +116,8 @@ if __name__ == '__main__':
             ax.set_axis_on()
             ax_img.set_axis_on()
     
-            aSFRSD__r = H.get_prop_gal('aSFRSD__Trg', gal)[iT]
-            atau_V__r = H.get_prop_gal('tau_V__Trg', gal)[iT]
+            aSFRSD__r = getattr(H, '%s_aSFRSD__Trg' % gal)[iT]
+            atau_V__r = getattr(H, '%s_tau_V__Trg' % gal)[iT]
             
             xlim = [np.log10(tauVOkMin), 0.5]
             ylim = [-3.5, 1]
