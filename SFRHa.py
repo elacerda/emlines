@@ -11,8 +11,8 @@ from pystarlight.util.base import StarlightBase
 from califa_scripts import create_dx, SFR_parametrize, \
                            SFR_parametrize_trapz
 
-useTrapz = True
-#useTrapz = False
+#useTrapz = True
+useTrapz = False
 plot = True
 #plot = False
 outputImgSuffix = 'pdf'
@@ -64,9 +64,9 @@ if plot:
 
 
 bases = [ 'Padova1994.chab', 'Padova1994.salp', 'Padova2000.chab', 'Padova2000.salp' ]
+#bases = [ 'Padova2000.salp' ]
 
 baseFile    = '/Users/lacerda/LOCAL/data/Base.bc03.h5'
-
 
 if __name__ == '__main__':
     for i, b in enumerate(bases):
@@ -84,11 +84,13 @@ if __name__ == '__main__':
         else:
             SFRp = SFR_parametrize
         
-        qh__Zt, Nh__Zt, Nh__Z, k_SFR__Z = SFRp(f_ssp, l, base.ageBase, max_yr, useTrapz)
+        qh__Zt, Nh__Zt, Nh__Z, k_SFR__Z = SFRp(f_ssp, l, base.ageBase, max_yr)
         
         print b + ':'
         for i, Z in enumerate(base.metBase):
-            print '\tZ=%.4f N_H=%e k_SFR=%.2f Msun/yr' % (Z, Nh__Z[i], k_SFR__Z[i])
+            age98 = base.ageBase[np.where(Nh__Zt[i] / Nh__Zt[i, -1] <= 0.98)][-1]
+            age99 = base.ageBase[np.where(Nh__Zt[i] / Nh__Zt[i, -1] <= 0.99)][-1] 
+            print '\tZ=%.4f N_H(%.2fMyr)=%e age(N_H(98%%))=%.2f age(N_H(99%%))=%.2f Myr k_SFR=%.2f Msun/yr' % (Z, max_yr / 1e6, Nh__Z[i], age98 / 1e6, age99 / 1e6, k_SFR__Z[i])
             
         if plot is False:
             continue
