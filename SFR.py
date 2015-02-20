@@ -25,7 +25,7 @@ default = {
     'rbinini' : 0.0,
     'rbinfin' : 2.0,
     'rbinstep' : 0.1,
-    'maxiTSF' : 17,
+    'maxiTSF' : 19,
     'gals_filename' : califa_work_dir + 'listOf300GalPrefixes.txt'
 }
 
@@ -124,6 +124,7 @@ print 'RbinIni: ', RbinIni
 print 'RbinFin: ', RbinFin
 print 'RbinStep: ', RbinStep
 print 'Gals Filename: ', galaxiesListFile
+print 'maxiTFS: ', args.maxiTSF
 
 imgDir = califa_work_dir + 'images/'
 
@@ -160,24 +161,8 @@ N_T = len(tSF__T)
 tZ__U = np.array([1.0 , 2.0 , 5.0 , 8.0 , 11.3 , 14.2]) * 1.e9
 N_U = len(tZ__U)
 
-def calc_Lint_Ha(L_obs__Lz, L_obs_err__Lz, tau_V_neb__z, lines):
-    i_Ha = lines.index('6563')
-    i_Hb = lines.index('4861')
-    
-    q = qCCM['6563'] / (qCCM['4861'] - qCCM['6563'])
-    
-    eHa = np.ma.exp(qCCM['6563'] * tau_V_neb__z)
-    L_obs_HaHb__z = L_obs__Lz[i_Ha, :] / L_obs__Lz[i_Hb, :]
 
-    L_int_Ha__z = L_obs__Lz[i_Ha, :] * eHa
-    
-    a = L_obs_err__Lz[i_Ha, :]
-    b = q * L_obs_HaHb__z * L_obs_err__Lz[i_Hb, :]
-    L_int_Ha_err__z = eHa * np.sqrt(a ** 2.0 + b ** 2.0)
-    
-    return L_int_Ha__z, L_int_Ha_err__z
-
-
+#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 def radialProfileWeighted(v__yx, w__yx, bins, rad_scale, func_radialProfile = None):
     v__r = None
 
@@ -187,6 +172,8 @@ def radialProfileWeighted(v__yx, w__yx, bins, rad_scale, func_radialProfile = No
         v__r = v_w__r / w__r
 
     return v__r
+#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+
 
 #ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
@@ -207,7 +194,7 @@ def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
     Cid@Lagoa - 05/Jun/2014
 
 
-!!HELP!! ATT: My way of computing alogZ_*__z produces nan', which are ugly but harmless.
+    !!HELP!! ATT: My way of computing alogZ_*__z produces nan', which are ugly but harmless.
     I tried to fix it using masked arrays:
 
     alogZ_mass__z  = np.ma.masked_array( numerator__z/(denominator__z+0e-30) , mask = (denominator__z == 0))
@@ -215,8 +202,13 @@ def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
     but this did not work!
 
     Cid@Lagoa - 20/Jun/2014
+    
+    
+    Correct nan problems using:
+    alogZ_mass__z[np.isnan(alogZ_mass__z)] = np.ma.masked
+    
+    Lacerda@Granada - 19/Feb/2015
     '''
-
     #--------------------------------------------------------------------------
     # Initialization
 
@@ -231,13 +223,13 @@ def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
     numerator__z = np.tensordot(K.Mcor__tZz[flag__t, :, :] , logZBase__Z , (1, 0)).sum(axis = 0)
     denominator__z = K.Mcor__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
     alogZ_mass__z = np.ma.masked_array(numerator__z / denominator__z)
-    alogZ_mass__z[np.isnan(alogZ_mass__z)] == np.ma.masked
+    alogZ_mass__z[np.isnan(alogZ_mass__z)] = np.ma.masked
 
     # ==> alogZ_flux__z - ATT: There may be nan's here depending on flag__t!
     numerator__z = np.tensordot(K.Lobn__tZz[flag__t, :, :] , logZBase__Z , (1, 0)).sum(axis = 0)
     denominator__z = K.Lobn__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
     alogZ_flux__z = np.ma.masked_array(numerator__z / denominator__z)
-    alogZ_flux__z[np.isnan(alogZ_mass__z)] == np.ma.masked
+    alogZ_flux__z[np.isnan(alogZ_mass__z)] = np.ma.masked
     #--------------------------------------------------------------------------
 
     #--------------------------------------------------------------------------
@@ -299,13 +291,15 @@ if __name__ == '__main__':
     #########################################################################
     #########################################################################
     ALL = ALLGals(N_gals, NRbins, N_T, N_U)
-
+    
     for iGal in np.arange(N_gals):
         t_init_gal = time.clock()
         galName = listOfPrefixes[iGal][:-1]
 
         # automatically read PyCASSO and EmLines data cubes.
         K = read_one_cube(galName, EL = True)
+        ALL.califaIDs[iGal] = K.califaID
+        ALL.N_zones__g[iGal] = K.N_zone
         
         # both files
         if K == None or K.EL == None:
@@ -320,7 +314,6 @@ if __name__ == '__main__':
             continue
         
         tipos, tipo, tipo_m, tipo_p = get_morfologia(galName)
-        ALL.morfType_GAL__g[iGal] = tipo
         
         # Only spiral
         if onlySpiral and tipo <= 8: 
@@ -331,114 +324,53 @@ if __name__ == '__main__':
         # Setup elliptical-rings geometry
         pa, ba = K.getEllipseParams()
         K.setGeometry(pa, ba)
-        ALL.ba_GAL__g[iGal] = ba
         
-        ##########################
-        ###### MASK EmLines ######
-        ##########################        
-        # minimum value of f_lz / err_f_lz
-        minSNR = 3.
+        print '>>> Doing' , iGal , galName , 'hubtyp=', tipo, '|  Nzones=' , K.N_zone
         
-        i_Hb = K.EL.lines.index('4861')
-        i_O3 = K.EL.lines.index('5007')
-        i_Ha = K.EL.lines.index('6563')
-        i_N2 = K.EL.lines.index('6583')
-        
-        Ha = K.EL.flux[i_Ha, :]
-        eHa = K.EL.eflux[i_Ha, :]
-        Hb = K.EL.flux[i_Hb, :]
-        eHb = K.EL.eflux[i_Hb, :]
-        O3 = K.EL.flux[i_O3, :]
-        eO3 = K.EL.eflux[i_O3, :]
-        N2 = K.EL.flux[i_N2, :]
-        eN2 = K.EL.eflux[i_N2, :]
-        
-        HbOk = np.array((Hb / eHb) >= minSNR, dtype = np.bool)
-        O3Ok = np.array((O3 / eO3) >= minSNR, dtype = np.bool)
-        HaOk = np.array((Ha / eHa) >= minSNR, dtype = np.bool)
-        N2Ok = np.array((N2 / eN2) >= minSNR, dtype = np.bool)
-        
-        maskLinesSNR__z = HbOk & O3Ok & HaOk & N2Ok
-        maskFluxOk__z = (Ha >= 0) & (Hb >= 0) & (O3 >= 0) & (N2 >= 0)
-        maskOkBPT__z = np.ones((K.N_zone), dtype = np.bool)
-        
-        if BPTLowS06:
-            L = Lines()
-            N2Ha = np.ma.log10(K.EL.N2_obs__z / K.EL.Ha_obs__z)
-            O3Hb = np.ma.log10(K.EL.O3_obs__z / K.EL.Hb_obs__z)
-            maskOkBPT__z = L.maskBelowlinebpt('S06', N2Ha, O3Hb)
-        ##########################
-        ##########################
-        ##########################
-                
-        print '>>> Doing' , iGal , galName , 'hubtyp=', ALL.morfType_GAL__g[iGal], '|  Nzones=' , K.N_zone
-        ALL.N_zones__g[iGal] = K.N_zone
-        ALL.integrated_tau_V__g[iGal] = K.integrated_keywords['A_V'] / (np.log10(np.exp(1)) / 0.4)
-        # a fake morfType per zone for all galaxies, creating a stamp for each zone
-        aux = np.ones_like(K.Mcor__z) * ALL.morfType_GAL__g[iGal]
-        ALL._morfType_GAL_zones__g.append(aux)
-        # The same above but for radial
-        ALL.morfType_GAL_zones__rg[:, iGal] = np.ones_like(RbinCenter__r) * ALL.morfType_GAL__g[iGal]
-
-        ALL._Mr_GAL_zones__g.append(np.ones_like(K.Mcor__z) * np.float(K.masterListData['Mr']))
-        ALL.Mr_GAL_zones__rg[:, iGal] = np.ones_like(RbinCenter__r) * np.float(K.masterListData['Mr'])
-        
-        ALL._ur_GAL_zones__g.append(np.ones_like(K.Mcor__z) * np.float(K.masterListData['u-r']))
-        ALL.ur_GAL_zones__rg[:, iGal] = np.ones_like(RbinCenter__r) * np.float(K.masterListData['u-r'])
-        
-        ALL._califaID_GAL_zones__g.append(np.asarray([K.califaID for i in range(K.N_zone)]))
-        
+        # zone distance in HLR
         zoneDistHLR = np.sqrt((K.zonePos['x'] - K.x0) ** 2. + (K.zonePos['y'] - K.y0) ** 2.) / K.HLR_pix
         ALL._dist_zone__g.append(zoneDistHLR)
         
-        ALL.califaID__rg[:, iGal] = np.asarray([ K.califaID for i in range(NRbins) ])
-        ALL.califaID__Trg[..., iGal] = np.asarray([ K.califaID for i in range(N_T * NRbins) ]).reshape(N_T, NRbins)
-        ALL.califaID__Urg[..., iGal] = np.asarray([ K.califaID for i in range(N_U * NRbins) ]).reshape(N_U, NRbins)
-
-        ##########################
-        ####### STARLIGHT ########
-        ##########################        
+        ALL.ba_PyCASSO_GAL__g[iGal] = ba
+        ALL.ba_GAL__g[iGal] = np.float(K.masterListData['ba'])
+        ALL.Mr_GAL__g[iGal] = np.float(K.masterListData['Mr'])
+        ALL.ur_GAL__g[iGal] = np.float(K.masterListData['u-r'])
+        ALL.morfType_GAL__g[iGal] = tipo
+        
+        ####################################################
+        ####### STARLIGHT ##################################
+        ####################################################
+        AVtotauV = 1. / (np.log10(np.exp(1)) / 0.4)
+        ALL.integrated_tau_V__g[iGal] = K.integrated_keywords['A_V'] * AVtotauV 
+        
         # Compute galaxy-wide mu (cf eq 2 in GD14) - following Andre's tip.
-        ALL.McorSD_GAL__g[iGal] = K.McorSD__yx.mean()
-
-        # a fake McorSD per zone for all galaxies, creating a stamp for each zone
-        aux = np.ones_like(K.Mcor__z) * ALL.McorSD_GAL__g[iGal]
-        ALL._McorSD_GAL_zones__g.append(aux)
         ALL._Mcor__g.append(K.Mcor__z)
         ALL._McorSD__g.append(K.Mcor__z / K.zoneArea_pc2)
         ALL.Mcor_GAL__g[iGal] = K.Mcor_tot.sum()
-        # McorSD by radius
+        ALL.McorSD_GAL__g[iGal] = K.McorSD__yx.mean()
+        
         ALL.McorSD__rg[:, iGal] = K.radialProfile(K.McorSD__yx, Rbin__r, rad_scale = K.HLR_pix)
-
-        # a fake all galaxy mass in stars per zone for all galaxies, creating a stamp for each zone
-        aux = np.ones_like(K.Mcor__z) * ALL.Mcor_GAL__g[iGal]
-        ALL._Mcor_GAL_zones__g.append(aux)
 
         # Compute & store galaxy-wide at_flux
         numerator__z = K.Lobn__tZz.sum(axis = 1).sum(axis = 0) * K.at_flux__z
         denominator__z = K.Lobn__tZz.sum(axis = 1).sum(axis = 0)
         ALL.at_flux_GAL__g[iGal] = numerator__z.sum() / denominator__z.sum()
         
-        aux = np.ones_like(K.Mcor__z) * ALL.at_flux_GAL__g[iGal] 
-        ALL._at_flux_GAL_zones__g.append(aux)
-        
         for iT, tSF in enumerate(tSF__T):
-            #--------------------------------------------------------------------------
+            Mcor__z = np.ma.masked_array(K.Mcor__z)
+            McorSD__z = np.ma.masked_array(K.Mcor__z / K.zoneArea_pc2)
+            tau_V__z = np.ma.masked_array(K.tau_V__z)
+
             # Define mask to pick only populations younger than the input tSF in the computation of SFR & SFRSD.
             flag__t = K.ageBase <= tSF
-            
-            # SRFSD "raw" image
-            # Note that we are NOT dezonifying SFR__z, since it will be compared to the un-dezonifiable tauV!
+
             aux = K.Mini__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) / tSF
             SFR__z = np.ma.masked_array(aux)
             SFRSD__z = SFR__z / K.zoneArea_pc2
-                                        
-            tau_V__z = np.ma.masked_array(K.tau_V__z)
+            
             # pop_young
             x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
             xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-            ALL._x_Y__Tg[iT].append(xOk__z)
-            McorSD__g = np.ma.masked_array(K.Mcor__z / K.zoneArea_pc2)
                             
             if xOkMin >= 0.:
                 # Compute xOk "raw" image
@@ -447,68 +379,93 @@ if __name__ == '__main__':
                 tau_V__z[maskNotOk__z] = np.ma.masked
                 SFR__z[maskNotOk__z] = np.ma.masked
                 SFRSD__z[maskNotOk__z] = np.ma.masked
-                McorSD__g[maskNotOk__z] = np.ma.masked
+                Mcor__z[maskNotOk__z] = np.ma.masked
+                McorSD__z[maskNotOk__z] = np.ma.masked
                 
-            integrated_SFR = SFR__z.sum()
-            integrated_SFRSD = integrated_SFR / K.zoneArea_pc2.sum()
-                        
+            tau_V__yx = K.zoneToYX(tau_V__z, extensive = False)
+            McorSD__yx = K.zoneToYX(Mcor__z, extensive = True)
+            aSFRSD__yx = K.zoneToYX(SFRSD__z, extensive = False)
+            
+            ALL._x_Y__Tg[iT].append(xOk__z)
             ALL._tau_V__Tg[iT].append(tau_V__z.data)
             ALL._tau_V_mask__Tg[iT].append(tau_V__z.mask)
-            ALL._McorSD__Tg[iT].append(McorSD__g)
-            ALL.integrated_SFR__Tg[iT, iGal] = integrated_SFR
-            ALL.integrated_SFRSD__Tg[iT, iGal] = integrated_SFRSD
-            aSFRSD__yx = K.zoneToYX(SFRSD__z, extensive = False)
-            aSFRSD__r = K.radialProfile(aSFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
-            ALL.aSFRSD__Trg[iT, :, iGal] = aSFRSD__r
-            tau_V__yx = K.zoneToYX(tau_V__z, extensive = False)
-            ALL.tau_V__Trg[iT, :, iGal] = K.radialProfile(tau_V__yx, Rbin__r, rad_scale = K.HLR_pix)
+            ALL._Mcor__Tg[iT].append(Mcor__z)
+            ALL._McorSD__Tg[iT].append(McorSD__z)
             ALL._SFR__Tg[iT].append(SFR__z.data)
             ALL._SFR_mask__Tg[iT].append(SFR__z.mask)
             ALL._SFRSD__Tg[iT].append(SFRSD__z.data)
             ALL._SFRSD_mask__Tg[iT].append(SFRSD__z.mask)
+
+            integrated_SFR = SFR__z.sum()
+            ALL.integrated_SFR__Tg[iT, iGal] = integrated_SFR
+            ALL.integrated_SFRSD__Tg[iT, iGal] = integrated_SFR / K.zoneArea_pc2.sum()
+
+            ALL.McorSD__Trg[iT, :, iGal] = K.radialProfile(McorSD__yx, Rbin__r, rad_scale = K.HLR_pix)
+            ALL.aSFRSD__Trg[iT, :, iGal] = K.radialProfile(aSFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
+            ALL.tau_V__Trg[iT, :, iGal] = K.radialProfile(tau_V__yx, Rbin__r, rad_scale = K.HLR_pix)
             
         for iU, tZ in enumerate(tZ__U):
-            #--------------------------------------------------------------------------
-            # Define mask to pick only populations younger than the input tSF in the computation of SFR & SFRSD.
             flag__t = K.ageBase <= tZ
 
-            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-            # #at_flux(t)
-            # #at_flux__z = np.ma.masked_array(K.at_flux__z)
-            # popx_sumZ = K.popx[flag__t, :, :].sum(axis=1)
-            # popx_sum = popx_sumZ.sum(axis=0)
-            # popx_sumZ /= popx_sum
-            # aux = np.tensordot(popx_sumZ, np.log10(K.ageBase[flag__t]), (0, 0))
-            # at_flux__z = np.ma.masked_array(aux)
-            # at_flux__z[np.isnan(aux)] = np.ma.masked
-            # ALL._at_flux__Tg[iT].append(at_flux__z.data)
-            # ALL._at_flux_mask__Tg[iT].append(at_flux__z.mask)
-            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-
             aux = calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf, xOkMin = xOkMin)
-            ALL._alogZ_mass__Ug[iU].append(aux[0])
+            
+            ALL._alogZ_mass__Ug[iU].append(aux[0].data)
             ALL._alogZ_mass_mask__Ug[iU].append(aux[0].mask)
-            ALL._alogZ_flux__Ug[iU].append(aux[1])
+            ALL._alogZ_flux__Ug[iU].append(aux[1].data)
             ALL._alogZ_flux_mask__Ug[iU].append(aux[1].mask)
+
             ALL.alogZ_mass_GAL__Ug[iU, iGal] = aux[2]
             ALL.alogZ_flux_GAL__Ug[iU, iGal] = aux[3]
             ALL.alogZ_mass__Urg[iU, :, iGal] = aux[5]
             ALL.alogZ_flux__Urg[iU, :, iGal] = aux[6]
-                
-        ##########################
-        ##########################
-        ##########################    
+        ####################################################
+        ####################################################
+        ####################################################    
+        
+        ####################################################
+        ######## EmLines ###################################
+        ####################################################
 
+        ###### MASK EmLines ######
+        # minimum value of f_lz / err_f_lz
+        minSNR = 3.
+        
+        i_Hb = K.EL.lines.index('4861')
+        i_O3 = K.EL.lines.index('5007')
+        i_Ha = K.EL.lines.index('6563')
+        i_N2 = K.EL.lines.index('6583')
+        Ha = K.EL.flux[i_Ha, :]
+        Hb = K.EL.flux[i_Hb, :]
+        O3 = K.EL.flux[i_O3, :]
+        N2 = K.EL.flux[i_N2, :]
+        eHa = K.EL.eflux[i_Ha, :]
+        eHb = K.EL.eflux[i_Hb, :]
+        eO3 = K.EL.eflux[i_O3, :]
+        eN2 = K.EL.eflux[i_N2, :]
+        
+        HbOk = np.array((Hb / eHb) >= minSNR, dtype = np.bool)
+        O3Ok = np.array((O3 / eO3) >= minSNR, dtype = np.bool)
+        HaOk = np.array((Ha / eHa) >= minSNR, dtype = np.bool)
+        N2Ok = np.array((N2 / eN2) >= minSNR, dtype = np.bool)
+        
+        maskLinesSNR__z = HbOk & O3Ok & HaOk & N2Ok
+        maskOkFlux__z = (Ha >= 0) & (Hb >= 0) & (O3 >= 0) & (N2 >= 0)
+        maskOkBPT__z = np.ones((K.N_zone), dtype = np.bool)
+        
+        if BPTLowS06:
+            L = Lines()
+            N2Ha = np.ma.log10(K.EL.N2_obs__z / K.EL.Ha_obs__z)
+            O3Hb = np.ma.log10(K.EL.O3_obs__z / K.EL.Hb_obs__z)
+            maskOkBPT__z = L.maskBelowlinebpt('S06', N2Ha, O3Hb)
         ##########################
+
         ########## tau_V #########
-        ##########################
         maskOkTauVNeb__z = np.ones((K.N_zone), dtype = np.bool)
         
         if tauVNebOkMin >= 0:
             maskOkTauVNeb__z = (K.EL.tau_V_neb__z >= tauVNebOkMin) & (K.EL.tau_V_neb_err__z <= tauVNebErrMax)
-        
-        maskOkNeb__z = (maskOkTauVNeb__z & maskLinesSNR__z & maskFluxOk__z & maskOkBPT__z)
-        N_zones_tau_V = len(K.EL.tau_V_neb__z[maskOkNeb__z])
+
+        maskOkNeb__z = (maskOkTauVNeb__z & maskLinesSNR__z & maskOkFlux__z & maskOkBPT__z)
         
         tau_V_neb__z = np.ma.masked_array(K.EL.tau_V_neb__z, mask = ~maskOkNeb__z)
         tau_V_neb_err__z = np.ma.masked_array(K.EL.tau_V_neb_err__z, mask = ~maskOkNeb__z)
@@ -516,49 +473,40 @@ if __name__ == '__main__':
         tau_V_neb_err__yx = K.zoneToYX(tau_V_neb_err__z, extensive = False)
         tau_V_neb__r = K.radialProfile(tau_V_neb__yx, Rbin__r, rad_scale = K.HLR_pix)
 
-        ALL.tau_V_neb__rg[:, iGal] = tau_V_neb__r
         ALL._tau_V_neb__g.append(tau_V_neb__z.data)
         ALL._tau_V_neb_err__g.append(tau_V_neb_err__z.data)
         ALL._tau_V_neb_mask__g.append(tau_V_neb__z.mask)
-        ##########################
-        ##########################
+        
+        ALL.tau_V_neb__rg[:, iGal] = tau_V_neb__r
+
+        ALL.integrated_tau_V_neb__g[iGal] = K.EL.integrated_tau_V_neb
         ##########################
 
-        ##########################
         ######### Z_neb ##########
-        ##########################
         logZ_neb_S06__z = np.ma.masked_array(K.EL.logZ_neb_S06__z, mask = ~maskOkNeb__z)
         logZ_neb_S06__yx = K.zoneToYX(logZ_neb_S06__z, extensive = False)
         logZ_neb_S06__r = K.radialProfile(logZ_neb_S06__yx, Rbin__r, rad_scale = K.HLR_pix)
-
         logZ_neb_S06_err__z = np.ma.masked_array(K.EL.logZ_neb_S06_err__z, mask = ~maskOkNeb__z)
         logZ_neb_S06_err__yx = K.zoneToYX(logZ_neb_S06_err__z, extensive = False)
 
-        ALL.logZ_neb_S06__rg[:, iGal] = logZ_neb_S06__r
-
         ALL._logZ_neb_S06__g.append(logZ_neb_S06__z.data)
         ALL._logZ_neb_S06_mask__g.append(logZ_neb_S06__z.mask)
-        
         ALL._logZ_neb_S06_err__g.append(logZ_neb_S06_err__z.data)
-        ##########################
-        ##########################
+        
+        ALL.logZ_neb_S06__rg[:, iGal] = logZ_neb_S06__r
+        
+        ALL.integrated_logZ_neb_S06__g[iGal] = K.EL.integrated_logZ_neb_S06
         ##########################
 
-        ##########################
         ########### EW ###########
-        ##########################
         EW_Ha__z = np.ma.masked_array(K.EL.EW[i_Ha, :], mask = ~maskOkNeb__z)
         EW_Hb__z = np.ma.masked_array(K.EL.EW[i_Hb, :], mask = ~maskOkNeb__z)
         
         ALL._EW_Ha__g.append(EW_Ha__z)
         ALL._EW_Hb__g.append(EW_Hb__z)
         ##########################
-        ##########################
-        ##########################
 
-        ##########################
         #### intrinsic Ha Lum ####
-        ##########################
         F_obs_Ha__z = np.ma.masked_array(K.EL.flux[i_Ha, :], mask = ~maskOkNeb__z)
         
         ALL._F_obs_Ha__g.append(F_obs_Ha__z)
@@ -592,14 +540,10 @@ if __name__ == '__main__':
         
         ALL.integrated_L_int_Ha__g[iGal] = integrated_L_int_Ha
         ##########################
-        ##########################
-        ##########################
 
-        ##########################
         #### SFR and SigmaSFR ####
-        ##########################
         # 3.17 M_sun/yr was calculated using BC03 + Padova1994 + Salpeter        
-        SFR_Ha__z = 3.13 * L_int_Ha__z / (1.e8)
+        SFR_Ha__z = 3.17 * L_int_Ha__z / (1.e8)
         SFRSD_Ha__z = SFR_Ha__z / K.zoneArea_pc2
         
         integrated_SFR_Ha = 3.13 * integrated_L_int_Ha / (1.e8)
@@ -615,9 +559,10 @@ if __name__ == '__main__':
         
         ALL._SFR_Ha__g.append(SFR_Ha__z)
         ALL._SFRSD_Ha__g.append(SFRSD_Ha__z)
-        ##########################
-        ##########################
-        ##########################
+        ####################################################
+        ####################################################
+        ####################################################
+        
         print 'time per galaxy: %s %.2f' % (galName, time.clock() - t_init_gal)
         
     ALL.stack_zones_data()

@@ -7,26 +7,11 @@ import h5py
 from scipy import stats as st
 import scipy.optimize as so
 from matplotlib import pyplot as plt
+from matplotlib.pyplot import MultipleLocator
 from sklearn import linear_model
-
-
-def DrawHLRCircleInSDSSImage(ax, HLR_pix, pa, ba):
-    from matplotlib.patches import Ellipse
-    center , a , b_a , theta = np.array([ 256 , 256]) , HLR_pix * 512.0/75.0 , ba ,  pa*180/np.pi 
-    e1 = Ellipse(center, height=2*a*b_a, width=2*a, angle=theta, fill=False, color='white',lw=2,ls='dotted')
-    e2 = Ellipse(center, height=4*a*b_a, width=4*a, angle=theta, fill=False, color='white',lw=2,ls='dotted')
-    ax.add_artist(e1)
-    ax.add_artist(e2)
-
-    
-def DrawHLRCircle(ax, K, color='white', lw=1.5):
-    from matplotlib.patches import Ellipse
-    center , a , b_a , theta = np.array([ K.x0 , K.y0]) , K.HLR_pix , K.ba ,  K.pa*180/np.pi 
-    e1 = Ellipse(center, height=2*a*b_a, width=2*a, angle=theta, fill=False, color=color,lw=lw,ls='dotted')
-    e2 = Ellipse(center, height=4*a*b_a, width=4*a, angle=theta, fill=False, color=color,lw=lw,ls='dotted')
-    ax.add_artist(e1)
-    ax.add_artist(e2)
-
+from califa_scripts import read_one_cube, sort_gal, \
+                           DrawHLRCircle, DrawHLRCircleInSDSSImage, \
+                           DrawHLRCircleInSDSSImage, H5SFRData
 
 def plot_linreg_params(param, x, xlabel, ylabel, fname, best_param = None, fontsize = 12):
     y = param
@@ -172,10 +157,15 @@ def density_contour(xdata, ydata, binsx, binsy, ax = None, **contour_kwargs):
 def calcRunningStats(x, y, dxBox = 0.3, xbinIni = 8.5, xbinFin = 12, xbinStep = 0.05):
     '''
     Statistics of x & y in equal size x-bins (dx-box).
-    Note the mery small default xbinStep, so we have overlaping boxes.. so running stats..
+    Note the mery small default xbinStep, so we have overlapping boxes.. so running stats..
 
     Cid@Lagoa -
     '''
+    # XXX Lacerda@IAA - masked array mess with the method
+    if isinstance(x, np.ma.core.MaskedArray):
+        x = x[~(x.mask)]
+    if isinstance(y, np.ma.core.MaskedArray):
+        y = y[~(y.mask)]
 
     # Def x-bins
     xbin = np.arange(xbinIni, xbinFin + xbinStep, xbinStep)
@@ -219,21 +209,38 @@ def plotStatCorreAxis(ax, x, y, pos_x, pos_y, fontsize):
     plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'top', 'left')
 
 
-def plotOLSbisectorAxis(ax, x, y, pos_x, pos_y, fontsize, color = 'r'):
-    c = color
+def plotOLSbisectorAxis(ax, x, y, pos_x, pos_y, fontsize, color = 'r', rms = True, label = None, text = True):
     step = (x.max() - x.min()) / len(x)
-    A, B = OLS_bisector(x, y)
+    a, b, sigma_a, sigma_b = OLS_bisector(x, y)
     X = np.linspace(x.min(), x.max() + step, len(x))
-    Y = A * X + B
-    Yrms = (y - (A * x + B)).std()
-    ax.plot(X, Y, c = c, ls = '--', lw = 2)
-    if B > 0:
-        txt = r'$y_{OLS}$ = %.2f$x$ + %.2f : $y_{rms}$:%.2f' %  (A, B, Yrms)
+    Y = a * X + b
+    Yrms_str = ''
+    if rms == True:
+        Yrms = (y - (a * x + b)).std()
+        Yrms_str = r' : $y_{rms}$:%.2f' % Yrms
+    ax.plot(X, Y, c = color, ls = '-', lw = 1.5, label = label)
+    if b > 0:
+        txt = r'$y_{OLS}$ = %.2f$x$ + %.2f%s' %  (a, b, Yrms_str)
     else:
-        txt = r'$y_{OLS}$ = %.2f$x$ - %.2f : $y_{rms}$:%.2f' %  (A, B * -1., Yrms)
-    plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'bottom', 'right', color = c)
-    
-    return A, B
+        txt = r'$y_{OLS}$ = %.2f$x$ - %.2f%s' %  (a, b * -1., Yrms_str)
+    if text == True:
+        plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'bottom', 'right', color = color)
+    else:
+        print txt
+    return a, b, sigma_a, sigma_b
+
+
+def plot_gal_img_ax(ax, imgfile, gal, pos_x, pos_y, fontsize):
+    galimg = plt.imread(imgfile)[::-1, :, :]
+    plt.setp(ax.get_xticklabels(), visible = False)
+    plt.setp(ax.get_yticklabels(), visible = False)
+    ax.imshow(galimg, origin = 'lower')
+    K = read_one_cube(gal)
+    pa, ba = K.getEllipseParams()
+    DrawHLRCircleInSDSSImage(ax, K.HLR_pix, pa, ba)
+    K.close()
+    txt = '%s' % gal
+    plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'top', 'left', color = 'w')
 
 
 def gaussSmooth_YofX(x, y, FWHM):
@@ -245,7 +252,7 @@ def gaussSmooth_YofX(x, y, FWHM):
     sig = FWHM / np.sqrt(8. * np.log(2))
     xS , yS = np.zeros_like(x), np.zeros_like(x)
     w__ij = np.zeros((len(x), len(x)))
-    for i in np.arange(len(x)):
+    for i in range(len(x)):
         # for j in np.arange(len(x)):
         #     w__ij[i,j] = np.exp( -0.5 * ((x[j] - x[i]) / sig)**2  )
 
@@ -302,45 +309,177 @@ def plotTau(x,y,xlabel,ylabel,xlim,ylim,age,fname):
     else:
         f.show()
     plt.close(f)
+
+
+def plotScatterColorAxis(f, x, y, z, xlabel, ylabel, zlabel, xlim, ylim, 
+                         zlim = None, age = None, 
+                         contour = True, run_stats = True, OLS = False):
     
-    
-def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, fname = 'PlotScatter.png', zlim = None, age = None):
-    f = plt.figure()
-    f.set_size_inches(10,8)
     ax = f.gca()
+    
     if zlim != None:
         sc = ax.scatter(x, y, c = z, cmap = 'spectral_r', vmin = zlim[0], vmax = zlim[1], marker = 'o', s = 5., edgecolor = 'none')
     else:
         sc = ax.scatter(x, y, c = z, cmap = 'spectral_r', marker = 'o', s = 5., edgecolor = 'none')
-    #ax.plot((y - np.log10(1.6e-4))/1.4, y, 'k--')
-    binsx = np.linspace(min(x), max(x), 21)
-    binsy = np.linspace(min(y), max(y), 21)
-    density_contour(x, y, binsx, binsy, ax = ax, color = 'k')
+        
+    cb = f.colorbar(sc)
+    cb.set_label(zlabel)
+    
+    if contour == True:
+        binsx = np.linspace(min(x), max(x), 21)
+        binsy = np.linspace(min(y), max(y), 21)
+        density_contour(x, y, binsx, binsy, ax = ax, color = 'k')
+        
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    
     if xlim != None:
         ax.set_xlim(xlim)
     if ylim != None:
         ax.set_ylim(ylim)
-    #plotStatCorreAxis(ax, x, y, 0.03, 0.97, 16)
-    #A, B = plotOLSbisectorAxis(ax, x, y, 0.92, 0.05, 16)
-    #plotRunningStatsAxis(ax, x, y, 'k')    
-    nBox = 20
-    dxBox       = (x.max() - x.min()) / (nBox - 1.)
-    aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
-    xbinCenter  = aux[0]
-    xMedian     = aux[1]
-    xMean       = aux[2]
-    xStd        = aux[3]
-    yMedian     = aux[4]
-    yMean       = aux[5]
-    yStd        = aux[6]
-    nInBin      = aux[7]
-    ax.plot(xMedian, yMedian, 'k', lw = 2)
+        
+    if OLS == True:
+        A, B, sigma_A, sigma_B = plotOLSbisectorAxis(ax, x, y, 0.92, 0.05, 16)
+        
+    if run_stats == True:
+        nBox = 20
+        dxBox       = (x.max() - x.min()) / (nBox - 1.)
+        aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
+        xbinCenter  = aux[0]
+        xMedian     = aux[1]
+        xMean       = aux[2]
+        xStd        = aux[3]
+        yMedian     = aux[4]
+        yMean       = aux[5]
+        yStd        = aux[6]
+        nInBin      = aux[7]
+        xPrc        = aux[8]
+        yPrc        = aux[9]
+        ax.plot(xMedian, yMedian, 'k', lw = 2)
+        ax.plot(xPrc[0], yPrc[0], 'k--', lw = 2)
+        ax.plot(xPrc[1], yPrc[1], 'k--', lw = 2)
+        
+    if age != None:
+        txt = r'$%s$ Myr' % str(age / 1.e6)
+        plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
+    
+    
+def plotScatterColor(x, y, z, xlabel, ylabel, zlabel, xlim, ylim, 
+                     fname = 'PlotScatter.png', 
+                     zlim = None, age = None, 
+                     contour = True, run_stats = True, OLS = False):
+    
+    f = plt.figure()
+    f.set_size_inches(10,8)
+    ax = f.gca()
+    
+    if zlim != None:
+        sc = ax.scatter(x, y, c = z, cmap = 'spectral_r', vmin = zlim[0], vmax = zlim[1], marker = 'o', s = 5., edgecolor = 'none')
+    else:
+        sc = ax.scatter(x, y, c = z, cmap = 'spectral_r', marker = 'o', s = 5., edgecolor = 'none')
+        
     cb = f.colorbar(sc)
     cb.set_label(zlabel)
+    
+    if contour == True:
+        binsx = np.linspace(min(x), max(x), 21)
+        binsy = np.linspace(min(y), max(y), 21)
+        density_contour(x, y, binsx, binsy, ax = ax, color = 'k')
+        
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    
+    if xlim != None:
+        ax.set_xlim(xlim)
+    if ylim != None:
+        ax.set_ylim(ylim)
+        
+    if OLS == True:
+        A, B, sigma_A, sigma_B = plotOLSbisectorAxis(ax, x, y, 0.92, 0.05, 16)
+        
+    if run_stats == True:
+        nBox = 20
+        dxBox       = (x.max() - x.min()) / (nBox - 1.)
+        aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
+        xbinCenter  = aux[0]
+        xMedian     = aux[1]
+        xMean       = aux[2]
+        xStd        = aux[3]
+        yMedian     = aux[4]
+        yMean       = aux[5]
+        yStd        = aux[6]
+        nInBin      = aux[7]
+        xPrc        = aux[8]
+        yPrc        = aux[9]
+        ax.plot(xMedian, yMedian, 'k', lw = 2)
+        ax.plot(xPrc[0], yPrc[0], 'k--', lw = 2)
+        ax.plot(xPrc[1], yPrc[1], 'k--', lw = 2)
+        
     if age != None:
-        ax.set_title(r'$%s$ Myr' % str(age / 1.e6))
+        txt = r'$%s$ Myr' % str(age / 1.e6)
+        plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
+    
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # ax.xaxis.set_major_locator(MultipleLocator(0.2))
+    # ax.xaxis.set_minor_locator(MultipleLocator(0.05))
+    # ax.yaxis.set_major_locator(MultipleLocator(0.5))
+    # ax.yaxis.set_minor_locator(MultipleLocator(0.125))
+    # ax.grid(which = 'both')
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        
+    f.savefig(fname)
+    plt.close(f)
+
+
+def plot_contour_axis(ax, x, y, n = 21, color = 'k'):
+    binsx = np.linspace(min(x), max(x), n)
+    binsy = np.linspace(min(y), max(y), n)
+    density_contour(x, y, binsx, binsy, ax = ax)
+
+
+def plotScatter(x, y, xlabel, ylabel, xlim, ylim, fname = 'PlotScatter.png', 
+                age = None, color = 'grey', contour = True, run_stats = True, 
+                OLS = False):
+    f = plt.figure()
+    f.set_size_inches(10,8)
+    ax = f.gca()
+    
+    sc = ax.scatter(x, y, c = color, marker = 'o', s = 5., edgecolor = 'none')
+
+    if contour == True:
+        binsx = np.linspace(min(x), max(x), 21)
+        binsy = np.linspace(min(y), max(y), 21)
+        density_contour(x, y, binsx, binsy, ax = ax, color = 'k')
+        
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    
+    if xlim != None:
+        ax.set_xlim(xlim)
+    if ylim != None:
+        ax.set_ylim(ylim)
+        
+    if OLS == True:
+        a, b, sigma_a, sigma_b = plotOLSbisectorAxis(ax, x, y, 0.92, 0.05, 16, 'b', rms = True)
+        
+    if run_stats == True:
+        nBox = 20
+        dxBox       = (x.max() - x.min()) / (nBox - 1.)
+        aux         = calcRunningStats(x, y, dxBox = dxBox, xbinIni = x.min(), xbinFin = x.max(), xbinStep = dxBox)
+        xbinCenter  = aux[0]
+        xMedian     = aux[1]
+        xMean       = aux[2]
+        xStd        = aux[3]
+        yMedian     = aux[4]
+        yMean       = aux[5]
+        yStd        = aux[6]
+        nInBin      = aux[7]
+        ax.plot(xMedian, yMedian, 'k', lw = 2)
+        
+    if age != None:
+        txt = r'$%s$ Myr' % str(age / 1.e6)
+        plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
+        
     f.savefig(fname)
     plt.close(f)
 
@@ -379,116 +518,7 @@ def data_uniq(list_gal, data):
     for i, g in enumerate(list_uniq_gal):
         data__g[i] = np.unique(data[np.where(list_gal == g)])
         
-    return NGal, list_uniq_gal, data__g
-
-
-class H5SFRData:
-    def __init__(self, h5file):
-        self.h5file = h5file
-        self.h5 = h5py.File(self.h5file, 'r')
-        
-        try: 
-            self.califaIDs__z = self.get_data_h5('califaID_GAL_zones__g')
-            self.califaIDs__rg = self.get_data_h5('califaID__rg')
-            self.califaIDs__Trg = self.get_data_h5('califaID__Trg')
-            self.califaIDs = np.unique(self.califaIDs__z)
-            self.Ngals = len(self.califaIDs)
-            self.Nzones = self.get_data_h5('Nzones')
-            self.tSF__T = self.get_data_h5('tSF__T')
-            self.N_T = len(self.tSF__T)
-            self.zones_tau_V = self.get_data_h5('zones_tau_V')
-            self.RbinIni = self.get_data_h5('RbinIni')
-            self.RbinFin = self.get_data_h5('RbinFin')
-            self.RbinStep = self.get_data_h5('RbinStep')
-            self.Rbin__r = self.get_data_h5('Rbin__r')
-            self.RbinCenter__r = self.get_data_h5('RbinCenter__r')
-            self.NRbins = self.get_data_h5('NRbins')
-            self.RColor = self.get_data_h5('RColor')
-            self.RRange = self.get_data_h5('RRange')
-            self.xOkMin = self.get_data_h5('xOkMin')
-            self.tauVOkMin = self.get_data_h5('tauVOkMin')
-            self.tauVNebOkMin = self.get_data_h5('tauVNebOkMin')
-            self.tauVNebErrMax = self.get_data_h5('tauVNebErrMax')
-        except:
-            print 'Missing califaID_GAL_zones__g on h5 file!'
-            
-    def get_data_h5(self, prop):
-        h5 = self.h5
-        if any([ prop in s for s in h5['masked/mask'].keys() ]):
-            node = '/masked/data/' + prop
-            ds = h5[node]
-            if type(ds) == h5py.Dataset:
-                data = h5.get('/masked/data/' + prop).value
-                mask = h5.get('/masked/mask/' + prop).value
-                arr = np.ma.masked_array(data, mask = mask)
-            else:
-                arr = []
-                for iT, tSF in enumerate(self.tSF__T):
-                    group = '%s/%d' % (prop, iT)
-                    data = h5.get('/masked/data/' + group).value
-                    mask = h5.get('/masked/mask/' + group).value
-                    arr.append(np.ma.masked_array(data, mask = mask))
-            return arr 
-        else:
-            return h5.get('/data/' + prop).value
-        
-    def get_prop_gal(self, prop, gal = None):
-        data = self.get_data_h5(prop)
-        prop__dim = None
-        suffix = prop[-3:]
-        
-        if gal:
-            if suffix[1:] == 'rg':
-                if suffix[0] == '_':
-                    where_slice = np.where(self.califaIDs__rg == gal)
-                    prop__dim = data[where_slice]
-                else:
-                    where_slice = np.where(self.califaIDs__Trg == gal)
-                    prop__dim = (data[where_slice]).reshape(self.N_T, self.NRbins)
-            else:
-                where_slice = np.where(self.califaIDs__z == gal)
-            
-                if type(data) is list:
-                    #prop__dim here is prop__Tz
-                    prop__dim = []
-                
-                    for iT, tSF in enumerate(self.tSF__T):
-                        prop__dim.append(data[iT][where_slice])
-                else:
-                    # by zone
-                    prop__dim = data[where_slice]
-            
-        return prop__dim
-    
-    def get_prop_uniq(self, prop):
-        data = self.get_data_h5(prop)
-        data__g = np.ma.masked_all((self.Ngals), dtype = data.dtype)
-        
-        for i, g in enumerate(self.califaIDs):
-            data = self.get_prop_gal(prop, g)
-            data__g[i] = np.unique(data)[0]
-            
-        return data__g
-    
-    def sort_gal_by_prop(self, prop, type):
-        '''
-        type = 0 - sort asc
-        type = 1 - sort desc
-        For types different than those above the method does nothing.
-        '''
-        list_uniq_gal = self.califaIDs
-        
-        if type >= 0:
-            data__g = self.get_prop_uniq(prop)
-            
-            iS = np.argsort(data__g)
-            
-            if type != 0:
-                iS = iS[::-1]
-                
-            list_uniq_gal = self.califaIDs[iS]
-        
-        return list_uniq_gal
+    return NGal, list_uniq_gal, data__g        
 
         
 def list_gal_sorted_by_data(list_gal, data, type):
@@ -514,12 +544,48 @@ def list_gal_sorted_by_data(list_gal, data, type):
     return list_uniq_gal[iS]
 
 def OLS_bisector(x, y):
-    A1, B1, Rp1, pval1, std_err1 = st.linregress(x, y)
-    A2, B2, Rp2, pval2, std_err2 = st.linregress(y, x)
-    A = ((A1 / A2 - 1. + ((1. + A1 ** 2.) * (1. + A2 ** -2.)) ** 0.5) / (A1 + (1. / A2)))
-    B = y.mean() - A * x.mean()
-    return A, B
+    xdev = x - x.mean()
+    ydev = y - y.mean()
+    Sxx = (xdev**2.0).sum()
+    Syy = (ydev**2.0).sum()
+    Sxy = (xdev * ydev).sum()
+    b1 = Sxy/Sxx
+    b2 = Syy/Sxy
+    var1 = 1./Sxx**2.
+    var1 *= (xdev**2.0 * (ydev - b1 * xdev)**2.0).sum()
+    var2 = 1./Sxy**2.
+    var2 *= (ydev**2.0 * (ydev - b2 * xdev)**2.0).sum()
     
+    cov12 = 1./(b1 * Sxx**2.0)
+    cov12 *= (xdev * ydev * (ydev - b1 * ydev) * (ydev - b2 * ydev)).sum() 
+    
+    bb1 = (1 + b1**2.)
+    bb2 = (1 + b2**2.)
+
+    b3 = 1./(b1 + b2) * (b1 * b2 - 1 + (bb1 * bb2)**.5)
+    
+    var = b3**2.0 / ((b1 + b2)**2.0 * bb1 * bb2) 
+    var *= (bb2**2.0 * var1 + 2. * bb1 * bb2 * cov12 + bb1**2. * var2)
+        
+    slope = b3
+    intercept = y.mean() - slope * x.mean()
+    var_slope = var
+    
+    try: 
+        n = (~x.mask).sum()
+    except AttributeError:
+        n = len(x)
+    
+    gamma1 = b3 / ((b1 + b2) * (bb1 * bb2)**0.5)
+    gamma13 = gamma1 * bb2
+    gamma23 = gamma1 * bb1
+    var_intercept = 1./n**2.0
+    var_intercept *= ((ydev - b3 * xdev - n * x.mean() * (gamma13/Sxx * xdev * (ydev - b1 * xdev) + gamma23/Sxy * ydev * (ydev - b2 * xdev)))**2.0).sum() 
+    
+    sigma_slope = var_slope**0.5
+    sigma_intercept = var_intercept**0.5
+    
+    return slope, intercept, sigma_slope, sigma_intercept
 
 def plotLinRegAge(x, y, xlabel, ylabel, xlim, ylim, age, fname):
     f = plt.figure()
@@ -537,44 +603,55 @@ def plotLinRegAge(x, y, xlabel, ylabel, xlim, ylim, age, fname):
     if ylim != None:
         ax.set_ylim(ylim)
 
-    ax.scatter(x, y, c = 'black', marker = 'o', s = 5, edgecolor = 'none', alpha = 0.5, label='')
+    ax.scatter(x, y, c = 'black', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label='')
     
-    c = 'b'
-    step = (x.max() - x.min()) / len(x)
-    A1, B1, Rp, pval, std_err = st.linregress(x, y)
-    X = np.linspace(x.min(), x.max() + step, len(x))
-    Y = A1 * X + B1
-    Yrms = (Y - y).std()
-    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = 'least squares')
-    txt = '%.2f Myr' % (age / 1e6)
-    plot_text_ax(ax, txt, 0.05, 0.92, 14, 'top', 'left')
-    txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A1, B1, Yrms)
-    plot_text_ax(ax, txt, 0.98, 0.21, 14, 'bottom', 'right', c)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # c = 'b'
+    # step = (x.max() - x.min()) / len(x)
+    # A1, B1, Rp, pval, std_err = st.linregress(x, y)
+    # X = np.linspace(x.min(), x.max() + step, len(x))
+    # Y = A1 * X + B1
+    # Yrms = (Y - y).std()
+    # ax.plot(X, Y, c = c, ls = '--', lw = 2, label = 'least squares')
+    # txt = '%.2f Myr' % (age / 1e6)
+    # plot_text_ax(ax, txt, 0.05, 0.92, 14, 'top', 'left')
+    # txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A1, B1, Yrms)
+    # plot_text_ax(ax, txt, 0.98, 0.21, 14, 'bottom', 'right', c)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
      
-    c = 'g'
-    model_ransac = linear_model.RANSACRegressor(linear_model.LinearRegression())
-    model_ransac.fit(np.vstack(x),np.vstack(y))
-    Y = model_ransac.predict(X[:, np.newaxis])
-    Yrms = (Y - y).std()
-    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = 'RANSAC')
-    A = model_ransac.estimator_.coef_
-    B = model_ransac.estimator_.intercept_
-    inlier_mask = model_ransac.inlier_mask_
-    #outlier_mask = np.logical_not(inlier_mask)
-    txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
-    plot_text_ax(ax, txt, 0.98, 0.14, 14, 'bottom', 'right', c)
-    ax.scatter(x[inlier_mask], y[inlier_mask], c = c, marker = 'x', s = 20, facecolor = 'k', edgecolor = c, alpha = 0.3, label='')
-     
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # c = 'g'
+    # model_ransac = linear_model.RANSACRegressor(linear_model.LinearRegression())
+    # model_ransac.fit(np.vstack(x),np.vstack(y))
+    # Y = model_ransac.predict(X[:, np.newaxis])
+    # Yrms = (Y - y).std()
+    # ax.plot(X, Y, c = c, ls = '--', lw = 2, label = 'RANSAC')
+    # A = model_ransac.estimator_.coef_
+    # B = model_ransac.estimator_.intercept_
+    # inlier_mask = model_ransac.inlier_mask_
+    # #outlier_mask = np.logical_not(inlier_mask)
+    # txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
+    # plot_text_ax(ax, txt, 0.98, 0.14, 14, 'bottom', 'right', c)
+    # ax.scatter(x[inlier_mask], y[inlier_mask], c = c, marker = 'x', s = 20, facecolor = 'k', edgecolor = c, alpha = 0.3, label='')
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    
     c = 'r'
-    A, B = OLS_bisector(x, y)
-    X = np.linspace(x.min(), x.max() + step, len(x))
-    Y = A * X + B
-    Yrms = (Y - y).std()
-    ax.plot(X, Y, c = c, ls = '--', lw = 2, label = 'OLS bisector')
-    txt = r'$y = %.2f\ x\ +\ (%.2f)\ (y_{rms}:%.2f)$' %  (A, B, Yrms)
-    plot_text_ax(ax, txt, 0.98, 0.07, 14, 'bottom', 'right')
+    plotOLSbisectorAxis(ax, x, y, 0.98, 0.07, 14, c, True)
     
-    ax.plot(ax.get_xlim(), ax.get_xlim(), ls = "--", c = ".3", label = '')
+    ax.plot(ax.get_xlim(), ax.get_xlim(), ls = '--', label = '', c = 'k')
     ax.legend()
     f.savefig(fname)
     plt.close(f)
+
+def plotLinRegAxis(ax, x, y, xlabel, ylabel, xlim, ylim):
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if xlim != None:
+        ax.set_xlim(xlim)
+    if ylim != None:
+        ax.set_ylim(ylim)
+    ax.scatter(x, y, c = 'black', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label='')    
+    plotOLSbisectorAxis(ax, x, y, 0.98, 0.02, 14, 'b', True)
+    ax.plot(ax.get_xlim(), ax.get_xlim(), ls = '--', label = '', c = 'k')
+    ax.legend()
+    
