@@ -49,6 +49,8 @@ if __name__ == '__main__':
     zticklabels2 = ['Sa + Sab', 'Sb', 'Sbc', 'Sc + Scd']
     zticklabelcolors2 = [(1, 0, 0), (0.5, 1, 0), (0, .5, 1), (0, 0, 1)]
     
+    zticks3 = [ -0.8, -0.6, -0.4, -0.2, -0.1, 0, 0.1, 0.2 ]
+    
     for iT,tSF in enumerate(tSF__T):        
         x = H.tau_V__Trg[iT]
         y = H.tau_V_neb__rg
