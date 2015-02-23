@@ -99,6 +99,7 @@ if __name__ == '__main__':
     ##stellar
     tau_V__z = getattr(H, '%s_tau_V__Tg' % galName)[iT]
     atau_V__r = getattr(H, '%s_tau_V__Trg' % galName)[iT]
+    print atau_V__r
     SFRSD__z = getattr(H, '%s_SFRSD__Tg' % galName)[iT]
     aSFRSD__r = getattr(H, '%s_aSFRSD__Trg' % galName)[iT]
     x_Y__z = getattr(H, '%s_x_Y__Tg' % galName)[iT]
@@ -192,7 +193,7 @@ if __name__ == '__main__':
     ax.set_axis_on()
     x = np.ma.log10(tau_V__rg.flatten())
     y = np.ma.log10(aSFRSD__rg.flatten() * 1e6)
-    mask = x.mask | y.mask
+    mask = x.mask | y.mask  
     xm = np.ma.masked_array(x, mask = mask)
     ym = np.ma.masked_array(y, mask = mask)
     xlabel = r'$\log\ \tau_V^{\star}(R)$'
@@ -224,6 +225,7 @@ if __name__ == '__main__':
     ##########################
     x = np.ma.log10(atau_V__r)
     y = np.ma.log10(aSFRSD__r * 1e6)
+    print x, y
     mask = x.mask | y.mask
     xm = np.ma.masked_array(x, mask = mask)
     ym = np.ma.masked_array(y, mask = mask)

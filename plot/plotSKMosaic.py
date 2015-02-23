@@ -13,6 +13,7 @@ from plot_aux import plotOLSbisectorAxis, plot_gal_img_ax, OLS_bisector, \
 from matplotlib.ticker import MultipleLocator
 
 debug = False
+debug = True
 
 mpl.rcParams['font.size'] = 24
 mpl.rcParams['axes.labelsize'] = 24
@@ -23,12 +24,12 @@ mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
     
-sorted_files = {
-    'Mcor' : '/Users/lacerda/CALIFA/listOf300GalPrefixes_sort_Mcor.txt',
-    'McorSD' : '/Users/lacerda/CALIFA/listOf300GalPrefixes_sort_McorSD.txt',
-    'morph' : '/Users/lacerda/CALIFA/listOf300GalPrefixes_sort_morph.txt',
-    'Mr' : '/Users/lacerda/CALIFA/listOf300GalPrefixes_sort_Mr.txt',
-    'ba' : '/Users/lacerda/CALIFA/listOf300GalPrefixes_sort_ba.txt',
+sorted_args = {
+    'Mcor' : 'Mcor_GAL__g',
+    'McorSD' : 'McorSD_GAL__g',
+    'morf' : 'morfType_GAL__g',
+    'Mr' : 'Mr_GAL__g',
+    'ba' : 'ba_GAL__g',
 }
 
 
@@ -38,7 +39,7 @@ if __name__ == '__main__':
         iT = np.int(sys.argv[2])
         sort_by = sys.argv[3]
     except IndexError:
-        print 'usage: %s HDF5FILE age_i %s' % (sys.argv[0], sorted_files.keys())
+        print 'usage: %s HDF5FILE age_i %s' % (sys.argv[0], sorted_args.keys())
         exit(1)
         
     H = H5SFRData(h5file)
@@ -67,14 +68,12 @@ if __name__ == '__main__':
         txt_ols = r'$y_{OLS}$ = %.2f$x$ + %.2f%s' %  (a_ols, b_ols, Yrms_str)
     else:
         txt_ols = r'$y_{OLS}$ = %.2f$x$ - %.2f%s' %  (a_ols, b_ols * -1., Yrms_str)
-       
-    f = open(sorted_files[sort_by], 'r')
-    print sorted_files[sort_by]
-    listOfPrefixes = f.readlines()
-    f.close()
-    gals = [ listOfPrefixes[i].strip() for i in np.arange(len(listOfPrefixes)) ]
+    
+    gals, arg_sorted = H.sort_gal_by_prop(sorted_args[sort_by])
+    
     if debug:
         gals = gals[0:30]
+    
     ###################################################################################
     xname = 'atauV'
     yname = 'aSFRSD'
@@ -139,7 +138,10 @@ if __name__ == '__main__':
             ax.yaxis.set_major_locator(MultipleLocator(0.5))
             ax.yaxis.set_minor_locator(MultipleLocator(0.125))
             ax.grid(which = 'major')
-            plot_gal_img_ax(ax_img, '/Users/lacerda/CALIFA/images/%s.jpg' % gal, gal, 0.02, 0.98, 30)
+            
+            ax = plot_gal_img_ax(ax_img, '/Users/lacerda/CALIFA/images/%s.jpg' % gal, gal, 0.02, 0.98, 30)
+            txt = '%s' % str(arg_sorted[i])
+            plot_text_ax(ax, txt, 0.98, 0.02, 30, 'bottom', 'right', color = 'w')
             
             if i == NRows - 1 and j == 1:
                 plt.setp(ax.get_xticklabels(), visible = True, rotation = 90)

@@ -10,283 +10,155 @@ from get_morfologia import get_morfologia
 from lines import *
 from pystarlight.util.constants import L_sun
 from pystarlight.util.base import StarlightBase
-from califa_scripts import read_one_cube, califa_work_dir, ALLGals
-
-default = {
-    'debug' : False,
-    'underS06' : False,
-    'hdf5' : None,
-    'spiral' : False,
-    'weiradprof' : True,
-    'minpopx' : 0.05,
-    'mintauv' : 0.05,
-    'mintauvneb' : 0.05,
-    'maxtauvneberr' : 999.,
-    'rbinini' : 0.0,
-    'rbinfin' : 2.0,
-    'rbinstep' : 0.1,
-    'maxiTSF' : 19,
-    'gals_filename' : califa_work_dir + 'listOf300GalPrefixes.txt'
-}
+from califa_scripts import read_one_cube, califa_work_dir, \
+                           ALLGals, calc_SFR, calc_xY, \
+                           calc_alogZ_Stuff, radialProfileWeighted
 
 def parser_args():
+    default_args = {
+        'debug' : False,
+        'underS06' : False,
+        'hdf5' : None,
+        'spiral' : False,
+        'weiradprof' : True,
+        'minpopx' : 0.05,
+        'mintauv' : 0.05,
+        'mintauvneb' : 0.05,
+        'maxtauvneberr' : 999.,
+        'rbinini' : 0.0,
+        'rbinfin' : 2.0,
+        'rbinstep' : 0.1,
+        'maxiTSF' : -1,
+        'gals_filename' : califa_work_dir + 'listOf300GalPrefixes.txt'
+    }
     parser = ap.ArgumentParser(description = '%s' % sys.argv[0])
     parser.add_argument('--debug', '-D',
                         action = 'store_true',
-                        default = default['debug'])
+                        default = default_args['debug'])
     parser.add_argument('--spiral', '-S',
                         action = 'store_true',
-                        default = default['spiral'])
+                        default = default_args['spiral'])
     parser.add_argument('--underS06',
                         action = 'store_true',
-                        default = default['underS06'])
+                        default = default_args['underS06'])
     parser.add_argument('--weiradprof', '-W',
                         action = 'store_true',
-                        default = default['weiradprof'])
+                        default = default_args['weiradprof'])
     parser.add_argument('--hdf5', '-H',
                         metavar = 'FILE',
                         type = str,
-                        default = default['hdf5'])
+                        default = default_args['hdf5'])
     parser.add_argument('--minpopx',
                         help = 'Negative to disable mask in popx',
                         metavar = 'FRAC',
                         type = float,
-                        default = default['minpopx'])
+                        default = default_args['minpopx'])
     parser.add_argument('--mintauv',
                         metavar = 'FRAC',
                         type = float,
-                        default = default['mintauv'])
+                        default = default_args['mintauv'])
     parser.add_argument('--mintauvneb',
                         metavar = 'FRAC',
                         type = float,
-                        default = default['mintauvneb'])
+                        default = default_args['mintauvneb'])
     parser.add_argument('--maxtauvneberr',
                         metavar = 'FRAC',
                         type = float,
-                        default = default['maxtauvneberr'])
+                        default = default_args['maxtauvneberr'])
     parser.add_argument('--rbinini',
                         metavar = 'FRAC',
                         type = float,
-                        default = default['rbinini'])
+                        default = default_args['rbinini'])
     parser.add_argument('--rbinfin',
                         metavar = 'FRAC',
                         type = float,
-                        default = default['rbinfin'])
+                        default = default_args['rbinfin'])
     parser.add_argument('--rbinstep',
                         metavar = 'FRAC',
                         type = float,
-                        default = default['rbinstep'])
+                        default = default_args['rbinstep'])
     parser.add_argument('--maxiTSF',
                         metavar = 'iT',
                         type = int,
-                        default = default['maxiTSF'])
+                        default = default_args['maxiTSF'])
     parser.add_argument('--gals_filename', '-L',
                         metavar = 'FILE',
                         type = str,
-                        default = default['gals_filename'])
-
+                        default = default_args['gals_filename'])
     return parser.parse_args()
 
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-args = parser_args()
-
-debug = args.debug
-BPTLowS06 = args.underS06
-hdf5 = args.hdf5
-onlySpiral = args.spiral
-weiRadProf = args.weiradprof
-mask_xOk = True
-# Def smallest light fraction (in the flag__t-ageMax age-range) deemed to be Ok for our stats ...
-xOkMin = args.minpopx
-# Minimum tauV to be taken seriously ...
-tauVOkMin = args.mintauv
-tauVNebOkMin = args.mintauvneb
-#tauVNebErrMax = 0.15
-tauVNebErrMax = args.maxtauvneberr
-RbinIni = args.rbinini
-RbinFin = args.rbinfin
-RbinStep = args.rbinstep
-galaxiesListFile = args.gals_filename
-
-print 'debug: ', debug
-print 'BPTLowS06: ', BPTLowS06
-print 'hdf5: ', hdf5
-print 'onlySpiral: ', onlySpiral
-print 'weiRadProf: ', weiRadProf
-print 'xOkMin: ', xOkMin
-print 'tauVOkMin: ', tauVOkMin
-print 'tauVNebOkMin: ', tauVNebOkMin
-print 'tauVNebErrMax: ', tauVNebErrMax
-print 'RbinIni: ', RbinIni
-print 'RbinFin: ', RbinFin
-print 'RbinStep: ', RbinStep
-print 'Gals Filename: ', galaxiesListFile
-print 'maxiTFS: ', args.maxiTSF
-
-imgDir = califa_work_dir + 'images/'
-
-Zsun = 0.019
-qCCM = {
-    '4861' : 1.16427,
-    '5007' : 1.12022,
-    '6563' : 0.81775,
-    '6583' : 0.81466,
-}
-
-f = open(galaxiesListFile, 'r')
-listOfPrefixes = f.readlines()
-f.close()
-
-Rbin__r = np.arange(RbinIni, RbinFin + RbinStep, RbinStep)
-RbinCenter__r = (Rbin__r[:-1] + Rbin__r[1:]) / 2.0
-NRbins = len(RbinCenter__r)
-
-RColor = [ 'r', 'y', 'b', 'k' ]
-RRange = [  .5, 1., 1.5, 2.  ]
-
-if debug:
-    listOfPrefixes = listOfPrefixes[0:10]        # Q&D tests ...
-    #listOfPrefixes = ['K0073\n']
-    
-N_gals = len(listOfPrefixes)
-
-# SFR-time-scale array (index __T)
-base = StarlightBase('/Users/lacerda/LOCAL/data/BASE.CALIFA.gsd6.h5', 'gsd6e', hdf5 = True)
-tSF__T = np.asarray(base.ageBase[0:args.maxiTSF + 1])
-N_T = len(tSF__T)
-
-tZ__U = np.array([1.0 , 2.0 , 5.0 , 8.0 , 11.3 , 14.2]) * 1.e9
-N_U = len(tZ__U)
-
-
-#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-def radialProfileWeighted(v__yx, w__yx, bins, rad_scale, func_radialProfile = None):
-    v__r = None
-
-    if func_radialProfile:
-        w__r = func_radialProfile(w__yx, bin_r = bins, mode = 'sum', rad_scale = rad_scale)
-        v_w__r = func_radialProfile(v__yx * w__yx, bin_r = bins, mode = 'sum', rad_scale = rad_scale)
-        v__r = v_w__r / w__r
-
-    return v__r
-#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-
-
-#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-def calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf = False, xOkMin = 0.10):
-    '''
-    Compute average logZ (alogZ_*) both for each zone (*__z) and the galaxy-wide
-    average (*_GAL, computed a la GD14).
-
-    Only st-pops satisfying the input flag__t (ageBase-related) mask are considered!
-    This allows us to compute alogZ_* for, say, < 2 Gyr or 1--7 Gyr populations,
-    as well as the whole-age range (using flag__t = True for all base ages)
-    with a same function and saving the trouble of keeping separate variables for the same thing:-)
-
-    Radial profiles of alogZ_mass and alogZ_flux are also computed. They are/are-not weighted
-    (by Mcor__yx & Lobn__yx, respectively) according to weiRadProf.
-
-    ==> return alogZ_mass_GAL, alogZ_flux_GAL, isOkFrac_GAL , alogZ_mass__r, alogZ_flux__r
-
-    Cid@Lagoa - 05/Jun/2014
-
-
-    !!HELP!! ATT: My way of computing alogZ_*__z produces nan', which are ugly but harmless.
-    I tried to fix it using masked arrays:
-
-    alogZ_mass__z  = np.ma.masked_array( numerator__z/(denominator__z+0e-30) , mask = (denominator__z == 0))
-
-    but this did not work!
-
-    Cid@Lagoa - 20/Jun/2014
-    
-    
-    Correct nan problems using:
-    alogZ_mass__z[np.isnan(alogZ_mass__z)] = np.ma.masked
-    
-    Lacerda@Granada - 19/Feb/2015
-    '''
-    #--------------------------------------------------------------------------
-    # Initialization
-
-    # Define log of base metallicities **in solar units** for convenience
-    logZBase__Z = np.log10(K.metBase / Zsun)
-    #--------------------------------------------------------------------------
-
-    #--------------------------------------------------------------------------
-    # Define alogZ_****__z: flux & mass weighted average logZ for each zone
-
-    # ==> alogZ_mass__z - ATT: There may be nan's here depending on flag__t!
-    numerator__z = np.tensordot(K.Mcor__tZz[flag__t, :, :] , logZBase__Z , (1, 0)).sum(axis = 0)
-    denominator__z = K.Mcor__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-    alogZ_mass__z = np.ma.masked_array(numerator__z / denominator__z)
-    alogZ_mass__z[np.isnan(alogZ_mass__z)] = np.ma.masked
-
-    # ==> alogZ_flux__z - ATT: There may be nan's here depending on flag__t!
-    numerator__z = np.tensordot(K.Lobn__tZz[flag__t, :, :] , logZBase__Z , (1, 0)).sum(axis = 0)
-    denominator__z = K.Lobn__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-    alogZ_flux__z = np.ma.masked_array(numerator__z / denominator__z)
-    alogZ_flux__z[np.isnan(alogZ_mass__z)] = np.ma.masked
-    #--------------------------------------------------------------------------
-
-    #--------------------------------------------------------------------------
-    # Def galaxy-wide averages of alogZ in light & mass, but **discards** zones having
-    # too little light fractions in the ages given by flag__t
-    isOk__z = np.ones_like(K.Mcor__z, dtype = np.bool)
-    
-    # Define Ok flag: Zones with light fraction x < xOkMin are not reliable for alogZ (& etc) estimation!
-    if xOkMin >= 0.:
-        x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
-        xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-        isOk__z = xOk__z > xOkMin
-        
-    # Fraction of all zones which are Ok in the isOk__z sense. Useful to censor galaxies whose
-    # galaxy-wide averages are based on too few zones (hence not representative)
-    # OBS: isOkFrac_GAL is not used in this function, but it's returned to be used by the caller
-    isOkFrac_GAL = (1.0 * isOk__z.sum()) / (1.0 * K.N_zone)
-
-    # Galaxy wide averages of logZ - ATT: Only isOk__z zones are considered in this averaging!
-    numerator__z = K.Mcor__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) * alogZ_mass__z
-    denominator__z = K.Mcor__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-    alogZ_mass_GAL = numerator__z[isOk__z].sum() / denominator__z[isOk__z].sum()
-
-    numerator__z = K.Lobn__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) * alogZ_flux__z
-    denominator__z = K.Lobn__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-    alogZ_flux_GAL = numerator__z[isOk__z].sum() / denominator__z[isOk__z].sum()
-    #--------------------------------------------------------------------------
-
-    #--------------------------------------------------------------------------
-    # Radial profiles of alogZ_mass & alogZ_flux. The decision to use proper weighted averaging
-    # with the bins (by Mcor__yx for alogZ_mass__r and by Lobn__yx for alogZ_flux__r) is taken
-    # cf the input weiRadProf boolean switch.
-
-    # Define aY_****__yx images - needed to compute radial profiles
-    alogZ_mass__yx = K.zoneToYX(alogZ_mass__z, extensive = False)
-    alogZ_flux__yx = K.zoneToYX(alogZ_flux__z, extensive = False)
-
-    # Compute radial profiles weighted or not.
-    # OBS: Our defs of Mcor__yx & Lobn__yx below return SD's (ie, Msun/pc2 and Lsun/A/pc2).
-    #      This is NOT what I originally intended, but it works for the current weighting purposes
-    if weiRadProf:
-        Mcor__yx = K.zoneToYX(K.Mcor__z, extensive = True)
-        Lobn__yx = K.zoneToYX(K.Lobn__z, extensive = True)
-        alogZ_mass__r = radialProfileWeighted(alogZ_mass__yx, Mcor__yx, Rbin__r, K.HLR_pix, K.radialProfile)
-        alogZ_flux__r = radialProfileWeighted(alogZ_flux__yx, Lobn__yx, Rbin__r, K.HLR_pix, K.radialProfile)
-    else:
-        alogZ_mass__r = K.radialProfile(alogZ_mass__yx, Rbin__r, rad_scale = K.HLR_pix)
-        alogZ_flux__r = K.radialProfile(alogZ_flux__yx, Rbin__r, rad_scale = K.HLR_pix)
-    #--------------------------------------------------------------------------
-
-    return alogZ_mass__z, alogZ_flux__z, alogZ_mass_GAL, alogZ_flux_GAL, isOkFrac_GAL , alogZ_mass__r, alogZ_flux__r
-#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-
-
 if __name__ == '__main__':
     t_init_prog = time.clock()
-        
+
+    args = parser_args()
+    
+    debug = args.debug
+    BPTLowS06 = args.underS06
+    hdf5 = args.hdf5
+    onlySpiral = args.spiral
+    weiRadProf = args.weiradprof
+    mask_xOk = True
+    # Def smallest light fraction (in the flag__t-ageMax age-range) deemed to be Ok for our stats ...
+    xOkMin = args.minpopx
+    # Minimum tauV to be taken seriously ...
+    tauVOkMin = args.mintauv
+    tauVNebOkMin = args.mintauvneb
+    #tauVNebErrMax = 0.15
+    tauVNebErrMax = args.maxtauvneberr
+    RbinIni = args.rbinini
+    RbinFin = args.rbinfin
+    RbinStep = args.rbinstep
+    galaxiesListFile = args.gals_filename
+    
+    print 'debug: ', debug
+    print 'BPTLowS06: ', BPTLowS06
+    print 'hdf5: ', hdf5
+    print 'onlySpiral: ', onlySpiral
+    print 'weiRadProf: ', weiRadProf
+    print 'xOkMin: ', xOkMin
+    print 'tauVOkMin: ', tauVOkMin
+    print 'tauVNebOkMin: ', tauVNebOkMin
+    print 'tauVNebErrMax: ', tauVNebErrMax
+    print 'RbinIni: ', RbinIni
+    print 'RbinFin: ', RbinFin
+    print 'RbinStep: ', RbinStep
+    print 'Gals Filename: ', galaxiesListFile
+    print 'maxiTFS: ', args.maxiTSF
+    
+    imgDir = califa_work_dir + 'images/'
+    
+    Zsun = 0.019
+
+    Rbin__r = np.arange(RbinIni, RbinFin + RbinStep, RbinStep)
+    RbinCenter__r = (Rbin__r[:-1] + Rbin__r[1:]) / 2.0
+    NRbins = len(RbinCenter__r)
+    RColor = [ 'r', 'y', 'b', 'k' ]
+    RRange = [  .5, 1., 1.5, 2.  ]
+    
+    f = open(galaxiesListFile, 'r')
+    listOfPrefixes = f.readlines()
+    f.close()
+    
+    if debug:
+        listOfPrefixes = listOfPrefixes[0:10]        # Q&D tests ...
+        #listOfPrefixes = ['K0073\n']
+    N_gals = len(listOfPrefixes)
+
+    # SFR-time-scale array (index __T)
+    base = StarlightBase('/Users/lacerda/LOCAL/data/BASE.CALIFA.gsd6.h5', 'gsd6e', hdf5 = True)
+    
+    if args.maxiTSF > 0:
+        tSF__T = np.asarray(base.ageBase[0:args.maxiTSF + 1])
+    else:
+        tSF__T = np.asarray(base.ageBase)
+    N_T = len(tSF__T)
+    
+    tZ__U = np.array([1.0 , 2.0 , 5.0 , 8.0 , 11.3 , 14.2]) * 1.e9
+    N_U = len(tZ__U)
     #########################################################################
     #########################################################################
     #########################################################################
@@ -360,21 +232,15 @@ if __name__ == '__main__':
             Mcor__z = np.ma.masked_array(K.Mcor__z)
             McorSD__z = np.ma.masked_array(K.Mcor__z / K.zoneArea_pc2)
             tau_V__z = np.ma.masked_array(K.tau_V__z)
-
-            # Define mask to pick only populations younger than the input tSF in the computation of SFR & SFRSD.
-            flag__t = K.ageBase <= tSF
-
-            aux = K.Mini__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0) / tSF
-            SFR__z = np.ma.masked_array(aux)
-            SFRSD__z = SFR__z / K.zoneArea_pc2
             
-            # pop_young
-            x__tZz = K.popx / K.popx.sum(axis = 1).sum(axis = 0)
-            xOk__z = x__tZz[flag__t, :, :].sum(axis = 1).sum(axis = 0)
-                            
+            x_Y__z = calc_xY(K, tSF)
+            aux = calc_SFR(K, tSF)
+            SFR__z = np.ma.masked_array(aux[0])
+            SFRSD__z = np.ma.masked_array(aux[1])
+
             if xOkMin >= 0.:
                 # Compute xOk "raw" image
-                maskNotOk__z = (xOk__z < xOkMin) | (tau_V__z < tauVOkMin) 
+                maskNotOk__z = (x_Y__z < xOkMin) | (tau_V__z < tauVOkMin) 
                  
                 tau_V__z[maskNotOk__z] = np.ma.masked
                 SFR__z[maskNotOk__z] = np.ma.masked
@@ -382,11 +248,11 @@ if __name__ == '__main__':
                 Mcor__z[maskNotOk__z] = np.ma.masked
                 McorSD__z[maskNotOk__z] = np.ma.masked
                 
-            tau_V__yx = K.zoneToYX(tau_V__z, extensive = False)
+            tau_V__yx = K.zoneToYX(tau_V__z, extensive = False, surface_density = False)
             McorSD__yx = K.zoneToYX(Mcor__z, extensive = True)
-            aSFRSD__yx = K.zoneToYX(SFRSD__z, extensive = False)
+            aSFRSD__yx = K.zoneToYX(SFRSD__z, extensive = False, surface_density = False)
             
-            ALL._x_Y__Tg[iT].append(xOk__z)
+            ALL._x_Y__Tg[iT].append(x_Y__z)
             ALL._tau_V__Tg[iT].append(tau_V__z.data)
             ALL._tau_V_mask__Tg[iT].append(tau_V__z.mask)
             ALL._Mcor__Tg[iT].append(Mcor__z)
@@ -405,19 +271,35 @@ if __name__ == '__main__':
             ALL.tau_V__Trg[iT, :, iGal] = K.radialProfile(tau_V__yx, Rbin__r, rad_scale = K.HLR_pix)
             
         for iU, tZ in enumerate(tZ__U):
-            flag__t = K.ageBase <= tZ
+            aux = calc_alogZ_Stuff(K, tZ, xOkMin)
+            alogZ_mass__z = aux[0]
+            alogZ_flux__z = aux[1]
+            alogZ_mass_GAL = aux[2]
+            alogZ_flux_GAL = aux[3]
+            isOkFrac_GAL = aux[4]
 
-            aux = calc_alogZ_Stuff(K, flag__t, Rbin__r, weiRadProf, xOkMin = xOkMin)
+            alogZ_mass__yx = K.zoneToYX(alogZ_mass__z, extensive = False, surface_density = False)
+            alogZ_flux__yx = K.zoneToYX(alogZ_flux__z, extensive = False, surface_density = False)
+
+            alogZ_mass__r = K.radialProfile(alogZ_mass__yx, Rbin__r, rad_scale = K.HLR_pix)
+            alogZ_flux__r = K.radialProfile(alogZ_flux__yx, Rbin__r, rad_scale = K.HLR_pix)
+
+            Mcor__yx = K.zoneToYX(K.Mcor__z, extensive = True)
+            Lobn__yx = K.zoneToYX(K.Lobn__z, extensive = True)
+            alogZ_mass_wei__r = radialProfileWeighted(alogZ_mass__yx, Mcor__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
+            alogZ_flux_wei__r = radialProfileWeighted(alogZ_flux__yx, Lobn__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
             
-            ALL._alogZ_mass__Ug[iU].append(aux[0].data)
-            ALL._alogZ_mass_mask__Ug[iU].append(aux[0].mask)
-            ALL._alogZ_flux__Ug[iU].append(aux[1].data)
-            ALL._alogZ_flux_mask__Ug[iU].append(aux[1].mask)
+            ALL._alogZ_mass__Ug[iU].append(alogZ_mass__z.data)
+            ALL._alogZ_mass_mask__Ug[iU].append(alogZ_mass__z.mask)
+            ALL._alogZ_flux__Ug[iU].append(alogZ_flux__z.data)
+            ALL._alogZ_flux_mask__Ug[iU].append(alogZ_flux__z.mask)
 
-            ALL.alogZ_mass_GAL__Ug[iU, iGal] = aux[2]
-            ALL.alogZ_flux_GAL__Ug[iU, iGal] = aux[3]
-            ALL.alogZ_mass__Urg[iU, :, iGal] = aux[5]
-            ALL.alogZ_flux__Urg[iU, :, iGal] = aux[6]
+            ALL.alogZ_mass_GAL__Ug[iU, iGal] = alogZ_mass_GAL
+            ALL.alogZ_flux_GAL__Ug[iU, iGal] = alogZ_flux_GAL
+            ALL.alogZ_mass__Urg[iU, :, iGal] = alogZ_mass__r
+            ALL.alogZ_flux__Urg[iU, :, iGal] = alogZ_flux__r
+            ALL.alogZ_mass_wei__Urg[iU, :, iGal] = alogZ_mass_wei__r
+            ALL.alogZ_flux_wei__Urg[iU, :, iGal] = alogZ_flux_wei__r
         ####################################################
         ####################################################
         ####################################################    
@@ -514,8 +396,8 @@ if __name__ == '__main__':
         L_obs_err__Lz = K.EL._F_to_L(K.EL.eflux) / L_sun
         
         # L_int_Ha__Lz intrinsic Ha luminosity 
-        q = qCCM['6563'] / (qCCM['4861'] - qCCM['6563'])
-        eHa = np.ma.exp(qCCM['6563'] * tau_V_neb__z)
+        q = K.EL._qCCM['6563'] / (K.EL._qCCM['4861'] - K.EL._qCCM['6563'])
+        eHa = np.ma.exp(K.EL._qCCM['6563'] * tau_V_neb__z)
         
         L_obs_Ha__z = np.ma.masked_array(L_obs__Lz[i_Ha, :], mask = ~maskOkNeb__z)
         L_obs_Hb__z = np.ma.masked_array(L_obs__Lz[i_Hb, :], mask = ~maskOkNeb__z)

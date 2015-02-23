@@ -241,6 +241,7 @@ def plot_gal_img_ax(ax, imgfile, gal, pos_x, pos_y, fontsize):
     K.close()
     txt = '%s' % gal
     plot_text_ax(ax, txt, pos_x, pos_y, fontsize, 'top', 'left', color = 'w')
+    return ax
 
 
 def gaussSmooth_YofX(x, y, FWHM):
