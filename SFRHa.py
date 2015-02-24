@@ -8,8 +8,8 @@
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 import numpy as np
 from pystarlight.util.base import StarlightBase
-from califa_scripts import create_dx, SFR_parametrize, \
-                           SFR_parametrize_trapz
+from CALIFAUtils.scripts import SFR_parametrize
+from CALIFAUtils.scripts import SFR_parametrize_trapz
 
 #useTrapz = True
 useTrapz = False
@@ -61,7 +61,6 @@ if plot:
         dict( c = 'k', lw = 2.),
         dict( c = 'c', lw = 0.5),
     ] 
-
 
 bases = [ 'Padova1994.chab', 'Padova1994.salp', 'Padova2000.chab', 'Padova2000.salp' ]
 #bases = [ 'Padova2000.salp' ]

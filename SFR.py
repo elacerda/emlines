@@ -6,13 +6,19 @@ import time
 import sys
 import argparse as ap
 import numpy as np
-from get_morfologia import get_morfologia
-from lines import *
 from pystarlight.util.constants import L_sun
 from pystarlight.util.base import StarlightBase
-from califa_scripts import read_one_cube, califa_work_dir, \
-                           ALLGals, calc_SFR, calc_xY, \
-                           calc_alogZ_Stuff, radialProfileWeighted
+from CALIFAUtils.lines import Lines
+from CALIFAUtils.globals import califa_work_dir
+from CALIFAUtils.scripts import get_morfologia
+from CALIFAUtils.scripts import ALLGals
+from CALIFAUtils.scripts import calc_SFR
+from CALIFAUtils.scripts import calc_xY
+from CALIFAUtils.scripts import calc_alogZ_Stuff
+from CALIFAUtils.scripts import radialProfileWeighted
+from CALIFAUtils.scripts import loop_cubes
+from CALIFAUtils.scripts import sort_gals
+
 
 def parser_args():
     default_args = {
@@ -139,24 +145,20 @@ if __name__ == '__main__':
     RColor = [ 'r', 'y', 'b', 'k' ]
     RRange = [  .5, 1., 1.5, 2.  ]
     
-    f = open(galaxiesListFile, 'r')
-    listOfPrefixes = f.readlines()
-    f.close()
-    
+    gals, _ = sort_gals(galaxiesListFile)
+    maxGals = None
     if debug:
-        listOfPrefixes = listOfPrefixes[0:10]        # Q&D tests ...
-        #listOfPrefixes = ['K0073\n']
-    N_gals = len(listOfPrefixes)
+        maxGals = 10
+    N_gals = len(gals)
 
     # SFR-time-scale array (index __T)
     base = StarlightBase('/Users/lacerda/LOCAL/data/BASE.CALIFA.gsd6.h5', 'gsd6e', hdf5 = True)
-    
     if args.maxiTSF > 0:
         tSF__T = np.asarray(base.ageBase[0:args.maxiTSF + 1])
     else:
         tSF__T = np.asarray(base.ageBase)
     N_T = len(tSF__T)
-    
+
     tZ__U = np.array([1.0 , 2.0 , 5.0 , 8.0 , 11.3 , 14.2]) * 1.e9
     N_U = len(tZ__U)
     #########################################################################
@@ -164,19 +166,23 @@ if __name__ == '__main__':
     #########################################################################
     ALL = ALLGals(N_gals, NRbins, N_T, N_U)
     
-    for iGal in np.arange(N_gals):
+    # automatically read PyCASSO and EmLines data cubes.
+    for iGal, K in loop_cubes(gals.tolist(), imax = maxGals, EL = True):
         t_init_gal = time.clock()
-        galName = listOfPrefixes[iGal][:-1]
+        galName = gals[iGal] 
 
-        # automatically read PyCASSO and EmLines data cubes.
-        K = read_one_cube(galName, EL = True)
-        ALL.califaIDs[iGal] = K.califaID
-        ALL.N_zones__g[iGal] = K.N_zone
+        ALL.califaIDs[iGal] = galName
         
-        # both files
-        if K == None or K.EL == None:
+        if K == None:
             ALL.mask_gal(iGal)
             print '<<< %s galaxy: miss files' % galName 
+            continue
+
+        ALL.N_zones__g[iGal] = K.N_zone
+        
+        if K.EL == None:
+            ALL.mask_gal(iGal)
+            print '<<< %s galaxy: miss EmLines files' % galName 
             continue
 
         # Problem in FITS file
@@ -424,8 +430,8 @@ if __name__ == '__main__':
         ##########################
 
         #### SFR and SigmaSFR ####
-        # 3.17 M_sun/yr was calculated using BC03 + Padova1994 + Salpeter        
-        SFR_Ha__z = 3.17 * L_int_Ha__z / (1.e8)
+        # 3.13 M_sun/yr was calculated using BC03 + Padova1994 + Salpeter        
+        SFR_Ha__z = 3.13 * L_int_Ha__z / (1.e8)
         SFRSD_Ha__z = SFR_Ha__z / K.zoneArea_pc2
         
         integrated_SFR_Ha = 3.13 * integrated_L_int_Ha / (1.e8)
@@ -446,10 +452,13 @@ if __name__ == '__main__':
         ####################################################
         
         print 'time per galaxy: %s %.2f' % (galName, time.clock() - t_init_gal)
-        
-    ALL.stack_zones_data()
 
+    t_init_stack = time.clock()        
+    ALL.stack_zones_data()
+    print 'time stack: %.2f' % (time.clock() - t_init_stack)
+    
     if hdf5 != None:
+        t_init_hdf5 = time.clock()        
         import h5py
         filename = args.hdf5
         h5 = h5py.File(filename, 'w')
@@ -474,5 +483,6 @@ if __name__ == '__main__':
             except TypeError:
                 h5.create_dataset(k, data = D[k])
         h5.close()
+        print 'time hdf5: %.2f' % (time.clock() - t_init_hdf5)
         
     print 'total time: %.2f' % (time.clock() - t_init_prog)
