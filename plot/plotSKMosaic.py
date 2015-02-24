@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 import sys
-from califa_scripts import H5SFRData
+from califa_scripts.scripts import H5SFRData
 from plot_aux import plotOLSbisectorAxis, plot_gal_img_ax, OLS_bisector, \
                      plot_text_ax
 from matplotlib.ticker import MultipleLocator

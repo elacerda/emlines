@@ -7,7 +7,11 @@ import h5py
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 import sys
-from plot_aux import get_attrib_h5
+from CALIFAUtils.scripts import H5SFRData 
+
+def iTGen(tSF__T, iT_values = [ 10, 11, 17 ]):
+    for iT in iT_values:
+        yield iT, tSF__T[iT]
 
 mpl.rcParams['font.size'] = 20
 mpl.rcParams['axes.labelsize'] = 20
@@ -17,35 +21,29 @@ mpl.rcParams['ytick.labelsize'] = 16
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
-h5 = h5py.File(sys.argv[1], 'r')
+try:
+    h5file = sys.argv[1]
+except IndexError:
+    print 'usage: %s HDF5FILE CALIFAID' % (sys.argv[0])
+    exit(1)
 
-tSF__T = get_attrib_h5(h5, 'tSF__T')
-ALL_SFR__Tg = get_attrib_h5(h5, 'ALL_SFR__Tg')
-ALL_SFR_Ha__g = get_attrib_h5(h5, 'ALL_SFR_Ha__g')
-ALL_aSFRSD__Trg = get_attrib_h5(h5, 'ALL_aSFRSD__Trg')
-ALL_aSFRSD_Ha__rg = get_attrib_h5(h5, 'ALL_aSFRSD_Ha__rg')
+H = H5SFRData(h5file)
+tSF__T = H.tSF__T
+iT_values = [ 10, 11, 17 ]
 
-h5.close()
+for iT, tSF in iTGen(H.tSF__T, iT_values):
+    x1 = np.ma.log10(H.tau_V__Trg[iT])
+    y1 = np.ma.log10(H.aSFRSD__Trg[iT] * 1e6) 
+    x1label = r'$\log\ \tau_V^{\star}(R)$'
+    y1label = r'$\log\ \Sigma_{SFR}^\star(t_\star, R)\ [M_\odot yr^{-1} kpc^{-2}]$'
+
+    x2 = np.ma.log10(H.tau_V__Tg[iT])
+    y2 = np.ma.log10(H.SFRSD__Tg[iT] * 1e6) 
+    x2label = r'$\log\ \tau_V^{\star}$'
+    y2label = r'$\log\ \Sigma_{SFR}^\star(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$'
+
+    fname = 'SKeSKradius_%sMyr.png' % str(tSF / 1.e6)
     
-for iT, tSF in enumerate(tSF__T):
-    x1 = np.ma.log10(ALL_SFR__Tg[iT])
-    x1label = r'$\log\ \mathrm{SFR}_\star\ [M_\odot yr^{-1}]$' 
-    y1 = np.ma.log10(ALL_SFR_Ha__g)
-    y1label = r'$\log\ \mathrm{SFR}_{neb}\ [M_\odot yr^{-1}]$' 
-    x2 = np.ma.log10(ALL_aSFRSD__Trg[iT, :, :].flatten())
-    x2label = r'$\log\ \Sigma_{\mathrm{SFR}}^\star(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    y2 = np.ma.log10(ALL_aSFRSD_Ha__rg.flatten())
-    y2label = r'$\log\ \Sigma_{\mathrm{SFR}}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-
-    fname = 'SFReSFRSD_%sMyr.png' % str(tSF / 1.e6)
-    
-    mask1 = ~(x1.mask | y1.mask)
-    x1m = x1[mask1]
-    y1m = y1[mask1]
-    mask2 = ~(x2.mask | y2.mask)
-    x2m = x2[mask2]
-    y2m = y2[mask2]
-
     f, axArr = plt.subplots(1, 2)
     f.set_dpi(96)
     f.set_size_inches(20, 10)    

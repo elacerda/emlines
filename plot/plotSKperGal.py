@@ -6,15 +6,14 @@ import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.pyplot import MultipleLocator
-from get_morfologia import get_morfologia
 import time
 import sys
 import argparse as ap
 from plot_aux import plotOLSbisectorAxis, plot_text_ax, \
                      calcRunningStats
-from califa_scripts import H5SFRData, read_one_cube, \
-                           califa_work_dir, DrawHLRCircle, \
-                           DrawHLRCircleInSDSSImage
+from califa_scripts.scripts import H5SFRData, read_one_cube, \
+                                   califa_work_dir, DrawHLRCircle, \
+                                   DrawHLRCircleInSDSSImage, get_morfologia
 
 mpl.rcParams['font.size'] = 16
 mpl.rcParams['axes.labelsize'] = 16
@@ -99,7 +98,6 @@ if __name__ == '__main__':
     ##stellar
     tau_V__z = getattr(H, '%s_tau_V__Tg' % galName)[iT]
     atau_V__r = getattr(H, '%s_tau_V__Trg' % galName)[iT]
-    print atau_V__r
     SFRSD__z = getattr(H, '%s_SFRSD__Tg' % galName)[iT]
     aSFRSD__r = getattr(H, '%s_aSFRSD__Trg' % galName)[iT]
     x_Y__z = getattr(H, '%s_x_Y__Tg' % galName)[iT]
@@ -225,7 +223,6 @@ if __name__ == '__main__':
     ##########################
     x = np.ma.log10(atau_V__r)
     y = np.ma.log10(aSFRSD__r * 1e6)
-    print x, y
     mask = x.mask | y.mask
     xm = np.ma.masked_array(x, mask = mask)
     ym = np.ma.masked_array(y, mask = mask)
