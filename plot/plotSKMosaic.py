@@ -3,16 +3,18 @@
 #
 # Lacerda@Granada - 26/Nov/2014
 #
+import sys
 import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-import sys
-from califa_scripts.scripts import H5SFRData
-from plot_aux import plotOLSbisectorAxis, plot_gal_img_ax, OLS_bisector, \
-                     plot_text_ax
 from matplotlib.ticker import MultipleLocator
+from CALIFAUtils.scripts import H5SFRData
+from CALIFAUtils.plots import OLS_bisector
+from CALIFAUtils.plots import plot_text_ax
+from CALIFAUtils.plots import plot_gal_img_ax
+from CALIFAUtils.plots import plotOLSbisectorAxis
 
-debug = False
+#debug = False
 debug = True
 
 mpl.rcParams['font.size'] = 24
@@ -23,7 +25,6 @@ mpl.rcParams['ytick.labelsize'] = 24
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
-    
 sorted_args = {
     'Mcor' : 'Mcor_GAL__g',
     'McorSD' : 'McorSD_GAL__g',
@@ -31,7 +32,6 @@ sorted_args = {
     'Mr' : 'Mr_GAL__g',
     'ba' : 'ba_GAL__g',
 }
-
 
 if __name__ == '__main__':
     try:

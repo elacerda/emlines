@@ -9,11 +9,15 @@ from matplotlib.pyplot import MultipleLocator
 import time
 import sys
 import argparse as ap
-from plot_aux import plotOLSbisectorAxis, plot_text_ax, \
-                     calcRunningStats
-from califa_scripts.scripts import H5SFRData, read_one_cube, \
-                                   califa_work_dir, DrawHLRCircle, \
-                                   DrawHLRCircleInSDSSImage, get_morfologia
+from CALIFAUtils.plots import plotOLSbisectorAxis
+from CALIFAUtils.plots import plot_text_ax
+from CALIFAUtils.plots import calcRunningStats
+from CALIFAUtils.globals import califa_work_dir
+from CALIFAUtils.scripts import H5SFRData
+from CALIFAUtils.scripts import read_one_cube
+from CALIFAUtils.scripts import DrawHLRCircle
+from CALIFAUtils.scripts import DrawHLRCircleInSDSSImage
+from CALIFAUtils.scripts import get_morfologia
 
 mpl.rcParams['font.size'] = 16
 mpl.rcParams['axes.labelsize'] = 16
@@ -23,15 +27,20 @@ mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
-default = {
-    'debug' : False,
-    'hdf5' : None,
-    'califaID' : 'K0073',
-    'itSF' : 11,
-}
+def print_args(args):
+    for k, v in args.__dict__.iteritems():
+        print k, v 
 
-def parser_args():
+def parser_args():        
     parser = ap.ArgumentParser(description = '%s' % sys.argv[0])
+
+    default = {
+        'debug' : False,
+        'hdf5' : None,
+        'califaID' : 'K0073',
+        'itSF' : 11,
+    }
+    
     parser.add_argument('--debug', '-D',
                         action = 'store_true',
                         default = default['debug'])

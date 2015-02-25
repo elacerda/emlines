@@ -2,13 +2,14 @@
 #
 # Lacerda@Granada - 13/Oct/2014
 #
+import sys
 import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
-from matplotlib.colors import LogNorm
-import sys
-from plot_aux import H5SFRData, calcRunningStats
+#from matplotlib.colors import LogNorm
+from CALIFAUtils.plots import calcRunningStats
+from CALIFAUtils.scripts import H5SFRData
 
 mpl.rcParams['font.size']       = 20
 mpl.rcParams['axes.labelsize']  = 20
@@ -105,9 +106,27 @@ x_Y__Tg = H.get_data_h5('x_Y__Tg')
 #################################################################################
  
 for iT,tSF in enumerate(tSF__T):
-    x = np.ma.log10((2. - x_Y__Tg[iT]) * tau_V__Tg[iT])
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # x = np.ma.log10((2. - x_Y__Tg[iT]) * tau_V__Tg[iT])
+    # y = np.ma.log10(SFRSD__Tg[iT] * 1e6)
+    # #z = logZ_neb_S06__g
+    # z = 100. * x_Y__Tg[iT]
+    # mask = x.mask | y.mask
+    # xm = x[~mask]
+    # ym = y[~mask]
+    # zm = z[~mask]
+    # xlabel = r'$\log\ [(2\ -\ x_Y)\tau_V^{\star}$'
+    # ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$'
+    # #zlabel = r'$\log\ Z_{neb}$ [$Z_\odot$]'
+    # zlabel = r'$X_y$' 
+    # fname = '_SFRSD_Xy_age_%sMyr.png' % str(tSF / 1.e6)
+    # xlim = [-1.5, 0.5]
+    # ylim = [-3.0, 1]
+    # plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+    x = np.ma.log10(tau_V__Tg[iT])
     y = np.ma.log10(SFRSD__Tg[iT] * 1e6)
-    #z = logZ_neb_S06__g
     z = 100. * x_Y__Tg[iT]
     mask = x.mask | y.mask
     xm = x[~mask]
@@ -117,15 +136,16 @@ for iT,tSF in enumerate(tSF__T):
     ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$'
     #zlabel = r'$\log\ Z_{neb}$ [$Z_\odot$]'
     zlabel = r'$X_y$' 
-    fname = 'tauV_SFRSD_Xy_age_%sMyr.png' % str(tSF / 1.e6)
+    fname = 'logtauV_logSFRSD_Xy_age_%sMyr.png' % str(tSF / 1.e6)
     xlim = [-1.5, 0.5]
     ylim = [-3.0, 1]
-    plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
+    zlim = False
+    plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, zlim, tSF, fname)
         
     ###
     x = np.ma.log10(tau_V__Tg[iT])
     y = np.ma.log10(SFRSD__Tg[iT] * 1e6)
-    z = 10**H.alogZ_mass__Ug[-1]
+    z = H.alogZ_mass__Ug[-1]
     mask = x.mask | y.mask | z.mask
     xm = x[~mask]
     ym = y[~mask]
@@ -133,7 +153,7 @@ for iT,tSF in enumerate(tSF__T):
     xlabel = r'$\log\ \tau_V^{\star}$'
     ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
     zlabel = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[-1] / 1e9)
-    fname = 'tauV_SFRSD_alogZmass_age_%sMyr.png' % str(tSF / 1.e6)
+    fname = 'logtauV_logSFRSD_alogZmass_age_%sMyr.png' % str(tSF / 1.e6)
     xlim = [-1.5, 0.5]
     ylim = [-3.0, 1]
     plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
@@ -142,15 +162,15 @@ for iT,tSF in enumerate(tSF__T):
     ###
     x = np.ma.log10(tau_V__Tg[iT])
     y = np.ma.log10(SFRSD__Tg[iT] * 1e6)
-    z = 10.**logZ_neb_S06__g
+    z = logZ_neb_S06__g
     mask = x.mask | y.mask
     xm = x[~mask]
     ym = y[~mask]
     zm = z[~mask]
     xlabel = r'$\log\ \tau_V^{\star}$'
     ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    zlabel = r'$Z_{neb}$ [$Z_\odot$]'
-    fname = 'tauV_SFRSD_Zneb_age_%sMyr.png' % str(tSF / 1.e6)
+    zlabel = r'$\log\ Z_{neb}$ [$Z_\odot$]'
+    fname = 'logtauV_logSFRSD_logZneb_age_%sMyr.png' % str(tSF / 1.e6)
     xlim = [-1.5, 0.5]
     ylim = [-3.0, 1]
     plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
@@ -158,15 +178,15 @@ for iT,tSF in enumerate(tSF__T):
     ###
     x = np.ma.log10(H.tau_V_neb__g)
     y = np.ma.log10(SFRSD__Tg[iT] * 1e6)
-    z = 10.**logZ_neb_S06__g
+    z = logZ_neb_S06__g
     mask = x.mask | y.mask
     xm = x[~mask]
     ym = y[~mask]
     zm = z[~mask]
     xlabel = r'$\log\ \tau_V^{neb}$'
     ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    zlabel = r'$Z_{neb}$ [$Z_\odot$]'
-    fname = 'tauVneb_SFRSD_Zneb_age_%sMyr.png' % str(tSF / 1.e6)
+    zlabel = r'$\log\ Z_{neb}$ [$Z_\odot$]'
+    fname = 'logtauVneb_logSFRSD_logZneb_age_%sMyr.png' % str(tSF / 1.e6)
     xlim = [-1.5, 0.5]
     ylim = [-3.0, 1]
     plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
@@ -182,7 +202,7 @@ for iT,tSF in enumerate(tSF__T):
     xlabel = r'$\log\ \tau_V^{\star}$'
     ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
     zlabel = r'$\log\ \mu_\star$ [$M_\odot\ pc^{-2}$]'
-    fname = 'tauV_SFRSD_McorSD_age_%sMyr.png' % str(tSF / 1.e6)
+    fname = 'logtauV_logSFRSD_logMcorSD_age_%sMyr.png' % str(tSF / 1.e6)
     xlim = [-1.5, 0.5]
     ylim = [-3.0, 1]
     plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
@@ -198,7 +218,7 @@ for iT,tSF in enumerate(tSF__T):
     xlabel = r'$\log\ \tau_V^{neb}$'
     ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
     zlabel = r'$\log\ \mu_\star$ [$M_\odot\ pc^{-2}$]'
-    fname = 'tauVneb_SFRSD_McorSD_age_%sMyr.png' % str(tSF / 1.e6)
+    fname = 'logtauVneb_logSFRSD_logMcorSD_age_%sMyr.png' % str(tSF / 1.e6)
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
     # xlim = [-1.5, 0.5]
     # ylim = [-3.5, 0]
@@ -215,10 +235,10 @@ for iT,tSF in enumerate(tSF__T):
     xm = x[~mask]
     ym = y[~mask]
     zm = z[~mask]
-    xlabel = r'$\log\ \tau_V^{neb}$'
+    xlabel = r'$\log\ \tau_V^\star$'
     ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
     zlabel = r'Morph type'
-    fname = 'tauV_SFRSD_MorphType_age_%sMyr.png' % str(tSF / 1.e6)
+    fname = 'logtauV_logSFRSD_MorphType_age_%sMyr.png' % str(tSF / 1.e6)
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
     # xlim = [-1.5, 0.5]
     # ylim = [-3.5, 0]
@@ -235,10 +255,10 @@ for iT,tSF in enumerate(tSF__T):
     xm = x[~mask]
     ym = y[~mask]
     zm = z[~mask]
-    xlabel = r'$\log\ \tau_V^{neb}$'
+    xlabel = r'$\log\ \tau_V^\star$'
     ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
     zlabel = r'$\log\ M^{gal}_\star$ [$M_\odot$]'
-    fname = 'tauV_SFRSD_McorGAL_age_%sMyr.png' % str(tSF / 1.e6)
+    fname = 'logtauV_logSFRSD_logMcorGAL_age_%sMyr.png' % str(tSF / 1.e6)
     xlim = [-1.5, 0.5]
     ylim = [-3.0, 1]
     plotSK(xm, ym, zm, xlabel, ylabel, zlabel, xlim, ylim, False, tSF, fname)
@@ -252,9 +272,9 @@ for iT,tSF in enumerate(tSF__T):
     ym = y[~mask]
     #zm = z[~mask]
     xlabel = r'$\log\ \tau_V^{\star}(R)$'
-    ylabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_\star, R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+    ylabel = r'$\log\ \Sigma_{SFR}^\star(t_\star, R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
     zlabel = r'$\log\ \mu_\star$ [$M_\odot\ pc^{-2}$]'
-    fname = 'tauV_aSFRSD_age_%sMyr.png' % str(tSF / 1.e6)
+    fname = 'logtauV_logaSFRSD_age_%sMyr.png' % str(tSF / 1.e6)
     f = plt.figure()
     f.set_size_inches(10,8)
     ax = f.gca()

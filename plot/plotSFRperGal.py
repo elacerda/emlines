@@ -3,14 +3,14 @@
 #
 # Lacerda@Granada - 26/Nov/2014
 #
-import numpy as np
-#import h5py
-import matplotlib as mpl
-from matplotlib import pyplot as plt
 import sys
-from plot_aux import H5SFRData, plotOLSbisectorAxis, plot_text_ax
-from matplotlib.ticker import MultipleLocator
+import numpy as np
+import matplotlib as mpl
 from scipy import stats as st
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MultipleLocator
+from CALIFAUtils.plots import plotOLSbisectorAxis, plot_text_ax
+from CALIFAUtils.scripts import H5SFRData
 
 mpl.rcParams['font.size'] = 16
 mpl.rcParams['axes.labelsize'] = 16

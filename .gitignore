@@ -1,22 +1,16 @@
 syntax: glob
 .project
 .pydevproject
-.hgignore
 *.png
 *.log
 .settings
-SKlaw01.py
 *.aux
 *.bbl
 *.blg
 *.out
 *.gz
-emlines_backup.py
-teste.py
+teste.*
 latex/nathesis.cls
-/latex
-plot/data
 plotMosaic.sh
-ransac.py
-galzone.txt
 plot/SK
+plot/SKperGal

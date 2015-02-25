@@ -19,7 +19,6 @@ from CALIFAUtils.scripts import radialProfileWeighted
 from CALIFAUtils.scripts import loop_cubes
 from CALIFAUtils.scripts import sort_gals
 
-
 def parser_args():
     default_args = {
         'debug' : False,
@@ -34,7 +33,7 @@ def parser_args():
         'rbinini' : 0.0,
         'rbinfin' : 2.0,
         'rbinstep' : 0.1,
-        'maxiTSF' : -1,
+        'maxiTSF' :-1,
         'gals_filename' : califa_work_dir + 'listOf300GalPrefixes.txt'
     }
     parser = ap.ArgumentParser(description = '%s' % sys.argv[0])
@@ -93,6 +92,10 @@ def parser_args():
                         default = default_args['gals_filename'])
     return parser.parse_args()
 
+def print_args(args):
+    for k, v in args.__dict__.iteritems():
+        print k, v 
+
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -101,53 +104,21 @@ if __name__ == '__main__':
     t_init_prog = time.clock()
 
     args = parser_args()
-    
-    debug = args.debug
-    BPTLowS06 = args.underS06
-    hdf5 = args.hdf5
-    onlySpiral = args.spiral
-    weiRadProf = args.weiradprof
-    mask_xOk = True
-    # Def smallest light fraction (in the flag__t-ageMax age-range) deemed to be Ok for our stats ...
-    xOkMin = args.minpopx
-    # Minimum tauV to be taken seriously ...
-    tauVOkMin = args.mintauv
-    tauVNebOkMin = args.mintauvneb
-    #tauVNebErrMax = 0.15
-    tauVNebErrMax = args.maxtauvneberr
-    RbinIni = args.rbinini
-    RbinFin = args.rbinfin
-    RbinStep = args.rbinstep
-    galaxiesListFile = args.gals_filename
-    
-    print 'debug: ', debug
-    print 'BPTLowS06: ', BPTLowS06
-    print 'hdf5: ', hdf5
-    print 'onlySpiral: ', onlySpiral
-    print 'weiRadProf: ', weiRadProf
-    print 'xOkMin: ', xOkMin
-    print 'tauVOkMin: ', tauVOkMin
-    print 'tauVNebOkMin: ', tauVNebOkMin
-    print 'tauVNebErrMax: ', tauVNebErrMax
-    print 'RbinIni: ', RbinIni
-    print 'RbinFin: ', RbinFin
-    print 'RbinStep: ', RbinStep
-    print 'Gals Filename: ', galaxiesListFile
-    print 'maxiTFS: ', args.maxiTSF
+    print_args(args)    
     
     imgDir = califa_work_dir + 'images/'
     
     Zsun = 0.019
 
-    Rbin__r = np.arange(RbinIni, RbinFin + RbinStep, RbinStep)
+    Rbin__r = np.arange(args.rbinini, args.rbinfin + args.rbinstep, args.rbinstep)
     RbinCenter__r = (Rbin__r[:-1] + Rbin__r[1:]) / 2.0
     NRbins = len(RbinCenter__r)
     RColor = [ 'r', 'y', 'b', 'k' ]
     RRange = [  .5, 1., 1.5, 2.  ]
     
-    gals, _ = sort_gals(galaxiesListFile)
+    gals, _ = sort_gals(args.gals_filename)
     maxGals = None
-    if debug:
+    if args.debug:
         maxGals = 10
     N_gals = len(gals)
 
@@ -161,49 +132,47 @@ if __name__ == '__main__':
 
     tZ__U = np.array([1.0 , 2.0 , 5.0 , 8.0 , 11.3 , 14.2]) * 1.e9
     N_U = len(tZ__U)
-    #########################################################################
-    #########################################################################
-    #########################################################################
+
     ALL = ALLGals(N_gals, NRbins, N_T, N_U)
     
     # automatically read PyCASSO and EmLines data cubes.
     for iGal, K in loop_cubes(gals.tolist(), imax = maxGals, EL = True):
         t_init_gal = time.clock()
-        galName = gals[iGal] 
+        califaID = gals[iGal] 
 
-        ALL.califaIDs[iGal] = galName
+        ALL.califaIDs[iGal] = califaID
         
         if K == None:
             ALL.mask_gal(iGal)
-            print '<<< %s galaxy: miss files' % galName 
+            print '<<< %s galaxy: miss files' % califaID 
             continue
 
         ALL.N_zones__g[iGal] = K.N_zone
         
         if K.EL == None:
             ALL.mask_gal(iGal)
-            print '<<< %s galaxy: miss EmLines files' % galName 
+            print '<<< %s galaxy: miss EmLines files' % califaID 
             continue
 
         # Problem in FITS file
         if K.EL.flux[0, :].sum() == 0.:
             ALL.mask_gal(iGal)
-            print '<<< %s EmLines FITS problem' % galName
+            print '<<< %s EmLines FITS problem' % califaID
             continue
         
-        tipos, tipo, tipo_m, tipo_p = get_morfologia(galName)
+        tipos, tipo, tipo_m, tipo_p = get_morfologia(califaID)
         
         # Only spiral
-        if onlySpiral and tipo <= 8: 
+        if args.spiral and tipo <= 8: 
             ALL.mask_gal(iGal)
-            print '<<< %s galaxy: is not a spiral (type: %d)' % (galName, tipo) 
+            print '<<< %s galaxy: is not a spiral (type: %d)' % (califaID, tipo) 
             continue
         
         # Setup elliptical-rings geometry
         pa, ba = K.getEllipseParams()
         K.setGeometry(pa, ba)
         
-        print '>>> Doing' , iGal , galName , 'hubtyp=', tipo, '|  Nzones=' , K.N_zone
+        print '>>> Doing' , iGal , califaID , 'hubtyp=', tipo, '|  Nzones=' , K.N_zone
         
         # zone distance in HLR
         zoneDistHLR = np.sqrt((K.zonePos['x'] - K.x0) ** 2. + (K.zonePos['y'] - K.y0) ** 2.) / K.HLR_pix
@@ -244,9 +213,9 @@ if __name__ == '__main__':
             SFR__z = np.ma.masked_array(aux[0])
             SFRSD__z = np.ma.masked_array(aux[1])
 
-            if xOkMin >= 0.:
+            if args.minpopx >= 0.:
                 # Compute xOk "raw" image
-                maskNotOk__z = (x_Y__z < xOkMin) | (tau_V__z < tauVOkMin) 
+                maskNotOk__z = (x_Y__z < args.minpopx) | (tau_V__z < args.mintauv) 
                  
                 tau_V__z[maskNotOk__z] = np.ma.masked
                 SFR__z[maskNotOk__z] = np.ma.masked
@@ -277,7 +246,7 @@ if __name__ == '__main__':
             ALL.tau_V__Trg[iT, :, iGal] = K.radialProfile(tau_V__yx, Rbin__r, rad_scale = K.HLR_pix)
             
         for iU, tZ in enumerate(tZ__U):
-            aux = calc_alogZ_Stuff(K, tZ, xOkMin)
+            aux = calc_alogZ_Stuff(K, tZ, args.minpopx)
             alogZ_mass__z = aux[0]
             alogZ_flux__z = aux[1]
             alogZ_mass_GAL = aux[2]
@@ -340,7 +309,7 @@ if __name__ == '__main__':
         maskOkFlux__z = (Ha >= 0) & (Hb >= 0) & (O3 >= 0) & (N2 >= 0)
         maskOkBPT__z = np.ones((K.N_zone), dtype = np.bool)
         
-        if BPTLowS06:
+        if args.underS06:
             L = Lines()
             N2Ha = np.ma.log10(K.EL.N2_obs__z / K.EL.Ha_obs__z)
             O3Hb = np.ma.log10(K.EL.O3_obs__z / K.EL.Hb_obs__z)
@@ -350,8 +319,8 @@ if __name__ == '__main__':
         ########## tau_V #########
         maskOkTauVNeb__z = np.ones((K.N_zone), dtype = np.bool)
         
-        if tauVNebOkMin >= 0:
-            maskOkTauVNeb__z = (K.EL.tau_V_neb__z >= tauVNebOkMin) & (K.EL.tau_V_neb_err__z <= tauVNebErrMax)
+        if args.mintauvneb >= 0:
+            maskOkTauVNeb__z = (K.EL.tau_V_neb__z >= args.mintauvneb) & (K.EL.tau_V_neb_err__z <= args.maxtauvneberr)
 
         maskOkNeb__z = (maskOkTauVNeb__z & maskLinesSNR__z & maskOkFlux__z & maskOkBPT__z)
         
@@ -451,21 +420,22 @@ if __name__ == '__main__':
         ####################################################
         ####################################################
         
-        print 'time per galaxy: %s %.2f' % (galName, time.clock() - t_init_gal)
+        print 'time per galaxy: %s %.2f' % (califaID, time.clock() - t_init_gal)
+        K.close()
 
     t_init_stack = time.clock()        
     ALL.stack_zones_data()
     print 'time stack: %.2f' % (time.clock() - t_init_stack)
     
-    if hdf5 != None:
+    if args.hdf5 != None:
         t_init_hdf5 = time.clock()        
         import h5py
         filename = args.hdf5
         h5 = h5py.File(filename, 'w')
         D = ALL.create_dict_h5()
-        D['/data/RbinIni'] = RbinIni
-        D['/data/RbinFin'] = RbinFin
-        D['/data/RbinStep'] = RbinStep
+        D['/data/RbinIni'] = args.rbinini
+        D['/data/RbinFin'] = args.rbinfin
+        D['/data/RbinStep'] = args.rbinstep
         D['/data/Rbin__r'] = Rbin__r
         D['/data/RbinCenter__r'] = RbinCenter__r
         D['/data/NRbins'] = NRbins
@@ -473,10 +443,10 @@ if __name__ == '__main__':
         D['/data/RRange'] = RRange
         D['/data/tSF__T'] = tSF__T
         D['/data/tZ__U'] = tZ__U
-        D['/data/xOkMin'] = xOkMin
-        D['/data/tauVOkMin'] = tauVOkMin
-        D['/data/tauVNebOkMin'] = tauVNebOkMin
-        D['/data/tauVNebErrMax'] = tauVNebErrMax
+        D['/data/xOkMin'] = args.minpopx
+        D['/data/tauVOkMin'] = args.mintauv
+        D['/data/tauVNebOkMin'] = args.mintauvneb
+        D['/data/tauVNebErrMax'] = args.maxtauvneberr
         for k in D.keys():
             try:
                 h5.create_dataset(k, data = D[k], compression = 'gzip', compression_opts = 4)
