@@ -203,10 +203,18 @@ if __name__ == '__main__':
         denominator__z = K.Lobn__tZz.sum(axis = 1).sum(axis = 0)
         ALL.at_flux_GAL__g[iGal] = numerator__z.sum() / denominator__z.sum()
         
+        ALL._at_flux__g.append(K.at_flux__z)
+        ALL._at_mass__g.append(K.at_flux__z)
+        
+        ALL.at_flux__rg[:, iGal] = K.radialProfile(K.at_flux__yx, Rbin__r, rad_scale = K.HLR_pix)
+        ALL.at_mass__rg[:, iGal] = K.radialProfile(K.at_mass__yx, Rbin__r, rad_scale = K.HLR_pix)
+        
         for iT, tSF in enumerate(tSF__T):
             Mcor__z = np.ma.masked_array(K.Mcor__z)
             McorSD__z = np.ma.masked_array(K.Mcor__z / K.zoneArea_pc2)
             tau_V__z = np.ma.masked_array(K.tau_V__z)
+            at_flux__z = np.ma.masked_array(K.at_flux__z)
+            at_mass__z = np.ma.masked_array(K.at_mass__z)
             
             x_Y__z = calc_xY(K, tSF)
             aux = calc_SFR(K, tSF)
@@ -222,10 +230,16 @@ if __name__ == '__main__':
                 SFRSD__z[maskNotOk__z] = np.ma.masked
                 Mcor__z[maskNotOk__z] = np.ma.masked
                 McorSD__z[maskNotOk__z] = np.ma.masked
+                at_flux__z[maskNotOk__z] = np.ma.masked
+                at_mass__z[maskNotOk__z] = np.ma.masked
                 
             tau_V__yx = K.zoneToYX(tau_V__z, extensive = False, surface_density = False)
-            McorSD__yx = K.zoneToYX(Mcor__z, extensive = True)
             aSFRSD__yx = K.zoneToYX(SFRSD__z, extensive = False, surface_density = False)
+            McorSD__yx = K.zoneToYX(Mcor__z, extensive = True)
+            at_flux__yx = K.zoneToYX(at_flux__z, extensive = False, surface_density = False)
+            at_mass__yx = K.zoneToYX(at_mass__z, extensive = False, surface_density = False)
+            at_flux_dezon__yx = K.zoneToYX(at_flux__z, extensive = True)
+            at_mass_dezon__yx = K.zoneToYX(at_mass__z, extensive = True)
             
             ALL._x_Y__Tg[iT].append(x_Y__z)
             ALL._tau_V__Tg[iT].append(tau_V__z.data)
@@ -236,6 +250,8 @@ if __name__ == '__main__':
             ALL._SFR_mask__Tg[iT].append(SFR__z.mask)
             ALL._SFRSD__Tg[iT].append(SFRSD__z.data)
             ALL._SFRSD_mask__Tg[iT].append(SFRSD__z.mask)
+            ALL._at_flux__Tg[iT].append(at_flux__z)
+            ALL._at_mass__Tg[iT].append(at_mass__z)
 
             integrated_SFR = SFR__z.sum()
             ALL.integrated_SFR__Tg[iT, iGal] = integrated_SFR
@@ -244,25 +260,25 @@ if __name__ == '__main__':
             ALL.McorSD__Trg[iT, :, iGal] = K.radialProfile(McorSD__yx, Rbin__r, rad_scale = K.HLR_pix)
             ALL.aSFRSD__Trg[iT, :, iGal] = K.radialProfile(aSFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
             ALL.tau_V__Trg[iT, :, iGal] = K.radialProfile(tau_V__yx, Rbin__r, rad_scale = K.HLR_pix)
+            ALL.at_flux__Trg[iT, :, iGal] = K.radialProfile(at_flux__yx, Rbin__r, rad_scale = K.HLR_pix)
+            ALL.at_mass__Trg[iT, :, iGal] = K.radialProfile(at_mass__yx, Rbin__r, rad_scale = K.HLR_pix)
+            ALL.at_flux_dezon__Trg[iT, :, iGal] = K.radialProfile(at_flux_dezon__yx, Rbin__r, rad_scale = K.HLR_pix)
+            ALL.at_mass_dezon__Trg[iT, :, iGal] = K.radialProfile(at_mass_dezon__yx, Rbin__r, rad_scale = K.HLR_pix)
+            Lobn__yx = K.zoneToYX(K.Lobn__z, extensive = True)
+            ALL.at_flux_wei__Trg[iT, :, iGal] = radialProfileWeighted(at_flux__yx, Lobn__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
+            ALL.at_mass_wei__Trg[iT, :, iGal] = radialProfileWeighted(at_mass__yx, McorSD__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
             
         for iU, tZ in enumerate(tZ__U):
-            aux = calc_alogZ_Stuff(K, tZ, args.minpopx)
+            aux = calc_alogZ_Stuff(K, tZ, args.minpopx, Rbin__r)
             alogZ_mass__z = aux[0]
             alogZ_flux__z = aux[1]
             alogZ_mass_GAL = aux[2]
             alogZ_flux_GAL = aux[3]
-            isOkFrac_GAL = aux[4]
-
-            alogZ_mass__yx = K.zoneToYX(alogZ_mass__z, extensive = False, surface_density = False)
-            alogZ_flux__yx = K.zoneToYX(alogZ_flux__z, extensive = False, surface_density = False)
-
-            alogZ_mass__r = K.radialProfile(alogZ_mass__yx, Rbin__r, rad_scale = K.HLR_pix)
-            alogZ_flux__r = K.radialProfile(alogZ_flux__yx, Rbin__r, rad_scale = K.HLR_pix)
-
-            Mcor__yx = K.zoneToYX(K.Mcor__z, extensive = True)
-            Lobn__yx = K.zoneToYX(K.Lobn__z, extensive = True)
-            alogZ_mass_wei__r = radialProfileWeighted(alogZ_mass__yx, Mcor__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
-            alogZ_flux_wei__r = radialProfileWeighted(alogZ_flux__yx, Lobn__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
+            alogZ_mass__r = aux[4]
+            alogZ_flux__r = aux[5]
+            alogZ_mass_wei__r = aux[6]
+            alogZ_flux_wei__r = aux[7]
+            isOkFrac_GAL = aux[8]
             
             ALL._alogZ_mass__Ug[iU].append(alogZ_mass__z.data)
             ALL._alogZ_mass_mask__Ug[iU].append(alogZ_mass__z.mask)
