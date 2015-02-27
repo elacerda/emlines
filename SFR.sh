@@ -15,10 +15,10 @@ for file in /Users/lacerda/CALIFA/list_SFR/rem_ba_morph/list_0123.txt /Users/lac
 do
     bname=$(basename $file)
     name=${bname%.txt}
-    time ./SFR.py -L $file --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 --maxtauvneberr 0.15 -H SFR_0.05_0.05_0.05_0.15_${name}.h5 >&SFR_0.05_0.05_0.05_0.15_${name}.log &
-    time ./SFR.py -L $file --rbinfin=5.0 --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 --maxtauvneberr 0.15 -H SFR_0.05_0.05_0.05_0.15_5HLR_${name}.h5 >&SFR_0.05_0.05_0.05_0.15_5HLR_${name}.log &
-    time ./SFR.py -L $file --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 --maxtauvneberr 999.0 -H SFR_0.05_0.05_0.05_0.15_${name}.h5 >&SFR_0.05_0.05_0.05_0.15_${name}.log &
-    time ./SFR.py -L $file --rbinfin=5.0 --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 --maxtauvneberr 999.0 -H SFR_0.05_0.05_0.05_0.15_5HLR_${name}.h5 >&SFR_0.05_0.05_0.05_0.15_5HLR_${name}.log
+    time ./SFR.py -L $file --spiral --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 --maxtauvneberr 0.15 -H SFR_0.05_0.05_0.05_0.15_${name}.h5 &> SFR_0.05_0.05_0.05_0.15_${name}.log &
+    time ./SFR.py -L $file --spiral --rbinfin=5.0 --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 --maxtauvneberr 0.15 -H SFR_0.05_0.05_0.05_0.15_5HLR_${name}.h5 &> SFR_0.05_0.05_0.05_0.15_5HLR_${name}.log 
+    time ./SFR.py -L $file --spiral --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 --maxtauvneberr 999.0 -H SFR_0.05_0.05_0.05_0.15_${name}.h5 &> SFR_0.05_0.05_0.05_0.15_${name}.log &
+    time ./SFR.py -L $file --spiral --rbinfin=5.0 --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 --maxtauvneberr 999.0 -H SFR_0.05_0.05_0.05_0.15_5HLR_${name}.h5 &> SFR_0.05_0.05_0.05_0.15_5HLR_${name}.log
 done
 exit
 

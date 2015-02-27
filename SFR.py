@@ -9,9 +9,9 @@ import numpy as np
 from pystarlight.util.constants import L_sun
 from pystarlight.util.base import StarlightBase
 from CALIFAUtils.lines import Lines
+from CALIFAUtils.objects import ALLGals
 from CALIFAUtils.globals import califa_work_dir
 from CALIFAUtils.scripts import get_morfologia
-from CALIFAUtils.scripts import ALLGals
 from CALIFAUtils.scripts import calc_SFR
 from CALIFAUtils.scripts import calc_xY
 from CALIFAUtils.scripts import calc_alogZ_Stuff
@@ -387,7 +387,6 @@ if __name__ == '__main__':
         L_obs_err__Lz = K.EL._F_to_L(K.EL.eflux) / L_sun
         
         # L_int_Ha__Lz intrinsic Ha luminosity 
-        q = K.EL._qCCM['6563'] / (K.EL._qCCM['4861'] - K.EL._qCCM['6563'])
         eHa = np.ma.exp(K.EL._qCCM['6563'] * tau_V_neb__z)
         
         L_obs_Ha__z = np.ma.masked_array(L_obs__Lz[i_Ha, :], mask = ~maskOkNeb__z)
@@ -403,6 +402,7 @@ if __name__ == '__main__':
         integrated_L_int_Ha = integrated_L_obs_Ha__L[i_Ha] * integrated_eHa
         
         # L_int_Ha_err__Lz intrinsic Ha luminosity propagated error
+        q = K.EL._qCCM['6563'] / (K.EL._qCCM['4861'] - K.EL._qCCM['6563'])
         a = L_obs_Ha_err__z
         b = q * L_obs_HaHb__z * L_obs_Hb_err__z
         L_int_Ha_err__z = eHa * np.sqrt(a ** 2.0 + b ** 2.0)
