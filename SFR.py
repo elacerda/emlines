@@ -403,8 +403,8 @@ if __name__ == '__main__':
         ##########################
 
         ########### EW ###########
-        EW_Ha__z = np.ma.masked_array(K.EL.EW[i_Ha, :], mask = maskOkHa__z)
-        EW_Hb__z = np.ma.masked_array(K.EL.EW[i_Hb, :], mask = maskOkHb__z)
+        EW_Ha__z = np.ma.masked_array(K.EL.EW[i_Ha, :], mask = ~maskOkHa__z)
+        EW_Hb__z = np.ma.masked_array(K.EL.EW[i_Hb, :], mask = ~maskOkHb__z)
         
         ALL._EW_Ha__g.append(EW_Ha__z.data)
         ALL._EW_Ha_mask__g.append(EW_Ha__z.mask)
