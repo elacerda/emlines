@@ -2,22 +2,23 @@
 #
 # Lacerda@Granada - 13/Oct/2014
 #
+import sys
 import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
+from CALIFAUtils.objects import H5SFRData
+from CALIFAUtils.plots import plot_text_ax
+from CALIFAUtils.scripts import OLS_bisector
 from matplotlib.ticker import MultipleLocator
-import sys
-from califa_scripts import H5SFRData
-from plot_aux import plotOLSbisectorAxis, plot_text_ax, \
-                     calcRunningStats, gaussSmooth_YofX, \
-                     OLS_bisector
+from CALIFAUtils.scripts import gaussSmooth_YofX
+from CALIFAUtils.plots import plotOLSbisectorAxis
+from CALIFAUtils.scripts import calc_running_stats
 
-
-mpl.rcParams['font.size']       = 20
-mpl.rcParams['axes.labelsize']  = 20
-mpl.rcParams['axes.titlesize']  = 22
-mpl.rcParams['xtick.labelsize'] = 16
-mpl.rcParams['ytick.labelsize'] = 16 
+mpl.rcParams['font.size']       = 18
+mpl.rcParams['axes.labelsize']  = 18
+mpl.rcParams['axes.titlesize']  = 20
+mpl.rcParams['xtick.labelsize'] = 14
+mpl.rcParams['ytick.labelsize'] = 14 
 mpl.rcParams['font.family']     = 'serif'
 mpl.rcParams['font.serif']      = 'Times New Roman'
 
@@ -31,7 +32,7 @@ if __name__ == '__main__':
         exit(1)
     
     H = H5SFRData(h5file)
-    dtSF__T = H.tSF__T
+    tSF__T = H.tSF__T
     xOkMin = H.xOkMin
     tauVOkMin = H.tauVOkMin
     tauVNebOkMin = H.tauVNebOkMin
@@ -42,7 +43,6 @@ if __name__ == '__main__':
     ###########################################################################
     #tauVtoAV = np.log10(np.exp(1)) / 0.4
     #zticks3 = [ -0.8, -0.6, -0.4, -0.2, -0.1, 0, 0.1, 0.2 ]
-    
     alogZmass_edges_radius = [
         #-0.35755388,
         -0.35, 
@@ -65,7 +65,6 @@ if __name__ == '__main__':
     ]
     alogZmass_minmax_radius = [-0.75, 0.1]
     alogZmass_minmax_zones = [-0.95, 0.2]
-
     logZneb_edges_radius = [
         #-0.12385368,
         -0.12, 
@@ -86,15 +85,14 @@ if __name__ == '__main__':
         #0.00041659,
         0.,
     ]
-    
     logZneb_minmax_zones = [-0.2, 0.05]
     logZneb_minmax_radius = [-0.2, 0.05]        
-    
     zticklabelcolors = [(1, 0, 0), (0, 1, 0), (0, 1, .5), (0, 0.5, 1), (0, 0, 1)]
+ 
     for i in iT_values:
         iT = i
         tSF = H.tSF__T[iT]
-        suptitle_txt = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1.e6), xOkMin * 100., tauVOkMin, tauVNebOkMin, tauVNebErrMax)    
+        suptitle_txt = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1.e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
         #######################################################################
         #######################################################################
         ##### Radius ##########################################################
@@ -172,7 +170,7 @@ if __name__ == '__main__':
         f.suptitle(suptitle_txt, fontsize = 14)
         f.savefig(fname)
         plt.close(f)
-
+ 
         x = H.tau_V__Trg[iT]
         y = H.tau_V_neb__rg
         z = H.logZ_neb_S06__rg
@@ -251,7 +249,7 @@ if __name__ == '__main__':
         f.suptitle(suptitle_txt, fontsize = 14)     #plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
         f.savefig(fname)
         plt.close(f)
-        
+         
         x = H.tau_V__Trg[iT]
         y = H.tau_V_neb__rg
         z = H.alogZ_mass__Urg[-1]
@@ -305,7 +303,7 @@ if __name__ == '__main__':
             if len(X) > 3 and len(Y) > 3:
                 nBox = 50
                 dxBox       = (X.max() - X.min()) / (nBox - 1.)
-                aux         = calcRunningStats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
+                aux         = calc_running_stats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
                 xbinCenter  = aux[0]
                 xMedian     = aux[1]
                 xMean       = aux[2]
@@ -332,7 +330,7 @@ if __name__ == '__main__':
         #plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
         f.savefig(fname)
         plt.close(f)
-
+ 
         x = H.tau_V__Trg[iT]
         y = H.tau_V_neb__rg
         z = H.logZ_neb_S06__rg
@@ -386,7 +384,7 @@ if __name__ == '__main__':
             if len(X) > 3 and len(Y) > 3:
                 nBox = 50
                 dxBox       = (X.max() - X.min()) / (nBox - 1.)
-                aux         = calcRunningStats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
+                aux         = calc_running_stats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
                 xbinCenter  = aux[0]
                 xMedian     = aux[1]
                 xMean       = aux[2]
@@ -413,8 +411,8 @@ if __name__ == '__main__':
         #plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
         f.savefig(fname)
         plt.close(f)
-
-
+ 
+ 
         #######################################################################
         #######################################################################
         ##### Zones ###########################################################
@@ -458,7 +456,7 @@ if __name__ == '__main__':
             (zm > alogZmass_edges_zones[2]) & (zm <= alogZmass_edges_zones[3]),
             (zm > alogZmass_edges_zones[3]),
         ]
-        
+         
         z_labels = [
             'Z <= %.2f' % alogZmass_edges_zones[0],
             '%.2f < Z <= %.2f' % (alogZmass_edges_zones[0],alogZmass_edges_zones[1]),
@@ -500,7 +498,7 @@ if __name__ == '__main__':
         f.suptitle(suptitle_txt, fontsize = 14)        
         f.savefig(fname)
         plt.close(f)
-
+ 
         x = H.tau_V__Tg[iT]
         y = H.tau_V_neb__g
         z = H.logZ_neb_S06__g
@@ -579,28 +577,9 @@ if __name__ == '__main__':
         f.suptitle(suptitle_txt, fontsize = 14)
         f.savefig(fname)
         plt.close(f)
-        
-
-
-
-
-exit(1)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
+sys.exit('bai')
+ 
 iT = 11
 tSF = H.tSF__T[iT]
 x = np.ma.log10(H.tau_V__Trg[iT].flatten())
@@ -635,7 +614,7 @@ zticks_mask = [
     (zm > alogZmass_edges_radius[2]) & (zm <= alogZmass_edges_radius[3]),
     (zm > alogZmass_edges_radius[3]),
 ]
-
+ 
 z_labels = [
     'Z <= %.2f' % alogZmass_edges_radius[0],
     '%.2f < Z <= %.2f' % (alogZmass_edges_radius[0],alogZmass_edges_radius[1]),
@@ -665,7 +644,7 @@ ax.grid(which = 'major')
 f.suptitle(suptitle_txt, fontsize = 14)
 f.savefig(fname)
 plt.close(f)
-
+ 
 x = np.ma.log10(H.tau_V__Trg[iT].flatten())
 y = np.ma.log10(H.aSFRSD__Trg[11].flatten() * 1e6)
 z = H.logZ_neb_S06__rg.flatten()
@@ -727,7 +706,7 @@ ax.grid(which = 'major')
 f.suptitle(suptitle_txt, fontsize = 14)
 f.savefig(fname)
 plt.close(f)
-
+ 
 x = np.ma.log10(H.tau_V_neb__rg.flatten())
 y = np.ma.log10(H.aSFRSD__Trg[11].flatten() * 1e6)
 z = H.alogZ_mass__Urg[-1].flatten()
@@ -760,7 +739,7 @@ zticks_mask = [
     (zm > alogZmass_edges_radius[2]) & (zm <= alogZmass_edges_radius[3]),
     (zm > alogZmass_edges_radius[3]),
 ]
-
+ 
 z_labels = [
     'Z <= %.2f' % alogZmass_edges_radius[0],
     '%.2f < Z <= %.2f' % (alogZmass_edges_radius[0],alogZmass_edges_radius[1]),
@@ -790,7 +769,7 @@ ax.grid(which = 'major')
 f.suptitle(suptitle_txt, fontsize = 14)
 f.savefig(fname)
 plt.close(f)
-
+ 
 x = np.ma.log10(H.tau_V_neb__rg.flatten())
 y = np.ma.log10(H.aSFRSD__Trg[11].flatten() * 1e6)
 z = H.logZ_neb_S06__rg.flatten()

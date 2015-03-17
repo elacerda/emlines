@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
-from CALIFAUtils.scripts import H5SFRData
+from CALIFAUtils.objects import H5SFRData
 from CALIFAUtils.plots import OLS_bisector
 from CALIFAUtils.plots import plot_text_ax
 from CALIFAUtils.plots import plot_gal_img_ax

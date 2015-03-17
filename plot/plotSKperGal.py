@@ -2,22 +2,22 @@
 #
 # Lacerda@Saco - 23/Jun/2014
 #
+import sys
+import time
 import numpy as np
+import argparse as ap
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.pyplot import MultipleLocator
-import time
-import sys
-import argparse as ap
-from CALIFAUtils.plots import plotOLSbisectorAxis
+from CALIFAUtils.objects import H5SFRData
 from CALIFAUtils.plots import plot_text_ax
-from CALIFAUtils.plots import calcRunningStats
-from CALIFAUtils.globals import califa_work_dir
-from CALIFAUtils.scripts import H5SFRData
 from CALIFAUtils.scripts import read_one_cube
 from CALIFAUtils.scripts import DrawHLRCircle
-from CALIFAUtils.scripts import DrawHLRCircleInSDSSImage
 from CALIFAUtils.scripts import get_morfologia
+from CALIFAUtils.globals import califa_work_dir
+from CALIFAUtils.plots import plotOLSbisectorAxis
+from CALIFAUtils.scripts import calc_running_stats
+from CALIFAUtils.scripts import DrawHLRCircleInSDSSImage
 
 mpl.rcParams['font.size'] = 16
 mpl.rcParams['axes.labelsize'] = 16
@@ -212,7 +212,7 @@ if __name__ == '__main__':
     dxBox = (xm.max() - xm.min()) / (nBox - 1.)
     X = x[~mask]
     Y = y[~mask]
-    aux = calcRunningStats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
+    aux = calc_running_stats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
     xbinCenter = aux[0]
     xMedian = aux[1]
     xMean = aux[2]
@@ -322,7 +322,7 @@ if __name__ == '__main__':
     dxBox = (xm.max() - xm.min()) / (nBox - 1.)
     X = x[~mask]
     Y = y[~mask]
-    aux = calcRunningStats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
+    aux = calc_running_stats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
     xbinCenter = aux[0]
     xMedian = aux[1]
     xMean = aux[2]

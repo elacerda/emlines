@@ -7,7 +7,7 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
 import sys
-from CALIFAUtils.scripts import H5SFRData
+from CALIFAUtils.objects import H5SFRData
 from CALIFAUtils.plots import plot_text_ax, plot_linreg_params, \
                               plotOLSbisectorAxis
 
@@ -72,7 +72,7 @@ for i in range(0, NRows):
         xran = [-6, 0]
         yran = [-6, 0]
         scat = ax.scatter(xm, ym, c = 'black', marker = 'o', s = 0.3, edgecolor = 'none', alpha = 0.4)
-        a[iT], b[iT], sigma_a, sigma_b = plotOLSbisectorAxis(ax, xm, ym, 0.92, 0.05, 8)
+        a[iT], b[iT], sigma_a, sigma_b = plotOLSbisectorAxis(ax, xm, ym, x_pos = 0.92, y_pos = 0.05, fs = 8)
 
         b2[iT] = (ym - xm).mean()
         Y2 = xm + b2[iT]
@@ -151,7 +151,7 @@ for i in range(0, NRows):
         yran = [-3.5, 1]
         scat = ax.scatter(xm, ym, c = 'black', marker = 'o', s = 0.3, edgecolor = 'none', alpha = 0.4)
 
-        a[iT], b[iT], sigma_a, sigma_b = plotOLSbisectorAxis(ax, xm, ym, 0.92, 0.05, 8)
+        a[iT], b[iT], sigma_a, sigma_b = plotOLSbisectorAxis(ax, xm, ym, x_pos = 0.92, y_pos = 0.05, fs = 8)
 
         b2[iT] = (ym - xm).mean()
         Y2 = xm + b2[iT]
@@ -275,7 +275,7 @@ for i in range(0, NRows):
         xm = x[~mask]
         ym = y[~mask]
          
-        a[iT], b[iT], sigma_a, sigma_b = plotOLSbisectorAxis(ax, xm, ym, 0.92, 0.05, 8)
+        a[iT], b[iT], sigma_a, sigma_b = plotOLSbisectorAxis(ax, xm, ym, x_pos = 0.92, y_pos = 0.05, fs = 8)
 
         b2[iT] = (ym - xm).mean()
         Y2 = xm + b2[iT]
