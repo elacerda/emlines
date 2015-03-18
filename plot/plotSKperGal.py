@@ -228,7 +228,7 @@ if __name__ == '__main__':
     ax.plot(xPrc[1], yPrc[1], 'k--', lw = 2)
     txt = '%.2f Myr' % (age / 1e6)
     plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
-    a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, 0.98, 0.02, 14)
+    a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.98, pos_y = 0.02, fs = 14)
     ##########################
     x = np.ma.log10(atau_V__r)
     y = np.ma.log10(aSFRSD__r * 1e6)
@@ -338,7 +338,7 @@ if __name__ == '__main__':
     ax.plot(xPrc[1], yPrc[1], 'k--', lw = 2)
     txt = '%.2f Myr' % (age / 1e6)
     plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
-    a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, 0.98, 0.02, 14)
+    a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.98, pos_y = 0.02, fs = 14)
     ##########################
     x = np.ma.log10(atau_V_neb__r)
     y = np.ma.log10(aSFRSD_Ha__r * 1e6)
