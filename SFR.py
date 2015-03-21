@@ -20,6 +20,7 @@ from CALIFAUtils.scripts import loop_cubes
 from CALIFAUtils.scripts import sort_gals
 from CALIFAUtils.globals import gasprop_cube_dir, gasprop_suffix
 from CALIFAUtils.objects import GasProp
+from CALIFAUtils.scripts import debug_var
 
 def parser_args():
     default_args = {
@@ -37,8 +38,7 @@ def parser_args():
         'rbinstep' : 0.1,
         'maxiTSF' :-1,
         'gals_filename' : califa_work_dir + 'listOf300GalPrefixes.txt',
-        'ldispl' : 3.,
-        'minsnr' : 3.,
+        'rgbcuts' : False,
     }
     parser = ap.ArgumentParser(description = '%s' % sys.argv[0])
     parser.add_argument('--debug', '-D',
@@ -50,6 +50,9 @@ def parser_args():
     parser.add_argument('--underS06',
                         action = 'store_true',
                         default = default_args['underS06'])
+    parser.add_argument('--rgbcuts',
+                        action = 'store_true',
+                        default = default_args['rgbcuts'])
     parser.add_argument('--weiradprof', '-W',
                         action = 'store_true',
                         default = default_args['weiradprof'])
@@ -94,14 +97,6 @@ def parser_args():
                         metavar = 'FILE',
                         type = str,
                         default = default_args['gals_filename'])
-    parser.add_argument('--ldispl',
-                        metavar = 'FRAC',
-                        type = float,
-                        default = default_args['ldispl'])
-    parser.add_argument('--minsnr',
-                        metavar = 'FRAC',
-                        type = float,
-                        default = default_args['minsnr'])
 
     return parser.parse_args()
 
@@ -244,7 +239,12 @@ if __name__ == '__main__':
             if args.minpopx >= 0.:
                 # Compute xOk "raw" image
                 maskNotOk__z = (x_Y__z < args.minpopx) | (tau_V__z < args.mintauv) 
-                 
+                debug_var(args.debug, pref = '    >>>',
+                    tSF = '%.2fMyr' % (tSF / 1e6),
+                    NnotOkxY = (x_Y__z < args.minpopx).sum(),
+                    NnotOktauV = (tau_V__z < args.mintauv).sum(),
+                    NnotOk = maskNotOk__z.sum(),
+                )
                 tau_V__z[maskNotOk__z] = np.ma.masked
                 SFR__z[maskNotOk__z] = np.ma.masked
                 SFRSD__z[maskNotOk__z] = np.ma.masked
@@ -322,37 +322,94 @@ if __name__ == '__main__':
         O3_central_wl = '5007'
         Ha_central_wl = '6563'
         N2_central_wl = '6583'
+        
+        lines_central_wl = [ 
+            Hb_central_wl,
+            O3_central_wl,
+            Ha_central_wl,
+            N2_central_wl,
+        ]
+         
         i_Hb = K.EL.lines.index(Hb_central_wl)
         i_O3 = K.EL.lines.index(O3_central_wl)
         i_Ha = K.EL.lines.index(Ha_central_wl)
         i_N2 = K.EL.lines.index(N2_central_wl)
-        ###### MASK EmLines ######
-        # minimum value of f_lz / err_f_lz
-        minSNR = args.minsnr
-        line_displacement = args.ldispl
-        
-        l = Hb_central_wl
-        maskOkHb__z  = ~K.EL._setMaskLineFluxNeg(l)
-        maskOkHb__z &= ~K.EL._setMaskLineDisplacement(l, P._dlcons[l]['pos'])
-        maskOkHb__z &= ~K.EL._setMaskLineSNR(l, P._dlcons[l]['SN'])
-        maskOkHb__z &= ~K.EL._setMaskLineSigma(l, P._dlcons[l]['sigma'])
-        l = O3_central_wl
-        maskOkO3__z  = ~K.EL._setMaskLineFluxNeg(l)
-        maskOkO3__z &= ~K.EL._setMaskLineDisplacement(l, P._dlcons[l]['pos'])
-        maskOkO3__z &= ~K.EL._setMaskLineSNR(l, P._dlcons[l]['SN'])
-        maskOkO3__z &= ~K.EL._setMaskLineSigma(l, P._dlcons[l]['sigma'])
-        l = Ha_central_wl
-        maskOkHa__z  = ~K.EL._setMaskLineFluxNeg(l)
-        maskOkHa__z &= ~K.EL._setMaskLineDisplacement(l, P._dlcons[l]['pos'])
-        maskOkHa__z &= ~K.EL._setMaskLineSNR(l, P._dlcons[l]['SN'])
-        maskOkHa__z &= ~K.EL._setMaskLineSigma(l, P._dlcons[l]['sigma'])
-        l = N2_central_wl
-        maskOkN2__z  = ~K.EL._setMaskLineFluxNeg(l)
-        maskOkN2__z &= ~K.EL._setMaskLineDisplacement(l, P._dlcons[l]['pos'])
-        maskOkN2__z &= ~K.EL._setMaskLineSNR(l, P._dlcons[l]['SN'])
-        maskOkN2__z &= ~K.EL._setMaskLineSigma(l, P._dlcons[l]['sigma'])
 
-        maskOkLines__z = maskOkHb__z & maskOkO3__z & maskOkHa__z & maskOkN2__z 
+        ###### MASK EmLines ######
+        maskOkLine = {}
+        if args.rgbcuts is True:
+            for l in lines_central_wl:
+                pos, sigma, snr =  P._dlcons[l]['pos'], P._dlcons[l]['sigma'], P._dlcons[l]['SN']
+                debug_var(args.debug, pref = l, pos = pos, sigma = sigma, snr = snr)
+                maskOkLine[l] = K.EL._setMaskLineFluxNeg(l) 
+                maskOkLine[l] |= K.EL._setMaskLineDisplacement(l, pos)
+                maskOkLine[l] |= K.EL._setMaskLineSigma(l, sigma)
+                maskOkLine[l] |= K.EL._setMaskLineSNR(l, snr)
+                maskOkLine[l] = ~(maskOkLine[l])
+                debug_var(args.debug, maskOkLine = maskOkLine[l])
+        else:
+            for l in lines_central_wl:
+                debug_var(args.debug, l = l)
+                minSNR = 3
+                maskOkLine[l] = K.EL._setMaskLineFluxNeg(l)
+                maskOkLine[l] |= K.EL._setMaskLineSNR(l, minSNR)
+                maskOkLine[l] = ~(maskOkLine[l])
+                debug_var(args.debug, maskOkLine = maskOkLine[l])
+            
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        # if args.rgbcuts is True:
+        #     l = Hb_central_wl
+        #     pos, sigma, snr =  P._dlcons[l]['pos'], P._dlcons[l]['sigma'], P._dlcons[l]['SN']
+        #     debug_var(args.debug, pref = l, pos = pos, sigma = sigma, snr = snr)
+        #     maskOkHb__z  = ~K.EL._setMaskLineFluxNeg(l)
+        #     maskOkHb__z &= ~K.EL._setMaskLineDisplacement(l, pos)
+        #     maskOkHb__z &= ~K.EL._setMaskLineSigma(l, sigma)
+        #     maskOkHb__z &= ~K.EL._setMaskLineSNR(l, snr)
+        #     debug_var(args.debug, maskOkLine = maskOkHb__z)
+        #     l = O3_central_wl
+        #     pos, sigma, snr =  P._dlcons[l]['pos'], P._dlcons[l]['sigma'], P._dlcons[l]['SN']
+        #     debug_var(args.debug, pref = l, pos = pos, sigma = sigma, snr = snr)
+        #     maskOkO3__z  = ~K.EL._setMaskLineFluxNeg(l)
+        #     maskOkO3__z &= ~K.EL._setMaskLineDisplacement(l, pos)
+        #     maskOkO3__z &= ~K.EL._setMaskLineSigma(l, sigma)
+        #     maskOkO3__z &= ~K.EL._setMaskLineSNR(l, snr)
+        #     debug_var(args.debug, maskOkLine = maskOkO3__z)
+        #     l = Ha_central_wl
+        #     pos, sigma, snr =  P._dlcons[l]['pos'], P._dlcons[l]['sigma'], P._dlcons[l]['SN']
+        #     debug_var(args.debug, pref = l, pos = pos, sigma = sigma, snr = snr)
+        #     maskOkHa__z  = ~K.EL._setMaskLineFluxNeg(l)
+        #     maskOkHa__z &= ~K.EL._setMaskLineDisplacement(l, pos)
+        #     maskOkHa__z &= ~K.EL._setMaskLineSigma(l, sigma)
+        #     maskOkHa__z &= ~K.EL._setMaskLineSNR(l, snr)
+        #     debug_var(args.debug, maskOkLine = maskOkHa__z)
+        #     l = N2_central_wl
+        #     pos, sigma, snr =  P._dlcons[l]['pos'], P._dlcons[l]['sigma'], P._dlcons[l]['SN']
+        #     debug_var(args.debug, pref = l, pos = pos, sigma = sigma, snr = snr)
+        #     maskOkN2__z  = ~K.EL._setMaskLineFluxNeg(l)
+        #     maskOkN2__z &= ~K.EL._setMaskLineDisplacement(l, pos)
+        #     maskOkN2__z &= ~K.EL._setMaskLineSigma(l, sigma)
+        #     maskOkN2__z &= ~K.EL._setMaskLineSNR(l, snr)
+        #     debug_var(args.debug, maskOkLine = maskOkN2__z)
+        # else:
+        #     minSNR = 3
+        #     l = Hb_central_wl
+        #     maskOkHb__z  = ~K.EL._setMaskLineFluxNeg(l)
+        #     maskOkHb__z &= ~K.EL._setMaskLineSNR(l, minSNR)
+        #     l = O3_central_wl
+        #     maskOkO3__z  = ~K.EL._setMaskLineFluxNeg(l)
+        #     maskOkO3__z &= ~K.EL._setMaskLineSNR(l, minSNR)
+        #     l = Ha_central_wl
+        #     maskOkHa__z  = ~K.EL._setMaskLineFluxNeg(l)
+        #     maskOkHa__z &= ~K.EL._setMaskLineSNR(l, minSNR)
+        #     l = N2_central_wl
+        #     maskOkN2__z  = ~K.EL._setMaskLineFluxNeg(l)
+        #     maskOkN2__z &= ~K.EL._setMaskLineSNR(l, minSNR)
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        
+        maskOkLines__z = np.bitwise_and(maskOkLine[Hb_central_wl], maskOkLine[O3_central_wl])
+        maskOkLines__z = np.bitwise_and(maskOkLines__z, maskOkLine[Ha_central_wl])
+        maskOkLines__z = np.bitwise_and(maskOkLines__z, maskOkLine[N2_central_wl])  
+        #maskOkLines__z = maskOkHb__z & maskOkO3__z & maskOkHa__z & maskOkN2__z
 
         maskOkBPT__z = np.ones((K.N_zone), dtype = np.bool)
         if args.underS06:
@@ -366,9 +423,35 @@ if __name__ == '__main__':
         maskOkTauVNeb__z = np.ones((K.N_zone), dtype = np.bool)
         if args.mintauvneb >= 0:
             maskOkTauVNeb__z = (K.EL.tau_V_neb__z >= args.mintauvneb) & (K.EL.tau_V_neb_err__z <= args.maxtauvneberr)
-        maskOkTauVNeb__z &= maskOkHa__z
-        maskOkTauVNeb__z &= maskOkHb__z
+        maskOkTauVNeb__z &= maskOkLine[Ha_central_wl]
+        maskOkTauVNeb__z &= maskOkLine[Hb_central_wl]
+        #maskOkTauVNeb__z &= maskOkHa__z
+        #maskOkTauVNeb__z &= maskOkHb__z
         maskOkTauVNeb__z &= maskOkBPT__z
+        
+        debug_var(args.debug, 
+            NOkHb = maskOkLine[Hb_central_wl].sum(),
+            NOkO3 = maskOkLine[O3_central_wl].sum(),
+            NOkHa = maskOkLine[Ha_central_wl].sum(),
+            NOkN2 = maskOkLine[N2_central_wl].sum(),
+            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+            # NOkHb = maskOkHb__z.sum(),
+            # NOkO3 = maskOkO3__z.sum(),
+            # NOkHa = maskOkHa__z.sum(),
+            # NOkN2 = maskOkN2__z.sum(),
+            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+            NOkBPT = maskOkBPT__z.sum(),
+            NOkminTauVNeb = (K.EL.tau_V_neb__z >= args.mintauvneb).sum(),
+            NOkmaxTauVNebErr = (K.EL.tau_V_neb_err__z <= args.maxtauvneberr).sum(),
+            NOkTauVNeb = maskOkTauVNeb__z.sum(),
+            NOkHaHb = (maskOkLine[Ha_central_wl] & maskOkLine[Hb_central_wl]).sum(),
+            NOkO3N2 = (maskOkLine[O3_central_wl] & maskOkLine[N2_central_wl]).sum(),
+            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+            # NOkHaHb = (maskOkHa__z & maskOkHb__z).sum(),
+            # NOkO3N2 = (maskOkO3__z & maskOkN2__z).sum(),
+            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+            NOkLines = (maskOkLines__z).sum(),
+        )
         
         tau_V_neb__z = np.ma.masked_array(K.EL.tau_V_neb__z, mask = ~maskOkTauVNeb__z)
         tau_V_neb_err__z = np.ma.masked_array(K.EL.tau_V_neb_err__z, mask = ~maskOkTauVNeb__z)
@@ -403,8 +486,10 @@ if __name__ == '__main__':
         ##########################
 
         ########### EW ###########
-        EW_Ha__z = np.ma.masked_array(K.EL.EW[i_Ha, :], mask = ~maskOkHa__z)
-        EW_Hb__z = np.ma.masked_array(K.EL.EW[i_Hb, :], mask = ~maskOkHb__z)
+        EW_Ha__z = np.ma.masked_array(K.EL.EW[i_Ha, :], mask = ~(maskOkLine[Ha_central_wl]))
+        EW_Hb__z = np.ma.masked_array(K.EL.EW[i_Hb, :], mask = ~(maskOkLine[Hb_central_wl]))
+        #EW_Ha__z = np.ma.masked_array(K.EL.EW[i_Ha, :], mask = ~maskOkHa__z)
+        #EW_Hb__z = np.ma.masked_array(K.EL.EW[i_Hb, :], mask = ~maskOkHb__z)
         
         ALL._EW_Ha__g.append(EW_Ha__z.data)
         ALL._EW_Ha_mask__g.append(EW_Ha__z.mask)
@@ -413,24 +498,29 @@ if __name__ == '__main__':
         ##########################
 
         #### intrinsic Ha Lum ####
-        F_obs_Ha__z = np.ma.masked_array(K.EL.flux[i_Ha, :], mask = ~maskOkHa__z)
+        F_obs_Ha__z = np.ma.masked_array(K.EL.flux[i_Ha, :], mask = ~(maskOkLine[Ha_central_wl]))
+        #F_obs_Ha__z = np.ma.masked_array(K.EL.flux[i_Ha, :], mask = ~maskOkHa__z)
         
         ALL._F_obs_Ha__g.append(F_obs_Ha__z.data)
         ALL._F_obs_Ha_mask__g.append(F_obs_Ha__z.mask)
         L_obs__Lz = K.EL._F_to_L(K.EL.flux) / L_sun
         L_obs_err__Lz = K.EL._F_to_L(K.EL.eflux) / L_sun        
         
-        L_obs_Ha__z = np.ma.masked_array(L_obs__Lz[i_Ha, :], mask = ~maskOkHa__z)
-        L_obs_Hb__z = np.ma.masked_array(L_obs__Lz[i_Hb, :], mask = ~maskOkHb__z)
-        L_obs_Ha_err__z = np.ma.masked_array(L_obs_err__Lz[i_Ha, :], mask = ~maskOkHa__z)
-        L_obs_Hb_err__z = np.ma.masked_array(L_obs_err__Lz[i_Hb, :], mask = ~maskOkHb__z)
+        L_obs_Ha__z = np.ma.masked_array(L_obs__Lz[i_Ha, :], mask = ~(maskOkLine[Ha_central_wl]))
+        L_obs_Hb__z = np.ma.masked_array(L_obs__Lz[i_Hb, :], mask = ~(maskOkLine[Hb_central_wl]))
+        L_obs_Ha_err__z = np.ma.masked_array(L_obs_err__Lz[i_Ha, :], mask = ~(maskOkLine[Ha_central_wl]))
+        L_obs_Hb_err__z = np.ma.masked_array(L_obs_err__Lz[i_Hb, :], mask = ~(maskOkLine[Hb_central_wl]))
+        #L_obs_Ha__z = np.ma.masked_array(L_obs__Lz[i_Ha, :], mask = ~maskOkHa__z)
+        #L_obs_Hb__z = np.ma.masked_array(L_obs__Lz[i_Hb, :], mask = ~maskOkHb__z)
+        #L_obs_Ha_err__z = np.ma.masked_array(L_obs_err__Lz[i_Ha, :], mask = ~maskOkHa__z)
+        #L_obs_Hb_err__z = np.ma.masked_array(L_obs_err__Lz[i_Hb, :], mask = ~maskOkHb__z)
         
         L_obs_HaHb__z = L_obs_Ha__z / L_obs_Hb__z
         
         # L_int_Ha__Lz intrinsic Ha luminosity 
         eHa = np.ma.exp(K.EL._qCCM['6563'] * tau_V_neb__z)
         # For the zones where I don't have values for tau_V_neb I don't correct the Lum_Ha
-        L_int_Ha__z = np.where(maskOkTauVNeb__z == True, L_obs_Ha__z, L_obs_Ha__z * eHa)
+        L_int_Ha__z = np.where(maskOkTauVNeb__z, L_obs_Ha__z * eHa, L_obs_Ha__z)
         L_int_Ha__z = np.ma.masked_array(L_int_Ha__z, mask = ~maskOkTauVNeb__z)
         
         integrated_eHa = np.ma.exp(K.EL._qCCM['6563'] * K.EL.integrated_tau_V_neb)
@@ -447,13 +537,14 @@ if __name__ == '__main__':
         ALL._L_int_Ha__g.append(L_int_Ha__z.data)
         ALL._L_int_Ha_mask__g.append(L_int_Ha__z.mask)
         ALL._L_int_Ha_err__g.append(L_int_Ha_err__z.data)
-        
+
         ALL.integrated_L_int_Ha__g[iGal] = integrated_L_int_Ha
         ##########################
 
         #### SFR and SigmaSFR ####
         # 3.13 M_sun/yr was calculated using BC03 + Padova1994 + Salpeter
-        SFR_Ha__z = np.ma.masked_where(L_int_Ha__z.mask, 3.13 * L_int_Ha__z.data / (1.e8))
+        #SFR_Ha__z = np.ma.masked_where(L_int_Ha__z.mask, 3.13 * L_int_Ha__z.data / (1.e8))
+        SFR_Ha__z = np.ma.masked_array(3.13 * L_int_Ha__z.data / (1.e8), mask = L_int_Ha__z.mask)
         SFRSD_Ha__z = SFR_Ha__z / K.zoneArea_pc2
         
         integrated_SFR_Ha = 3.13 * integrated_L_int_Ha / (1.e8)
@@ -485,18 +576,27 @@ if __name__ == '__main__':
 
         # Values in GasProp could be NaN. This values will be masked at 
         # ALL.stiack_zones_data() with mask = np.isnan(vect)
-        chb_in__z = P.chb_in
-        c_Ha_Hb__z = P.c_Ha_Hb
+        chb_in__z = P.REDDENING.chb_in
+        c_Ha_Hb__z = P.REDDENING.c_Ha_Hb
         # O_HIICHIM may have zeros.
-        O_HIICHIM__z = np.where(P.O_HIICHIM == 0., np.nan, P.O_HIICHIM)
-        O_O3N2_M13__z = P.O_O3N2_M13
-        O_O3N2_PP04__z = P.O_O3N2_PP04
+        O_HIICHIM__z = np.where(P.EMPAB.O_HIICHIM == 0., np.nan, P.EMPAB.O_HIICHIM)
+        O_O3N2_M13__z = P.EMPAB.O_O3N2_M13
+        O_O3N2_PP04__z = P.EMPAB.O_O3N2_PP04
+        O_direct_O_23__z = P.ELEMAB.O_direct_O_23
         
         ALL._chb_in__g.append(chb_in__z)
         ALL._c_Ha_Hb__g.append(c_Ha_Hb__z)
         ALL._O_HIICHIM__g.append(O_HIICHIM__z)
         ALL._O_O3N2_M13__g.append(O_O3N2_M13__z)
         ALL._O_O3N2_PP04__g.append(O_O3N2_PP04__z)
+        ALL._O_direct_O_23__g.append(O_direct_O_23__z)
+
+        ALL.integrated_chb_in__g[iGal] = P.REDDENING.integrated_chb_in
+        ALL.integrated_c_Ha_Hb__g[iGal] = P.REDDENING.integrated_c_Ha_Hb
+        ALL.integrated_O_HIICHIM__g[iGal] = P.EMPAB.integrated_O_HIICHIM
+        ALL.integrated_O_O3N2_M13__g[iGal] = P.EMPAB.integrated_O_O3N2_M13
+        ALL.integrated_O_O3N2_PP04__g[iGal] = P.EMPAB.integrated_O_O3N2_PP04
+        ALL.integrated_O_direct_O_23__g[iGal] = P.ELEMAB.integrated_O_direct_O_23
         
         O_HIICHIM__yx = K.zoneToYX(O_HIICHIM__z, extensive = False)
         O_HIICHIM__r = K.radialProfile(O_HIICHIM__yx, Rbin__r, rad_scale = K.HLR_pix)
@@ -504,11 +604,14 @@ if __name__ == '__main__':
         O_O3N2_M13__r = K.radialProfile(O_O3N2_M13__yx, Rbin__r, rad_scale = K.HLR_pix)
         O_O3N2_PP04__yx = K.zoneToYX(O_O3N2_PP04__z, extensive = False)
         O_O3N2_PP04__r = K.radialProfile(O_O3N2_PP04__yx, Rbin__r, rad_scale = K.HLR_pix)
+        O_direct_O_23__yx = K.zoneToYX(O_direct_O_23__z, extensive = False)
+        O_direct_O_23__r = K.radialProfile(O_direct_O_23__yx, Rbin__r, rad_scale = K.HLR_pix)
         
         ALL.O_HIICHIM__rg[:, iGal] = O_HIICHIM__r
         ALL.O_O3N2_M13__rg[:, iGal] = O_O3N2_M13__r
         ALL.O_O3N2_PP04__rg[:, iGal] = O_O3N2_PP04__r 
-
+        ALL.O_direct_O_23__rg[:, iGal] = O_direct_O_23__r
+        
         print 'time per galaxy: %s %.2f' % (califaID, time.clock() - t_init_gal)
         K.close()
 
