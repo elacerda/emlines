@@ -1,25 +1,57 @@
 #!/bin/bash
-#./SFR.py --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 -H SFR_050505.h5 &> SFR_050505.log &
-#./SFR.py --minpopx 0.20 --mintauv 0.20 --mintauvneb 0.20 -H SFR_202020.h5 &> SFR_202020.log &
-#./SFR.py --minpopx 0.10 --mintauv 0.10 --mintauvneb 0.10 -H SFR_101010.h5 &> SFR_101010.log 
-#./SFR.py --minpopx 0.05 --mintauv 0.01 --mintauvneb 0.01 -H SFR_050101.h5 &> SFR_050101.log &
-#./SFR.py --minpopx 0.10 --mintauv 0.01 --mintauvneb 0.01 -H SFR_100101.h5 &> SFR_100101.log &
-#./SFR.py --minpopx 0.20 --mintauv 0.01 --mintauvneb 0.01 -H SFR_200101.h5 &> SFR_200101.log 
-#./SFR.py --spiral --minpopx 0.10 --mintauv 0.10 --mintauvneb 0.10 -H SFR_101010_spiral.h5 &> SFR_101010_spiral.log &
-#./SFR.py --spiral --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05 -H SFR_050505_spiral.h5 &> SFR_050505_spiral.log &
-#./SFR.py --spiral --minpopx 0.05 --mintauv 0.01 --mintauvneb 0.01 -H SFR_050101_spiral.h5 &> SFR_050101_spiral.log  
-#./SFR.py --spiral --minpopx 0.10 --mintauv 0.01 --mintauvneb 0.01 -H SFR_100101_spiral.h5 &> SFR_100101_spiral.log &
-#./SFR.py --spiral --minpopx 0.20 --mintauv 0.20 --mintauvneb 0.20 -H SFR_202020_spiral.h5 &> SFR_202020_spiral.log &
-#./SFR.py --spiral --minpopx 0.20 --mintauv 0.01 --mintauvneb 0.01 -H SFR_200101_spiral.h5 &> SFR_200101_spiral.log
-for file in /Users/lacerda/CALIFA/list_SFR/rem_ba_morph/list_0123.txt /Users/lacerda/CALIFA/listOf300GalPrefixes.txt
+#for file in /Users/lacerda/CALIFA/list_SFR/rem_ba_morph/list_0123.txt /Users/lacerda/CALIFA/listOf300GalPrefixes.txt
+#dryrun=true
+dryrun=false
+for file in /Users/lacerda/CALIFA/listOf300GalPrefixes.txt
 do
     bname=$(basename $file)
     name=${bname%.txt}
-    OPTS="-L $file --spiral --minpopx 0.05 --mintauv 0.05 --mintauvneb 0.05" 
-    time ./SFR.py $OPTS --maxtauvneberr 0.15                -H SFR_0.05_0.05_0.05_0.15_${name}.h5       &> SFR_0.05_0.05_0.05_0.15_${name}.log       &
-    time ./SFR.py $OPTS --maxtauvneberr 0.15  --rbinfin 5.0 -H SFR_0.05_0.05_0.05_0.15_5HLR_${name}.h5  &> SFR_0.05_0.05_0.05_0.15_5HLR_${name}.log 
-    time ./SFR.py $OPTS --maxtauvneberr 999.0               -H SFR_0.05_0.05_0.05_999.0_${name}.h5      &> SFR_0.05_0.05_0.05_999.0_${name}.log      &
-    time ./SFR.py $OPTS --maxtauvneberr 999.0 --rbinfin 5.0 -H SFR_0.05_0.05_0.05_999.0_5HLR_${name}.h5 &> SFR_0.05_0.05_0.05_999.0_5HLR_${name}.log
-done
-exit
+    #minpopx=0.01
+    #mintauv=0.00
+    #mintauvneb=0.00
+    minpopx=0.05
+    mintauv=0.05
+    mintauvneb=0.05
 
+    maxtauvneberr=999.0
+    OPTS="--rgbcuts -L $file --spiral --minpopx $minpopx --mintauv $mintauv --mintauvneb $mintauvneb"
+    output="SFR_${minpopx}_${mintauv}_${mintauvneb}_${maxtauvneberr}_rgbcuts_${name}"
+    echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr -H ${output}.h5 &> ${output}.log &"
+    echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log"
+    if ! $dryrun
+    then
+        time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr               -H ${output}.h5      &> ${output}.log &
+        time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
+    fi
+
+    OPTS="-L $file --spiral --minpopx $minpopx --mintauv $mintauv --mintauvneb $mintauvneb"
+    output="SFR_${minpopx}_${mintauv}_${mintauvneb}_${maxtauvneberr}_${name}"
+    echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr -H ${output}.h5 &> ${output}.log &"
+    echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log"
+    if ! $dryrun
+    then
+        time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr               -H ${output}.h5      &> ${output}.log &
+        time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
+    fi
+
+    maxtauvneberr=0.15
+    OPTS="--rgbcuts -L $file --spiral --minpopx $minpopx --mintauv $mintauv --mintauvneb $mintauvneb"
+    output="SFR_${minpopx}_${mintauv}_${mintauvneb}_${maxtauvneberr}_rgbcuts_${name}"
+    echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr -H ${output}.h5 &> ${output}.log &"
+    echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log"
+    if ! $dryrun
+    then
+        time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr               -H ${output}.h5      &> ${output}.log &
+        time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
+    fi
+
+    OPTS="-L $file --spiral --minpopx $minpopx --mintauv $mintauv --mintauvneb $mintauvneb"
+    output="SFR_${minpopx}_${mintauv}_${mintauvneb}_${maxtauvneberr}_${name}"
+    echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr -H ${output}.h5 &> ${output}.log &"
+    echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log"
+    if ! $dryrun
+    then
+        time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr               -H ${output}.h5      &> ${output}.log &
+        time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
+    fi
+done
