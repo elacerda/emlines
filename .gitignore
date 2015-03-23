@@ -14,3 +14,5 @@ latex/nathesis.cls
 plotMosaic.sh
 plot/SK
 plot/SKperGal
+*.vim
+*.list

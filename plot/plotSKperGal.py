@@ -204,8 +204,8 @@ if __name__ == '__main__':
     xm = np.ma.masked_array(x, mask = mask)
     ym = np.ma.masked_array(y, mask = mask)
     xlabel = r'$\log\ \tau_V^{\star}(R)$'
-    ylabel = r'$\log\ \langle \Sigma_{SFR}^\star(t_\star, R)\rangle\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    xlim = [np.log10(tauVOkMin), 0.5]
+    ylabel = r'$\log\ \langle \Sigma_{SFR}^\star(t_\star, R)\rangle\ [M_\odot yr^{-1} kpc^{-2}]$'
+    xlim = [-1.5, xm.max()]
     ylim = [-3.5, 1]
     sc = ax.scatter(x, y, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.4)
     nBox = 20
@@ -288,7 +288,7 @@ if __name__ == '__main__':
     ym = np.ma.masked_array(y, mask = mask)
     xlabel = r'$\log\ \tau_V^\star$' 
     ylim = [-3.5, 1]
-    vmin = np.log10(tauVOkMin)
+    vmin = xm.min()
     im = ax.imshow(xm, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r', vmin = vmin)
     #im = ax.imshow(x, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r')
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
@@ -315,7 +315,7 @@ if __name__ == '__main__':
     ym = np.ma.masked_array(y, mask = mask)
     xlabel = r'$\log\ \tau_V^{neb}(R)$'
     ylabel = r'$\log\ \langle \Sigma_{SFR}^{neb}(R)\rangle\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    xlim = [np.log10(tauVNebOkMin), 0.5]
+    xlim = [-1.5, xm.max()]
     ylim = [-3.5, 1]
     sc = ax.scatter(x, y, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.4)
     nBox = 20

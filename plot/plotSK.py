@@ -124,7 +124,7 @@ for iT,tSF in enumerate(tSF__T):
         'OHIICHIM' : dict(v = H.O_HIICHIM__g, mask = True, label = r'12 + $\log\ O/H$ (HII-CHI-mistry, EPM, 2014)'),
         'logO3N2S06' : dict(v = H.logZ_neb_S06__g + np.log10(4.9e-4) + 12, mask = True, label = r'12 + $\log\ O/H$ (logO3N2, Stasinska, 2006)'),
         'logO3N2M13' : dict(v = H.O_O3N2_M13__g, mask = True, label = r'12 + $\log\ O/H$ (logO3N2, Marino, 2013)'),
-        'alogZmass' : dict(v = H.O_O3N2_M13__g, mask = True, label = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[-1] / 1e9)),
+        'alogZmass' : dict(v = H.alogZ_mass__Ug[-1], mask = True, label = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[-1] / 1e9)),
         'xY' : dict(v = 100. * H.x_Y__Tg[iT], label = r'$x_Y$'),
         'logMcorSD' : dict(v = np.ma.log10(H.McorSD__g), mask = True, label = r'$\log\ \mu_\star$ [$M_\odot\ pc^{-2}$]'),
         'logMcorSDiT' : dict(v = np.ma.log10(H.McorSD__Tg[iT]), mask = True, label = r'$\log\ \mu_\star(t)$ [$M_\odot\ pc^{-2}$]'),
