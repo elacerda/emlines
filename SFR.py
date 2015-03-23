@@ -18,8 +18,6 @@ from CALIFAUtils.scripts import calc_alogZ_Stuff
 from CALIFAUtils.scripts import radialProfileWeighted
 from CALIFAUtils.scripts import loop_cubes
 from CALIFAUtils.scripts import sort_gals
-from CALIFAUtils.globals import gasprop_cube_dir, gasprop_suffix
-from CALIFAUtils.objects import GasProp
 from CALIFAUtils.scripts import debug_var
 
 def parser_args():
@@ -169,6 +167,7 @@ if __name__ == '__main__':
             continue
         
         if K.GP._hdulist is None:
+            ALL.mask_gal(iGal)
             print '<<< %s galaxy: miss gasprop file' % califaID
             continue
 
