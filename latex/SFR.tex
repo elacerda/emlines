@@ -48,7 +48,7 @@
 \citestyle{aa}
 \def\magyarOptions{mathhucomma=fix,figurecaptions=unchanged,tablecaptions=unchanged,sectiondot=none}
 \usepackage{nadefinitions}
-\usepackage{pythonenv}
+%\usepackage{pythonenv}
 
 \begin{document}
 
@@ -57,21 +57,22 @@
 
 \section{Emission lines files reader in \pycasso}
 
-Since Rubén G. B. release the measurements of emission lines fluxes using the residual data (one of the products of the \starlight analysis of the CALIFA datacubes) we start to do some trial calculations and this motivate myself to build a default reader to this kind of data file in order to facilitate our usage of the data. I built this reader (and parser) directly in \pycasso (you can find the code \href{https://bitbucket.org/astro_ufsc/pycasso/src/e1df479c41c23f86687ea4da417f43dd86956722/src/pycasso/fitsdatacube.py?at=default}{here},  after the line 207.). I call the object \texttt{EmLinesDataCube}() and it can be used importing directly inside a python script, or directly using a \pycasso datacube. An usage example can be found \href{https://bitbucket.org/astro_ufsc/pycasso/src/e1df479c41c23f86687ea4da417f43dd86956722/contrib/emLinesExample.py?at=default}{here}. If you want some help just send me an \href{mailto:lacerda@iaa.es}{e-mail} and I help you. Soon a help document will [NEED TO] be created.
+Since Rubén G. B. release the measurements of emission lines fluxes using the residual data (one of the products of the \starlight analysis of the CALIFA datacubes) we start to do some trial calculations and this motivate myself to build a default reader to this kind of data file in order to facilitate our usage of the data. I built this reader (and parser) directly in \pycasso (you can find the code \href{https://bitbucket.org/astro_ufsc/pycasso/src/38741376583e216a040b266958e673d2b4b628d5/src/pycasso/fitsdatacube.py?at=default}{here},  after the line 207.). I call the object \texttt{EmLinesDataCube}() and it can be used importing directly inside a python script, or directly using a \pycasso datacube. An usage example can be found \href{https://bitbucket.org/astro_ufsc/pycasso/src/38741376583e216a040b266958e673d2b4b628d5/contrib/emLinesExample.py?at=default}{here}. If you want some help just send me an \href{mailto:lacerda@iaa.es}{e-mail} and I help you. Soon a help document will [NEED TO] be created.
 
-Today the code is usable but stills in alpha version and nobody saw it, only Roberto Cid and Natalia had been seeing a lot of images produced using the reader. One of the first things that I want to do here in Spain, if possible, is to sit with Rub\'en and do some improvements in the code. Because of that we have to be very careful and keep this things in mind before use it.
+Today the code is usable but stills in alpha version.
 
 \section{Initial outtakes about emission lines measurements}
 
-Rub\'en words:
-
-\begin{quotation}
-"Tal y como están hechos los ajustes ahora, todo los resultados se guardan. Pero seguro que hay resultados que no son buenos. Un primer check sería ver si "pos", la longitud de onda central, está cerca del valor esperado (en reposo). Hay algunas veces que no hay linea, por ejemplo de [OII], pero cerca hay algún glitch o cualquier otra cosa y el programa lo mide. Poniendo una tolerancia de, digamos 2 o 3 Angtroms, eliminaría las líneas que se desvian de la posición central "teórica" fuera de esa tolerancia. Otro método de limpieza quizás serían FHWM absurdamente grandes, o EW. Pero creo que uno muy fiable a priori es el de la posición central de la línea"
-\end{quotation}
-
-This kind of filter was not applied to this results. Maybe this has to be the next thing to tackle and it not appears to be a heavy thing to code, given a central lambda table. 
-
+%Rub\'en words:
+%\begin{quotation}
+%"Tal y como están hechos los ajustes ahora, todo los resultados se guardan. Pero seguro que hay resultados que no son buenos. Un primer check sería ver si "pos", la longitud de onda central, está cerca del valor esperado (en reposo). Hay algunas veces que no hay linea, por ejemplo de [OII], pero cerca hay algún glitch o cualquier otra cosa y el programa lo mide. Poniendo una tolerancia de, digamos 2 o 3 Angtroms, eliminaría las líneas que se desvian de la posición central "teórica" fuera de esa tolerancia. Otro método de limpieza quizás serían FHWM absurdamente grandes, o EW. Pero creo que uno muy fiable a priori es el de la posición central de la línea"
+%\end{quotation}
+%This kind of filter was not applied to this results. Maybe this has to be the next thing to tackle and it not appears to be a heavy thing to code, given a central lambda table. 
+% UPDATE 23/04/2015 - This was updated, now we have all the masks.
 %Only zones with H$\alpha$, H$\beta$, [O\thinspace{\sc iii}] and [N\thinspace{\sc ii}] signal to noise ratio $\leq$ 3 are used.
+
+All the measurements (and products of the used method) are made by Rub\'en scripts. The \texttt{EmLinesDataCube}() object parses the data but it will not mask any zone. With this object (and some previously chosen limits like minimum signal-to-noise rate, or maximum central wavelength displacement) one can mask a zone. The measured fluxes can be negatives some time, due to {\color{blue}\textbf{some error}}, but all the measurements carry the measured error. The measured central wavelength can be also a source of error. If the zone velocity is not well measured it will force the script to search (and maybe find and measure) the spectral line in the wrong part of the spectra, so what was measured may not be exactly the desired spectral line. As all measurements are made statistically (measured N times), one can use the distribution of values (a standard-deviation ($\sigma$) of the distribution to be more specific) to create masks. 
+To those following results I used minimum S/N ratio of 3. The wavelength displacement and sigma are designated by Rub\'en and they vary depending on the spectral line.
 
 %\section{The morphologic types}
 %The morphologic types used are evaluated using \texttt{get\_morfologia()} by ES.Enrique:
@@ -89,21 +90,9 @@ This kind of filter was not applied to this results. Maybe this has to be the ne
 %
 %The smallest light fraction (in the $flag_t$-ageMax age range) deemed to be OK for our stats is 0.05. Also the minimum $\tau_V^\star$ to be %taken seriously: 0.05.
 
-\section{Shortcuts and calculations inside the code}
+\section{Calculations inside \texttt{EmLinesDataCube}() code}
 
-Attached to the emission line data, some shortcuts are made to facilitate the access to the data:
-
-\begin{itemize}
-	\item \texttt{Ha\_obs\_\_z}: Observed \Halpha observed flux \
-	\item \texttt{Ha\_obs\_\_z}: Observed \Hbeta observed flux \
-	\item \texttt{N2\_obs\_\_z}: Observed \NII observed flux \
-	\item \texttt{O3\_obs\_\_z}: Observed \OIII observed flux 
-\end{itemize}
-
-I did some calculations and store at the object \texttt{EmLinesDataCube} too. This kind of calculation is extinction relations dependent, so, if we don't choose a default relation, perhaps this can be removed from the code. For now I'm using \citet{CCM1989a}
-
-\subsection{Balmer optical depth ($\tauVN$) - \texttt{tau\_V\_neb\_\_z}}
-
+\subsection{Balmer optical depth ($\tauVN$)}
 \begin{eqnarray}
 	F_\lambda^{obs} &=& F_\lambda^{int} e^{-\tau_\lambda} \\
 	F_\lambda^{obs} &=& F_\lambda^{int} e^{-(\frac{\tau_\lambda}{\tauV}) \tauV} \\
@@ -120,7 +109,7 @@ I did some calculations and store at the object \texttt{EmLinesDataCube} too. Th
 	F_{\Halpha}^{int} &=& F_{\Halpha}^{obs} e^{(q_{\Halpha} \tauVN)}
 \end{eqnarray}
 
-\subsubsection{Error propagation of $\tauVN$ calculation - \texttt{tau\_V\_neb\_err\_\_z}}
+\subsubsection{Error propagation of $\tauVN$ calculation}
 \begin{eqnarray}
 	\tauVN &\equiv& \tauVN(F_{\Halpha}^{obs}, F_{\Hbeta}^{obs}) \\
 	\epsilon (\tauVN) &=& \sqrt{\left(\del{\tauVN}{F_{\Halpha}^{obs}}\right)^2 \
@@ -133,19 +122,19 @@ I did some calculations and store at the object \texttt{EmLinesDataCube} too. Th
 \left(\frac{\epsilon (F_{\Hbeta}^{obs})}{F_{\Hbeta}^{obs}}\right)^2 }
 \end{eqnarray}
 
-\subsection{The nebular metalicity (\O3N2 and $\ZN$) - \texttt{O3N2\_\_z} and \texttt{logZ\_neb\_\_z}}
+\subsection{The nebular metalicity (\tO3N2 and $\ZN$)}
 
 The nebular metalicity used here is calibrated by \citep{Stasinska.2006a} as:
 \begin{equation}
 	\logZN = \log \frac{(\textrm{O}/\textrm{H})}{(\textrm{O}/\textrm{H})_\odot} = - 0.14 - 0.25 \log \O3N2,
 \end{equation}
-\noindent where the adopted $(\textrm{O}/\textrm{H})_\odot = 4.9 \times 10^{-4}$. The \O3N2 index is extinction corrected as follows:
+\noindent where the adopted $(\textrm{O}/\textrm{H})_\odot = 4.9 \times 10^{-4}$. The \tO3N2 index is extinction corrected as follows:
 \begin{equation}
 	\O3N2 = \frac{F_{\oIII}^{int}}{F_{\nII}^{int}} = \
 \frac{F_{\oIII}^{obs}}{F_{\nII}^{obs}} e^{\tauVN (q_{\oIII} - q_{\nII})} \\
 \end{equation}
 
-\subsubsection{Error propagation of \O3N2 and $\ZN$ calculation - \texttt{O3N2\_err\_\_z} and \texttt{logZ\_neb\_err\_\_z}}
+\subsubsection{Error propagation of \tO3N2 and $\ZN$ calculation}
 
 \begin{eqnarray}
 	\O3N2 &\equiv& \O3N2(F_{\oIII}^{obs}, F_{\nII}^{obs}, F_{\Halpha}^{obs}, F_{\Hbeta}^{obs}) \\
@@ -231,12 +220,12 @@ For our models configuration we can see the evolution of $\mathcal{N}_H$ in time
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
 \resizebox{0.99\textwidth}{!}{\includegraphics{Nh_logt_metBase_Padova2000_salp.pdf}}
-\caption{\emph{Upper left panel}: The time-evolution of the number of the photons ($\mathcal{N}_H$) for six metallicities (from 0.02 $Z_\odot$ to 1.58 $Z_\odot$) that compose our SSP models. The solar metalicity is drawn as a thick black line. \emph{Upper right panel}: The same from \emph{upper left panel} but normalized by the total value of $\mathcal{N}_H$. The black dashed line shows 95\% of the total $\mathcal{N}_H$. A zoom is also provided for a better view of the region around 10 Myr. \emph{Bottom panel}: Evolution of the H-ionizing photon rate per unit formed mass also for the same six metallicities.}
+\caption{\emph{Upper left panel}: The time-evolution of the number of the photons ($\mathcal{N}_H$) for six metallicities (from 0.02 $Z_\odot$ to 1.58 $Z_\odot$) that compose our SSP models. The solar metallicity is drawn as a thick black line. \emph{Upper right panel}: The same from \emph{upper left panel} but normalized by the total value of $\mathcal{N}_H$. The black dashed line shows 95\% of the total $\mathcal{N}_H$. A zoom is also provided for a better view of the region around 10 Myr. \emph{Bottom panel}: Evolution of the H-ionizing photon rate per unit formed mass also for the same six metalicities.}
 \label{fig:Nh_qh}
 \end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
-\subsection{SFR from the stellar sinthesys}
+\subsection{SFR from the stellar synthesis}
 \label{sub:StellarSFR}
 The process explained at the Sec. \ref{sub:NebularSFR}, which culminates in equation \eqref{eq:SFRNeb}, show us a recent SFR.  The SFR from spectral synthesis should be more representative of the true SFR due to the contribution of all stars to visible light. Using the fact that we have age and mass of each stellar population as one of the products of the spectral synthesis, we can sum over this factor and obtain the total mass converted into stars within the last $\tau$ years, i.e., a mean stellar SFR in the last $\tau$ years.
 \begin{equation}
@@ -253,7 +242,7 @@ Using all the years presented in our base (spanning since 1 Myr till 14.1 Gyr) w
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_report.png}}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_linregress_report.png}}
 \caption{Comparison of star formation rates from full spectral fits with \starlight and those from \Halpha luminosity for 40532 zones of 300 CALIFA galaxies. The last panel show us the correlation between $\overline{\mathrm{SFR}_\star}(\tau)$ and $\mathrm{SFR}_{\Halpha}$ for all ages.}
 \label{fig:SFRCompare}
 \end{figure*}
@@ -261,26 +250,26 @@ Using all the years presented in our base (spanning since 1 Myr till 14.1 Gyr) w
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 \begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SFRSD_report.pdf}}
+\resizebox{0.99\textwidth}{!}{\includegraphics{SFRSD_linregress_report.png}}
 \caption{Comparison of star formation rates from full spectral fits with \starlight and those from \Halpha luminosity. In this plot the quantities are averaged by 20 bins in radius (from 0 to 2 HLR) for 300 CALIFA galaxies and also color coded by distance.}
 \label{fig:SFRSDCompare}
 \end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
-\begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_BelowS06_report.png}}
-\caption{The same as figure \ref{fig:SFRCompare} but with the zones selected to be below of the line created by \citet{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
-\label{fig:SFRCompareBS06}
-\end{figure*}
+%\begin{figure*}
+%\resizebox{0.99\textwidth}{!}{\includegraphics{SFR_BelowS06_report.png}}
+%\caption{The same as figure \ref{fig:SFRCompare} but with the zones selected to be below of the line created by \citet{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
+%\label{fig:SFRCompareBS06}
+%\end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
-\begin{figure*}
-\resizebox{0.99\textwidth}{!}{\includegraphics{SFRSD_BelowS06_report.pdf}}
-\caption{The same as figure \ref{fig:SFRSDCompare} but with the zones selected to be below of the line created by \citet{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
-\label{fig:SFRSDCompareBS06}
-\end{figure*}
+%\begin{figure*}
+%\resizebox{0.99\textwidth}{!}{\includegraphics{SFRSD_BelowS06_report.pdf}}
+%\caption{The same as figure \ref{fig:SFRSDCompare} but with the zones selected to be below of the line created by \citet{Stasinska.2006a}, which constrains the region in the BPT plane for SF galaxies.}
+%\label{fig:SFRSDCompareBS06}
+%\end{figure*}
 %***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG***FIG
 
 
