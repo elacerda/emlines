@@ -8,17 +8,13 @@ import argparse as ap
 import numpy as np
 from pystarlight.util.constants import L_sun
 from pystarlight.util.base import StarlightBase
+import CALIFAUtils as C
 from CALIFAUtils.lines import Lines
 from CALIFAUtils.objects import ALLGals
-from CALIFAUtils.globals import califa_work_dir
-from CALIFAUtils.scripts import get_morfologia
 from CALIFAUtils.scripts import calc_SFR
 from CALIFAUtils.scripts import calc_xY
 from CALIFAUtils.scripts import calc_alogZ_Stuff
 from CALIFAUtils.scripts import radialProfileWeighted
-from CALIFAUtils.scripts import loop_cubes
-from CALIFAUtils.scripts import sort_gals
-from CALIFAUtils.scripts import debug_var
 
 def parser_args():
     default_args = {
@@ -35,7 +31,7 @@ def parser_args():
         'rbinfin' : 2.0,
         'rbinstep' : 0.1,
         'maxiTSF' :-1,
-        'gals_filename' : califa_work_dir + 'listOf300GalPrefixes.txt',
+        'gals_filename' : C.califa_work_dir + 'listOf300GalPrefixes.txt',
         'rgbcuts' : False,
     }
     parser = ap.ArgumentParser(description = '%s' % sys.argv[0])
@@ -125,7 +121,7 @@ if __name__ == '__main__':
     RRange = [  .5, 1., 1.5, 2.  ]
     
     # Reading galaxies file,
-    gals, _ = sort_gals(args.gals_filename)
+    gals, _ = C.sort_gals(args.gals_filename)
     N_gals = len(gals)
     maxGals = None
     if args.debug:
@@ -148,7 +144,7 @@ if __name__ == '__main__':
     ALL = ALLGals(N_gals, NRbins, N_T, N_U)
     
     # automatically read PyCASSO and EmLines data cubes.
-    for iGal, K in loop_cubes(gals.tolist(), imax = maxGals, EL = True, GP = True):
+    for iGal, K in C.loop_cubes(gals.tolist(), imax = maxGals, EL = True, GP = True):
         t_init_gal = time.clock()
         califaID = gals[iGal] 
 
@@ -177,7 +173,7 @@ if __name__ == '__main__':
             print '<<< %s EmLines FITS problem' % califaID
             continue
         
-        tipos, tipo, tipo_m, tipo_p = get_morfologia(califaID)
+        tipos, tipo, tipo_m, tipo_p = C.get_morfologia(califaID)
         
         # Only spiral
         if args.spiral and tipo <= 8: 
@@ -192,7 +188,8 @@ if __name__ == '__main__':
         print '>>> Doing' , iGal , califaID , 'hubtyp=', tipo, '|  Nzones=' , K.N_zone
         
         # zone distance in HLR
-        zoneDistHLR = np.sqrt((K.zonePos['x'] - K.x0) ** 2. + (K.zonePos['y'] - K.y0) ** 2.) / K.HLR_pix
+        #zoneDistHLR = np.sqrt((K.zonePos['x'] - K.x0) ** 2. + (K.zonePos['y'] - K.y0) ** 2.) / K.HLR_pix
+        zoneDistHLR = K.zoneDistance_HLR 
         ALL._dist_zone__g.append(zoneDistHLR)
         
         ALL.ba_PyCASSO_GAL__g[iGal] = ba
@@ -241,7 +238,7 @@ if __name__ == '__main__':
             if args.minpopx >= 0.:
                 # Compute xOk "raw" image
                 maskNotOk__z = (x_Y__z < args.minpopx) | (tau_V__z < args.mintauv) 
-                debug_var(args.debug, pref = '    >>>',
+                C.debug_var(args.debug, pref = '    >>>',
                     tSF = '%.2fMyr' % (tSF / 1e6),
                     NnotOkxY = (x_Y__z < args.minpopx).sum(),
                     NnotOktauV = (tau_V__z < args.mintauv).sum(),
@@ -342,21 +339,21 @@ if __name__ == '__main__':
         if args.rgbcuts is True:
             for l in lines_central_wl:
                 pos, sigma, snr =  K.GP._dlcons[l]['pos'], K.GP._dlcons[l]['sigma'], K.GP._dlcons[l]['SN']
-                debug_var(args.debug, pref = l, pos = pos, sigma = sigma, snr = snr)
+                C.debug_var(args.debug, pref = l, pos = pos, sigma = sigma, snr = snr)
                 maskOkLine[l] = K.EL._setMaskLineFluxNeg(l) 
                 maskOkLine[l] |= K.EL._setMaskLineDisplacement(l, pos)
                 maskOkLine[l] |= K.EL._setMaskLineSigma(l, sigma)
                 maskOkLine[l] |= K.EL._setMaskLineSNR(l, snr)
                 maskOkLine[l] = ~(maskOkLine[l])
-                debug_var(args.debug, maskOkLine = maskOkLine[l])
+                C.debug_var(args.debug, maskOkLine = maskOkLine[l])
         else:
             for l in lines_central_wl:
-                debug_var(args.debug, l = l)
+                C.debug_var(args.debug, l = l)
                 minSNR = 3
                 maskOkLine[l] = K.EL._setMaskLineFluxNeg(l)
                 maskOkLine[l] |= K.EL._setMaskLineSNR(l, minSNR)
                 maskOkLine[l] = ~(maskOkLine[l])
-                debug_var(args.debug, maskOkLine = maskOkLine[l])
+                C.debug_var(args.debug, maskOkLine = maskOkLine[l])
             
         maskOkLines__z = np.bitwise_and(maskOkLine[Hb_central_wl], maskOkLine[O3_central_wl])
         maskOkLines__z = np.bitwise_and(maskOkLines__z, maskOkLine[Ha_central_wl])
@@ -378,7 +375,7 @@ if __name__ == '__main__':
         maskOkTauVNeb__z &= maskOkLine[Hb_central_wl]
         maskOkTauVNeb__z &= maskOkBPT__z
         
-        debug_var(args.debug, 
+        C.debug_var(args.debug, 
             NOkHb = maskOkLine[Hb_central_wl].sum(),
             NOkO3 = maskOkLine[O3_central_wl].sum(),
             NOkHa = maskOkLine[Ha_central_wl].sum(),
