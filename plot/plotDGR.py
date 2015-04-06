@@ -7,8 +7,8 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.pyplot import MultipleLocator
 import sys
+import CALIFAUtils as C
 from CALIFAUtils.plots import plotScatterColorAxis, plot_text_ax, plot_zbins
-from CALIFAUtils.objects import H5SFRData, read_kwargs
 
 debug = True
 
@@ -20,10 +20,20 @@ mpl.rcParams['ytick.labelsize'] = 16
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 img_output_ext = 'png'
-    
+
+
+class read_kwargs(object):
+    def __init__(self, default_val = None, **kwargs):
+        self.default_val = None
+        self.kwargs = kwargs  
+        
+    def __getattr__(self, attr):
+        return self.kwargs.get(attr, self.default_val)
+
 
 def f_plot(**kwargs):
     args = read_kwargs(**kwargs)
+    C.debug_var(args.debug, kwargs = kwargs)
     H = args.H
     mask = args.x.mask | args.y.mask
     xm = np.ma.masked_array(args.x, mask = mask)
@@ -58,7 +68,7 @@ if __name__ == '__main__':
         iT = 11
         print 'using default value for age index (%d)' % iT
         
-    H = H5SFRData(h5file)
+    H = C.H5SFRData(h5file)
     iU = -1
 
     #################################################################################

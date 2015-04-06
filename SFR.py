@@ -99,6 +99,22 @@ def print_args(args):
     for k, v in args.__dict__.iteritems():
         print k, v 
 
+def verify_files(K, califaID):
+    if K is None:
+        print '<<< %s galaxy: miss files' % califaID
+        return False
+    if K.EL is None:
+        print '<<< %s galaxy: miss EmLines files' % califaID
+        return False 
+    if K.GP._hdulist is None:
+        print '<<< %s galaxy: miss gasprop file' % califaID
+        return False
+    # Problem in FITS file
+    if K.EL.flux[0, :].sum() == 0.:
+        print '<<< %s EmLines FITS problem' % califaID
+        return False
+    return True        
+
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -149,30 +165,11 @@ if __name__ == '__main__':
         califaID = gals[iGal] 
 
         ALL.califaIDs[iGal] = califaID
-        
-        if K is None:
+
+        if verify_files(K, califaID) is not True:
             ALL.mask_gal(iGal)
-            print '<<< %s galaxy: miss files' % califaID 
             continue
 
-        ALL.N_zones__g[iGal] = K.N_zone
-        
-        if K.EL is None:
-            ALL.mask_gal(iGal)
-            print '<<< %s galaxy: miss EmLines files' % califaID 
-            continue
-        
-        if K.GP._hdulist is None:
-            ALL.mask_gal(iGal)
-            print '<<< %s galaxy: miss gasprop file' % califaID
-            continue
-
-        # Problem in FITS file
-        if K.EL.flux[0, :].sum() == 0.:
-            ALL.mask_gal(iGal)
-            print '<<< %s EmLines FITS problem' % califaID
-            continue
-        
         tipos, tipo, tipo_m, tipo_p = C.get_morfologia(califaID)
         
         # Only spiral
@@ -180,6 +177,8 @@ if __name__ == '__main__':
             ALL.mask_gal(iGal)
             print '<<< %s galaxy: is not a spiral (type: %d)' % (califaID, tipo) 
             continue
+
+        ALL.N_zones__g[iGal] = K.N_zone
         
         # Setup elliptical-rings geometry
         pa, ba = K.getEllipseParams()
@@ -190,7 +189,8 @@ if __name__ == '__main__':
         # zone distance in HLR
         #zoneDistHLR = np.sqrt((K.zonePos['x'] - K.x0) ** 2. + (K.zonePos['y'] - K.y0) ** 2.) / K.HLR_pix
         zoneDistHLR = K.zoneDistance_HLR 
-        ALL._dist_zone__g.append(zoneDistHLR)
+        ALL._zone_dist_HLR__g.append(zoneDistHLR)
+        ALL._zone_area_pc2__g.append(K.zoneArea_pc2)
         
         ALL.ba_PyCASSO_GAL__g[iGal] = ba
         ALL.ba_GAL__g[iGal] = np.float(K.masterListData['ba'])
@@ -257,6 +257,7 @@ if __name__ == '__main__':
             McorSD__yx = K.zoneToYX(Mcor__z, extensive = True)
             at_flux__yx = K.zoneToYX(at_flux__z, extensive = False, surface_density = False)
             at_mass__yx = K.zoneToYX(at_mass__z, extensive = False, surface_density = False)
+            x_Y__yx = K.zoneToYX(x_Y__z, extensive = False, surface_density = False)
             at_flux_dezon__yx = K.zoneToYX(at_flux__z, extensive = True)
             at_mass_dezon__yx = K.zoneToYX(at_mass__z, extensive = True)
             
@@ -276,6 +277,7 @@ if __name__ == '__main__':
             ALL.integrated_SFR__Tg[iT, iGal] = integrated_SFR
             ALL.integrated_SFRSD__Tg[iT, iGal] = integrated_SFR / K.zoneArea_pc2.sum()
 
+            ALL.x_Y__Trg[iT, :, iGal] = K.radialProfile(x_Y__yx, Rbin__r, rad_scale = K.HLR_pix)
             ALL.McorSD__Trg[iT, :, iGal] = K.radialProfile(McorSD__yx, Rbin__r, rad_scale = K.HLR_pix)
             ALL.aSFRSD__Trg[iT, :, iGal] = K.radialProfile(aSFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
             ALL.tau_V__Trg[iT, :, iGal] = K.radialProfile(tau_V__yx, Rbin__r, rad_scale = K.HLR_pix)

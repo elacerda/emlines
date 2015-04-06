@@ -7,10 +7,10 @@ do
     bname=$(basename $file)
     name=${bname%.txt}
     #minpopx=0.01
-    #mintauv=0.00
-    #mintauvneb=0.00
     minpopx=0.05
+    #mintauv=0.01
     mintauv=0.05
+    #mintauvneb=0.01
     mintauvneb=0.05
 
     maxtauvneberr=999.0
