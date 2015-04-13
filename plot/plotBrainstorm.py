@@ -375,6 +375,49 @@ if __name__ == '__main__':
             filename = '%s_%s_mask_%.2fMyrs.png' % (xk, yk, tSF / 1e6),
         )
 
+        #################################################################################
+
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        # xkeys = [ 'tauVR', 'tauVNebR' ]
+        # ykeys = [ 'alogSFRSDR', 'alogSFRSDHaR' ]
+        # zkeys = [ 'baR' ]
+        # for fnamepref, xv, yv, zv in H.plot_xyz_keys_iter(iT = iT, iU = -1, xkeys = xkeys, ykeys = ykeys, zkeys = zkeys):
+        #     xk = fnamepref.split('_')[0]
+        #     yk = fnamepref.split('_')[1]
+        #     zk = fnamepref.split('_')[2]
+        #     zv.update(dict(limprc = [0, 100], bins = 3))
+        #     z = np.asarray(zv['v'], dtype = xv['v'].dtype)
+        #     x = np.ma.log10(xv['v'] * z)
+        #     plot_zbins(
+        #         debug = True,
+        #         x = x,
+        #         y = yv['v'],
+        #         z = z,
+        #         zbins = zv['bins'],
+        #         zmask = zv.get('mask', None),
+        #         zbins_rs_gaussian_smooth = True,
+        #         zbins_rs_gs_fwhm = 0.4,
+        #         kwargs_figure = dict(figsize = (10, 8), dpi = 100),
+        #         kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
+        #         kwargs_legend = dict(loc = 'best'),
+        #         kwargs_suptitle = dict(fontsize = 14),
+        #         xlabel = r'$\log\ (\tau_V ^\star\ \frac{b}{a})$',
+        #         ylabel = yv['label'],
+        #         zlabel = zv['label'],
+        #         #xlim = xv['lim'],
+        #         #ylim = yv['lim'],
+        #         zlim = zv['lim'],
+        #         zlimprc = zv['limprc'],
+        #         #x_major_locator = xv['majloc'],
+        #         #x_minor_locator = xv['minloc'],
+        #         #y_major_locator = yv['majloc'],
+        #         #y_minor_locator = yv['minloc'],
+        #         suptitle = suptitle,
+        #         filename = '%s_%.2fMyrs.png' % (fnamepref, tSF / 1e6),
+        #     )
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+
 sys.exit('bai')
 
 dict_aux = dict(

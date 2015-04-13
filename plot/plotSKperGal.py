@@ -6,15 +6,12 @@ import sys
 import time
 import numpy as np
 import argparse as ap
+import CALIFAUtils as C
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.pyplot import MultipleLocator
-from CALIFAUtils.objects import H5SFRData
 from CALIFAUtils.plots import plot_text_ax
-from CALIFAUtils.scripts import read_one_cube
+from matplotlib.pyplot import MultipleLocator
 from CALIFAUtils.scripts import DrawHLRCircle
-from CALIFAUtils.scripts import get_morfologia
-from CALIFAUtils.globals import califa_work_dir
 from CALIFAUtils.plots import plotOLSbisectorAxis
 from CALIFAUtils.scripts import calc_running_stats
 from CALIFAUtils.scripts import DrawHLRCircleInSDSSImage
@@ -64,7 +61,7 @@ def parser_args():
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-imgDir = califa_work_dir + 'images/'
+imgDir = C.califa_work_dir + 'images/'
 
 Zsun = 0.019
 
@@ -77,7 +74,7 @@ if __name__ == '__main__':
     galName = args.califaID
     iT = args.itSF
     
-    H = H5SFRData(args.hdf5)
+    H = C.H5SFRData(args.hdf5)
     tSF__T = H.tSF__T
     ageMyr = tSF__T[iT] / 1e6
     
@@ -120,13 +117,13 @@ if __name__ == '__main__':
     aSFRSD_Ha__r = getattr(H, '%s_aSFRSD_Ha__rg' % galName)
     
     galaxyImgFile = imgDir + galName + '.jpg'
-    K = read_one_cube(galName, EL = True)
+    K = C.read_one_cube(galName, EL = True)
     
     # Setup elliptical-rings geometry
     pa, ba = K.getEllipseParams()
     K.setGeometry(pa, ba)
     
-    tipos, tipo, tipo_m, tipo_p = get_morfologia(galName)
+    tipos, tipo, tipo_m, tipo_p = C.get_morfologia(galName)
     
     #stellar
     tau_V__yx = K.zoneToYX(tau_V__z, extensive = False)

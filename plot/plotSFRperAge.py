@@ -8,8 +8,10 @@ import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 import sys
-from califa_scripts import H5SFRData
-from plot_aux import plotLinRegAxis, plot_text_ax
+import CALIFAUtils as C
+from CALIFAUtils.plots import plotLinRegAxis, plot_text_ax
+
+#plot_zbins
 
 mpl.rcParams['font.size'] = 16
 mpl.rcParams['axes.labelsize'] = 16
@@ -30,7 +32,7 @@ if __name__ == '__main__':
         print 'usage: %s HDF5FILE' % (sys.argv[0])
         exit(1)
     
-    H = H5SFRData(h5file)
+    H = C.H5SFRData(h5file)
     
     SFR__Tg = H.SFR__Tg
     SFR_Ha__g = H.SFR_Ha__g
@@ -38,6 +40,10 @@ if __name__ == '__main__':
     SFRSD_Ha__g = H.SFRSD_Ha__g
     aSFRSD__Trg = H.aSFRSD__Trg
     aSFRSD_Ha__rg = H.aSFRSD_Ha__rg
+    integrated_SFR__Tg = H.integrated_SFR__Tg
+    integrated_SFR_Ha__g = H.integrated_SFR_Ha__g
+    integrated_SFRSD__Tg = H.integrated_SFRSD__Tg
+    integrated_SFRSD_Ha__g = H.integrated_SFRSD_Ha__g
     
     if iT < 0:
         tSF__T = H.tSF__T
@@ -47,53 +53,67 @@ if __name__ == '__main__':
         tSF__T = [ H.tSF__T[iT] ]  
         
     ###################################################################################
-    for i, age in enumerate(tSF__T):
+    for i, tSF in enumerate(tSF__T):
         j = ind[i]
-        f, axArr = plt.subplots(1, 3)
-        f.set_size_inches(15,5) 
-        ax = axArr[0]
+        f, axArr = plt.subplots(2, 3)
+        f.set_size_inches(15,12) 
+        ax = axArr[0,0]
         x = np.ma.log10(SFR__Tg[j])
         y = np.ma.log10(SFR_Ha__g)
-        mask = x.mask | y.mask
-        xm = np.ma.masked_array(x, mask = mask)
-        ym = np.ma.masked_array(y, mask = mask)
+        xm, ym = C.ma_mask_xy(x, y)
         xran = [-5, 1]
         yran = [-5, 1]
-        xlabel = r'$\log\ \overline{SFR_\star}(t_{SF})\ [M_\odot yr^{-1}]$' 
+        xlabel = r'$\log\ SFR_\star(t_{SF})\ [M_\odot yr^{-1}]$' 
         ylabel = r'$\log\ SFR_{neb}\ [M_\odot yr^{-1}]$'
-        #fname = 'SFR_SFRHa_%.2fMyr.png' % (age / 1e6)
         plotLinRegAxis(ax, xm, ym, xlabel, ylabel, xran, yran)
 
-        ax = axArr[1]
+        ax = axArr[0,1]
         x = np.ma.log10(SFRSD__Tg[j] * 1e6)
         y = np.ma.log10(SFRSD_Ha__g * 1e6)
-        mask = x.mask | y.mask
-        xm = np.ma.masked_array(x, mask = mask)
-        ym = np.ma.masked_array(y, mask = mask)
+        xm, ym = C.ma_mask_xy(x, y)
         xran = [-5, 1]
         yran = [-5, 1]
-        xlabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_{SF})\ [M_\odot yr^{-1} kpc^{-2}]$' 
+        xlabel = r'$\log\ \Sigma_{SFR}^\star(t_{SF})\ [M_\odot yr^{-1} kpc^{-2}]$' 
         ylabel = r'$\log\ \Sigma_{SFR}^{neb}\ [M_\odot yr^{-1} kpc^{-2}]$'
-        #fname = 'SFRSD_SFRSDHa_%.2fMyr.png' % (age / 1e6)
         plotLinRegAxis(ax, xm, ym, xlabel, ylabel, xran, yran) 
     
-        ax = axArr[2]
+        ax = axArr[0,2]
         x = np.ma.log10(aSFRSD__Trg[j].flatten() * 1e6)
         y = np.ma.log10(aSFRSD_Ha__rg.flatten() * 1e6)
-        mask = x.mask | y.mask
-        xm = np.ma.masked_array(x, mask = mask)
-        ym = np.ma.masked_array(y, mask = mask)
+        xm, ym = C.ma_mask_xy(x, y)
         xran = [-5, 1]
         yran = [-5, 1]
-        xlabel = r'$\log\ \overline{\Sigma_{SFR}^\star}(t_{SF}, R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
+        xlabel = r'$\log\ \Sigma_{SFR}^\star(t_{SF}, R)\ [M_\odot yr^{-1} kpc^{-2}]$' 
         ylabel = r'$\log\ \Sigma_{SFR}^{neb}(R)\ [M_\odot yr^{-1} kpc^{-2}]$'
         plotLinRegAxis(ax, xm, ym, xlabel, ylabel, xran, yran)
-        txt = r'$t_{SF}: %s$ Myr' % str(age / 1.e6)
-        plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
 
+        ax = axArr[1,0]
+        x = np.ma.log10(integrated_SFR__Tg[j])
+        y = np.ma.log10(integrated_SFR_Ha__g)
+        xm, ym = C.ma_mask_xy(x, y)
+        xran = [-5, 1]
+        yran = [-5, 1]
+        xlabel = r'$\log\ SFR_\star^{int}(t_{SF})\ [M_\odot yr^{-1}]$' 
+        ylabel = r'$\log\ SFR_{neb}^{int}\ [M_\odot yr^{-1}]$'
+        plotLinRegAxis(ax, xm, ym, xlabel, ylabel, xran, yran)
+
+        ax = axArr[1,1]
+        x = np.ma.log10(integrated_SFRSD__Tg[j] * 1e6)
+        y = np.ma.log10(integrated_SFRSD_Ha__g * 1e6)
+        xm, ym = C.ma_mask_xy(x, y)
+        xran = [-5, 1]
+        yran = [-5, 1]
+        xlabel = r'$\log\ \Sigma_{SFR}^\star(int, t_{SF})\ [M_\odot yr^{-1} kpc^{-2}]$' 
+        ylabel = r'$\log\ \Sigma_{SFR}^{neb}(int)\ [M_\odot yr^{-1} kpc^{-2}]$'
+        plotLinRegAxis(ax, xm, ym, xlabel, ylabel, xran, yran)
         
-        fname = 'SFR_%.2fMyr.png' % (age / 1e6)
-        f.subplots_adjust(wspace=0.22, hspace=0, left=0.1, bottom=0.15, right=0.95, top=0.95)
+        ax = axArr[1,2] 
+        ax.set_axis_off()
+        
+        fname = 'SFR_%.2fMyr.png' % (tSF / 1e6)
+        suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
+        f.suptitle(suptitle)
+        f.subplots_adjust(wspace=0.22, hspace=0.22, left=0.1, bottom=0.15, right=0.95, top=0.90)
         f.savefig(fname)
         plt.close(f)
  

@@ -33,6 +33,7 @@ def parser_args():
         'maxiTSF' :-1,
         'gals_filename' : C.califa_work_dir + 'listOf300GalPrefixes.txt',
         'rgbcuts' : False,
+        'filter_residual' : False,
     }
     parser = ap.ArgumentParser(description = '%s' % sys.argv[0])
     parser.add_argument('--debug', '-D',
@@ -47,6 +48,9 @@ def parser_args():
     parser.add_argument('--rgbcuts',
                         action = 'store_true',
                         default = default_args['rgbcuts'])
+    parser.add_argument('--filter_residual', '-R',
+                        action = 'store_true',
+                        default = default_args['filter_residual'])
     parser.add_argument('--weiradprof', '-W',
                         action = 'store_true',
                         default = default_args['weiradprof'])
@@ -234,23 +238,34 @@ if __name__ == '__main__':
             aux = calc_SFR(K, tSF)
             SFR__z = np.ma.masked_array(aux[0])
             SFRSD__z = np.ma.masked_array(aux[1])
+            maskNotOk__z = np.zeros((K.N_zone), dtype=np.bool)
+            
+            if args.filter_residual is True:
+                maskNotOk__z |= ~(K.filterResidual())
+                C.debug_var(args.debug, pref = '    >>>',
+                    tSF = '%.2fMyr' % (tSF / 1e6),
+                    NnotOkResidual = (~(K.filterResidual())).sum()
+                )
 
             if args.minpopx >= 0.:
                 # Compute xOk "raw" image
-                maskNotOk__z = (x_Y__z < args.minpopx) | (tau_V__z < args.mintauv) 
+                maskNotOk__z |= (x_Y__z < args.minpopx) 
+                maskNotOk__z |= (tau_V__z < args.mintauv)
+                 
                 C.debug_var(args.debug, pref = '    >>>',
                     tSF = '%.2fMyr' % (tSF / 1e6),
                     NnotOkxY = (x_Y__z < args.minpopx).sum(),
                     NnotOktauV = (tau_V__z < args.mintauv).sum(),
                     NnotOk = maskNotOk__z.sum(),
                 )
-                tau_V__z[maskNotOk__z] = np.ma.masked
-                SFR__z[maskNotOk__z] = np.ma.masked
-                SFRSD__z[maskNotOk__z] = np.ma.masked
-                Mcor__z[maskNotOk__z] = np.ma.masked
-                McorSD__z[maskNotOk__z] = np.ma.masked
-                at_flux__z[maskNotOk__z] = np.ma.masked
-                at_mass__z[maskNotOk__z] = np.ma.masked
+
+            tau_V__z[maskNotOk__z] = np.ma.masked
+            SFR__z[maskNotOk__z] = np.ma.masked
+            SFRSD__z[maskNotOk__z] = np.ma.masked
+            Mcor__z[maskNotOk__z] = np.ma.masked
+            McorSD__z[maskNotOk__z] = np.ma.masked
+            at_flux__z[maskNotOk__z] = np.ma.masked
+            at_mass__z[maskNotOk__z] = np.ma.masked
                 
             tau_V__yx = K.zoneToYX(tau_V__z, extensive = False, surface_density = False)
             aSFRSD__yx = K.zoneToYX(SFRSD__z, extensive = False, surface_density = False)
@@ -347,7 +362,7 @@ if __name__ == '__main__':
                 maskOkLine[l] |= K.EL._setMaskLineSigma(l, sigma)
                 maskOkLine[l] |= K.EL._setMaskLineSNR(l, snr)
                 maskOkLine[l] = ~(maskOkLine[l])
-                C.debug_var(args.debug, maskOkLine = maskOkLine[l])
+                #C.debug_var(args.debug, maskOkLine = maskOkLine[l])
         else:
             for l in lines_central_wl:
                 C.debug_var(args.debug, l = l)
@@ -355,7 +370,7 @@ if __name__ == '__main__':
                 maskOkLine[l] = K.EL._setMaskLineFluxNeg(l)
                 maskOkLine[l] |= K.EL._setMaskLineSNR(l, minSNR)
                 maskOkLine[l] = ~(maskOkLine[l])
-                C.debug_var(args.debug, maskOkLine = maskOkLine[l])
+                #C.debug_var(args.debug, maskOkLine = maskOkLine[l])
             
         maskOkLines__z = np.bitwise_and(maskOkLine[Hb_central_wl], maskOkLine[O3_central_wl])
         maskOkLines__z = np.bitwise_and(maskOkLines__z, maskOkLine[Ha_central_wl])
@@ -393,44 +408,63 @@ if __name__ == '__main__':
         
         tau_V_neb__z = np.ma.masked_array(K.EL.tau_V_neb__z, mask = ~maskOkTauVNeb__z)
         tau_V_neb_err__z = np.ma.masked_array(K.EL.tau_V_neb_err__z, mask = ~maskOkTauVNeb__z)
+        
         tau_V_neb__yx = K.zoneToYX(tau_V_neb__z, extensive = False)
         tau_V_neb_err__yx = K.zoneToYX(tau_V_neb_err__z, extensive = False)
+        
         tau_V_neb__r = K.radialProfile(tau_V_neb__yx, Rbin__r, rad_scale = K.HLR_pix)
+        tau_V_neb_err__r = K.radialProfile(tau_V_neb_err__yx, Rbin__r, rad_scale = K.HLR_pix)
 
         ALL._tau_V_neb__g.append(tau_V_neb__z.data)
         ALL._tau_V_neb_err__g.append(tau_V_neb_err__z.data)
         ALL._tau_V_neb_mask__g.append(tau_V_neb__z.mask)
         
         ALL.tau_V_neb__rg[:, iGal] = tau_V_neb__r
+        ALL.tau_V_neb_err__rg[:, iGal] = tau_V_neb_err__r
 
         ALL.integrated_tau_V_neb__g[iGal] = K.EL.integrated_tau_V_neb
+        ALL.integrated_tau_V_neb_err__g[iGal] = K.EL.integrated_tau_V_neb_err
         ##########################
 
         ######### Z_neb ##########
         maskOkZNeb__z = (maskOkTauVNeb__z & maskOkLines__z & maskOkBPT__z)
         logZ_neb_S06__z = np.ma.masked_array(K.EL.logZ_neb_S06__z, mask = ~maskOkZNeb__z)
-        logZ_neb_S06__yx = K.zoneToYX(logZ_neb_S06__z, extensive = False)
-        logZ_neb_S06__r = K.radialProfile(logZ_neb_S06__yx, Rbin__r, rad_scale = K.HLR_pix)
         logZ_neb_S06_err__z = np.ma.masked_array(K.EL.logZ_neb_S06_err__z, mask = ~maskOkZNeb__z)
+        
+        logZ_neb_S06__yx = K.zoneToYX(logZ_neb_S06__z, extensive = False)
         logZ_neb_S06_err__yx = K.zoneToYX(logZ_neb_S06_err__z, extensive = False)
+
+        logZ_neb_S06__r = K.radialProfile(logZ_neb_S06__yx, Rbin__r, rad_scale = K.HLR_pix)
+        logZ_neb_S06_err__r = K.radialProfile(logZ_neb_S06_err__yx, Rbin__r, rad_scale = K.HLR_pix)
 
         ALL._logZ_neb_S06__g.append(logZ_neb_S06__z.data)
         ALL._logZ_neb_S06_mask__g.append(logZ_neb_S06__z.mask)
         ALL._logZ_neb_S06_err__g.append(logZ_neb_S06_err__z.data)
         
         ALL.logZ_neb_S06__rg[:, iGal] = logZ_neb_S06__r
+        ALL.logZ_neb_S06_err__rg[:, iGal] = logZ_neb_S06_err__r
         
         ALL.integrated_logZ_neb_S06__g[iGal] = K.EL.integrated_logZ_neb_S06
+        ALL.integrated_logZ_neb_S06_err__g[iGal] = K.EL.integrated_logZ_neb_S06_err
         ##########################
 
         ########### EW ###########
         EW_Ha__z = np.ma.masked_array(K.EL.EW[i_Ha, :], mask = ~(maskOkLine[Ha_central_wl]))
         EW_Hb__z = np.ma.masked_array(K.EL.EW[i_Hb, :], mask = ~(maskOkLine[Hb_central_wl]))
+
+        EW_Ha__yx = K.zoneToYX(EW_Ha__z, extensive = False)
+        EW_Hb__yx = K.zoneToYX(EW_Hb__z, extensive = False)
+        
+        EW_Ha__r = K.radialProfile(EW_Ha__yx, Rbin__r, rad_scale = K.HLR_pix)
+        EW_Hb__r = K.radialProfile(EW_Hb__yx, Rbin__r, rad_scale = K.HLR_pix)
         
         ALL._EW_Ha__g.append(EW_Ha__z.data)
         ALL._EW_Ha_mask__g.append(EW_Ha__z.mask)
         ALL._EW_Hb__g.append(EW_Hb__z.data)
         ALL._EW_Hb_mask__g.append(EW_Hb__z.mask)
+
+        ALL.EW_Ha__rg[:, iGal] = EW_Ha__r
+        ALL.EW_Hb__rg[:, iGal] = EW_Hb__r
         ##########################
 
         #### intrinsic Ha Lum ####
