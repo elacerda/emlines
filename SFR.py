@@ -155,6 +155,7 @@ if __name__ == '__main__':
         tSF__T = np.asarray(base.ageBase[0:args.maxiTSF + 1])
     else:
         tSF__T = np.asarray(base.ageBase)
+    #tSF__T = np.logspace(np.log10(base.ageBase[1]), np.log10(base.ageBase[23]), 100)
     N_T = len(tSF__T)
 
     # Z-time-scale array (index __U).
@@ -176,8 +177,11 @@ if __name__ == '__main__':
 
         tipos, tipo, tipo_m, tipo_p = C.get_morfologia(califaID)
         
+        print tipo
+        print type(tipo)
+        
         # Only spiral
-        if args.spiral and tipo <= 8: 
+        if args.spiral and (tipo <= 8 or tipo >= 12.5): 
             ALL.mask_gal(iGal)
             print '<<< %s galaxy: is not a spiral (type: %d)' % (califaID, tipo) 
             continue
@@ -560,14 +564,19 @@ if __name__ == '__main__':
         ALL.integrated_O_O3N2_M13__g[iGal] = K.GP.EMPAB.integrated_O_O3N2_M13
         ALL.integrated_O_O3N2_PP04__g[iGal] = K.GP.EMPAB.integrated_O_O3N2_PP04
         ALL.integrated_O_direct_O_23__g[iGal] = K.GP.ELEMAB.integrated_O_direct_O_23
+
+        _O_HIICHIM__z = np.ma.masked_array(O_HIICHIM__z, mask = np.isnan(O_HIICHIM__z)) 
+        _O_O3N2_M13__z = np.ma.masked_array(O_O3N2_M13__z, mask = np.isnan(O_O3N2_M13__z))
+        _O_O3N2_PP04__z = np.ma.masked_array(O_O3N2_PP04__z, mask = np.isnan(O_O3N2_PP04__z))
+        _O_direct_O_23__z = np.ma.masked_array(O_direct_O_23__z, mask = np.isnan(O_direct_O_23__z))
         
-        O_HIICHIM__yx = K.zoneToYX(O_HIICHIM__z, extensive = False)
+        O_HIICHIM__yx = K.zoneToYX(_O_HIICHIM__z, extensive = False)
         O_HIICHIM__r = K.radialProfile(O_HIICHIM__yx, Rbin__r, rad_scale = K.HLR_pix)
-        O_O3N2_M13__yx = K.zoneToYX(O_O3N2_M13__z, extensive = False)
+        O_O3N2_M13__yx = K.zoneToYX(_O_O3N2_M13__z, extensive = False)
         O_O3N2_M13__r = K.radialProfile(O_O3N2_M13__yx, Rbin__r, rad_scale = K.HLR_pix)
-        O_O3N2_PP04__yx = K.zoneToYX(O_O3N2_PP04__z, extensive = False)
+        O_O3N2_PP04__yx = K.zoneToYX(_O_O3N2_PP04__z, extensive = False)
         O_O3N2_PP04__r = K.radialProfile(O_O3N2_PP04__yx, Rbin__r, rad_scale = K.HLR_pix)
-        O_direct_O_23__yx = K.zoneToYX(O_direct_O_23__z, extensive = False)
+        O_direct_O_23__yx = K.zoneToYX(_O_direct_O_23__z, extensive = False)
         O_direct_O_23__r = K.radialProfile(O_direct_O_23__yx, Rbin__r, rad_scale = K.HLR_pix)
         
         ALL.O_HIICHIM__rg[:, iGal] = O_HIICHIM__r
@@ -611,3 +620,5 @@ if __name__ == '__main__':
         print 'time hdf5: %.2f' % (time.clock() - t_init_hdf5)
         
     print 'total time: %.2f' % (time.clock() - t_init_prog)
+
+    

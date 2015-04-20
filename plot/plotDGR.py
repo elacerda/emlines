@@ -11,6 +11,8 @@ import CALIFAUtils as C
 from CALIFAUtils.plots import plotScatterColorAxis, plot_text_ax, plot_zbins
 
 debug = True
+mask_radius = True
+RNuc = 0.5
 
 mpl.rcParams['font.size'] = 20
 mpl.rcParams['axes.labelsize'] = 20
@@ -105,403 +107,679 @@ if __name__ == '__main__':
     f_gas__rg = 1. / (1. + (H.McorSD__Trg[iT] / SigmaGas__rg))
     RbinCenter__rg = ((np.ones_like(f_gas__rg).T * H.RbinCenter__r).T).flatten()
 
-    #################################################################################
-    #################################################################################
-    #################################################################################
     xaxis = {
-        'alogZmass' : dict(
-                        v = H.alogZ_mass__Ug[-1] + np.log10(4.9e-4) + 12, 
-                        label = r'12 + $\log\ O/H$ ($\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr))' % (H.tZ__U[-1] / 1e9),
-                        #lim = [7., 9.5],
-                        majloc = 0.5,
-                        minloc = 0.1,
-                        limprc = [0, 100],
-                      ),
-        'OHIICHIM' : dict(
-                        v = H.O_HIICHIM__g, 
-                        label = r'12 + $\log\ O/H$ (HII-CHI-mistry, EPM, 2014)',
-                        #lim = [7., 9.5],
-                        majloc = 0.5,
-                        minloc = 0.1,
-                        limprc = [0, 100],
-                     ),
-        'logO3N2S06' : dict(
-                        v = H.logZ_neb_S06__g + np.log10(4.9e-4) + 12, 
-                        label = r'12 + $\log\ O/H$ (logO3N2, Stasinska, 2006)',
-                        #lim = [7., 9.5],
-                        majloc = 0.5,
-                        minloc = 0.1,
-                        limprc = [0, 100],
-                       ),
-        'logO3N2M13' : dict(
-                        v = H.O_O3N2_M13__g, 
-                        label = r'12 + $\log\ O/H$ (logO3N2, Marino, 2013)',
-                        #lim = [7., 9.5],
-                        majloc = 0.5,
-                        minloc = 0.1,
-                        limprc = [0, 100],
-                       ),
         'logfgas' : dict(
                         v = np.ma.log10(f_gas__g),
                         label = r'$\log\ f_{gas}$',
-                        #lim =,
-                        majloc = 0.5,
-                        minloc = 0.1,
+                        lim = [-3, 0],
+                        majloc = 1.,
+                        minloc = 0.2,
                         limprc = [0, 100],
                     ),
-        'logtauV' : dict(
-                        v = np.ma.log10(H.tau_V__Tg[iT]), 
-                        label = r'$\log\ \tau_V^\star$',
-                        majloc = 0.5,
-                        minloc = 0.1,
-                        limprc = [0, 100],
-                    ),
-        'logtauVneb' : dict(
-                        v = np.ma.log10(H.tau_V_neb__g), 
-                        label = r'$\log\ \tau_V^{neb}$',
-                        majloc = 0.5,
-                        minloc = 0.1,
-                        limprc = [0, 100],
-                       ),
     }
     yaxis = {
-        'logSFRSD' : dict(
-                        v = np.ma.log10(H.SFRSD__Tg[iT] * 1e6), 
-                        label = r'$\log\ \Sigma_{SFR}^\star(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$',
-                        majloc = 0.5,
-                        minloc = 0.1,
+        'alogZmass' : dict(
+                        v = H.alogZ_mass__Ug[-1], 
+                        label = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr)' % (H.tZ__U[-1] / 1e9),
+                        lim = [ -0.75, 0.25],
+                        majloc = 0.25,
+                        minloc = 0.05,
                         limprc = [0, 100],
-                     ),
-        'logSFRSDHa' : dict(
-                        v = np.ma.log10(H.SFRSD_Ha__g * 1e6), 
-                        label = r'$\log\ \Sigma_{SFR}^{neb}\ [M_\odot yr^{-1} kpc^{-2}]$',
-                        majloc = 0.5,
-                        minloc = 0.1,
+                      ),
+        'logO3N2M13' : dict(
+                        v = H.O_O3N2_M13__g, 
+                        label = r'12 + $\log\ O/H$ (logO3N2, Marino, 2013)',
+                        lim = [8.0, 9.0],
+                        majloc = 0.25,
+                        minloc = 0.05,
                         limprc = [0, 100],
                        ),
-        'logDGR' : dict(
-                    v = np.ma.log10(DGR__g),
-                    label = r'$\log$ DGR',
-                    majloc = 0.5,
-                    minloc = 0.1,
-                    limprc = [0, 100],
-                   ),
-        'logDGRHa' : dict(
-                        v = np.ma.log10(DGR_Ha__g),
-                        label = r'$\log$ DGR',
-                        majloc = 0.5,
-                        minloc = 0.1,
-                        limprc = [0, 100],
-                   ),
     }
+    
+    zk, zv = H.get_plot_dict(iT, -1, key = 'zoneDistHLR')
     for xk, xv in xaxis.iteritems():
         for yk, yv in yaxis.iteritems():
             if xk != yk:
                 tSF = H.tSF__T[iT]
+                if mask_radius is True:
+                    xv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
+                    yv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
+                    zlim = [RNuc, 2]
+                    filename = '%s_%s_%s_maskradius_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6)
+                else:
+                    zlim = [0, 2]
+                    filename = '%s_%s_%s_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6)
                 plot_zbins(
                     debug = debug,
                     x = xv['v'],
                     xlabel = xv['label'],
                     y = yv['v'],
                     ylabel = yv['label'],
-                    xlimprc = xv['limprc'],
-                    ylimprc = yv['limprc'],
-                    #xlim = xv['lim'],
-                    #ylim = yv['lim'],
+                    xlim = xv['lim'],
+                    ylim = yv['lim'],
+                    zlim = zlim,
+                    z = zv['v'],
+                    zmask = None,
+                    zlabel = r'R (HLR)', 
                     kwargs_figure = dict(figsize=(10,8), dpi = 100),
                     kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
                     running_stats = True,
                     rs_gaussian_smooth = True,
                     rs_percentiles = True,
-                    rs_gs_fwhm = 0.4,
+                    rs_gs_fwhm = 8,
+                    rs_frac_box = 80,
                     kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
                     rs_errorbar = False,
                     kwargs_suptitle = dict(fontsize = 12),
                     suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                    filename = '%s_%s_%.2fMyr.png' % (xk, yk, tSF / 1e6),
-                    #x_major_locator = xv['majloc'],
-                    #x_minor_locator = xv['minloc'],
-                    #y_major_locator = yv['majloc'],
-                    #y_minor_locator = yv['minloc'],
+                    filename = filename,
+                    x_major_locator = xv['majloc'],
+                    x_minor_locator = xv['minloc'],
+                    y_major_locator = yv['majloc'],
+                    y_minor_locator = yv['minloc'],
                     kwargs_legend = dict(fontsize = 12),
+                    cb = True,
                 )
-    
-    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    # plotArgs = [
-    #     dict(x = H.logZ_neb_S06__g,
-    #          y = np.ma.log10(DGR__g),
-    #          z = np.ma.log10(H.McorSD__g), 
-    #          xlabel = r'$\log\ Z_{neb}$ [$Z_\odot$]',
-    #          ylabel = r'$\log$ DGR',
-    #          zlabel = r'$\log\ \mu_\star$ [$M_\odot\ pc^{-2}$]',
-    #          fname_pref = 'logZneb_logDGR_McorSD',
-    #          xlim = None,
-    #          ylim = None,
-    #          zlim = None,
-    #          x_major_locator = 0.1,
-    #          x_minor_locator = 0.02,
-    #          y_major_locator = 0.5,
-    #          y_minor_locator = 0.1,
-    #          contour = False, 
-    #          run_stats = True, 
-    #          OLS = False,
-    #          ),
-    #     dict(x = H.alogZ_mass__Ug[iU],
-    #          y = np.ma.log10(DGR__g),
-    #          z = H.dist_zone__g,  
-    #          xlabel = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[iU] / 1e9),
-    #          ylabel = r'$\log$ DGR',
-    #          zlabel = r'zone distance [HLR]',
-    #          fname_pref = 'alogZmass_logDGR_zoneDistance',
-    #          xlim = None,
-    #          ylim = None,
-    #          zlim = None,
-    #          x_major_locator = 0.5,
-    #          x_minor_locator = 0.1,
-    #          y_major_locator = 0.5,
-    #          y_minor_locator = 0.1,
-    #          contour = False, 
-    #          run_stats = True, 
-    #          OLS = False,
-    #          ),
-    #     dict(x = H.logZ_neb_S06__g, 
-    #          y = np.ma.log10(DGR__g),
-    #          z = np.ma.log10(H.reply_arr_by_zones(H.McorSD_GAL__g)),
-    #          xlabel = r'$\log\ Z_{neb}$ [$Z_\odot$]',
-    #          ylabel = r'$\log$ DGR',
-    #          zlabel = r'$\log\ M_\star$ [$M_\odot\ pc^{-2}$]',
-    #          fname_pref = 'logZneb_logDGR_McorSDGAL', 
-    #          xlim = None,
-    #          ylim = None,
-    #          zlim = None,
-    #          x_major_locator = 0.1,
-    #          x_minor_locator = 0.02,
-    #          y_major_locator = 0.5,
-    #          y_minor_locator = 0.1,
-    #          contour = False, 
-    #          run_stats = True, 
-    #          OLS = False,
-    #          ),
-    #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    #     # dict(
-    #     #      x = np.ma.log10(f_gas__rg.flatten()), 
-    #     #      y = H.alogZ_mass__Urg[-1].flatten(), 
-    #     #      z = RbinCenter__rg, 
-    #     #      xlabel = r'$\log\ f_{gas}(R)$', 
-    #     #      ylabel = r'$\langle \log\ Z_\star \rangle_M(R)$ [$Z_\odot$]', 
-    #     #      zlabel = r'R [HLR]', 
-    #     #      fname_pref = 'logfgas_alogZmass_radius',
-    #     #      #xlim = [-7.5, -3.5],
-    #     #      xlim = None,
-    #     #      ylim = [-1.5, 0.3], 
-    #     #      zlim = None, 
-    #     #      x_major_locator = 0.5,
-    #     #      x_minor_locator = 0.1,
-    #     #      y_major_locator = 0.2,
-    #     #      y_minor_locator = 0.04,
-    #     #      contour = False, 
-    #     #      run_stats = True, 
-    #     #      OLS = False
-    #     #      ),
-    #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    #     dict(x = np.ma.log10(f_gas__rg.flatten()),
-    #          y = H.logZ_neb_S06__rg.flatten(),
-    #          z = RbinCenter__rg,
-    #          xlabel = r'$\log\ f_{gas}(R)$',
-    #          ylabel = r'$\langle \log\ Z_{neb} \rangle(R)$ [$Z_\odot$]',
-    #          zlabel = r'R [HLR]',
-    #          fname_pref = 'logfgas_logZneb_radius',
-    #          #xlim = [-7.5, -3.5],
-    #          xlim = None,
-    #          ylim = None,
-    #          #ylim = [-0.5, 0.2],
-    #          zlim = None,
-    #          x_major_locator = 0.5,
-    #          x_minor_locator = 0.1,
-    #          y_major_locator = 0.1,
-    #          y_minor_locator = 0.02,
-    #          contour = False, 
-    #          run_stats = True, 
-    #          OLS = False,
-    #          ),
-    #     dict(x = np.ma.log10(f_gas__g),
-    #          y = H.logZ_neb_S06__g,
-    #          z = H.dist_zone__g,
-    #          xlabel = r'$\log\ f_{gas}$',
-    #          ylabel = r'$\langle \log\ Z_{neb} \rangle$ [$Z_\odot$]',
-    #          zlabel = r'zone distance [HLR]',
-    #          fname_pref = 'logfgas_logZneb_zoneDistance',
-    #          #xlim = [-7.5, -3.5],
-    #          xlim = None,
-    #          ylim = None,
-    #          #ylim = [-0.5, 0.2],
-    #          zlim = None,
-    #          x_major_locator = 0.5,
-    #          x_minor_locator = 0.1,
-    #          y_major_locator = 0.1,
-    #          y_minor_locator = 0.02,
-    #          contour = False, 
-    #          run_stats = True, 
-    #          OLS = False,
-    #          ),
-    #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    #     # dict(x = np.ma.log10(f_gas__rg.flatten()),
-    #     #      y = np.ma.log10(H.McorSD__Trg[iT].flatten()),
-    #     #      z = RbinCenter__rg,
-    #     #      xlabel = r'$\log\ f_{gas}(R)$',
-    #     #      ylabel = r'$\log\ \langle \mu_\star \rangle(R)$ [$M_\odot \ pc^{-2}$]',
-    #     #      zlabel = r'R [HLR]',
-    #     #      fname_pref = 'logfgas_logMcorSD_radius',
-    #     #      #xlim = [-7.5, -3.5],
-    #     #      xlim = None,
-    #     #      ylim = [1, 4.7],
-    #     #      zlim = None,
-    #     #      x_major_locator = 0.5,
-    #     #      x_minor_locator = 0.1,
-    #     #      y_major_locator = 0.5,
-    #     #      y_minor_locator = 0.1,
-    #     #      contour = False, 
-    #     #      run_stats = True, 
-    #     #      OLS = False,
-    #     #      ),
-    #     # dict(x = np.ma.log10(f_gas__rg.flatten()),
-    #     #      y = np.ma.log10(SigmaGas__rg.flatten()),
-    #     #      z = RbinCenter__rg,
-    #     #      xlabel = r'$\log\ f_{gas}(R)$',
-    #     #      ylabel = r'$\log\ \langle \Sigma_{gas} \rangle(R)$ [$M_\odot \ pc^{-2}$]',
-    #     #      zlabel = r'R [HLR]',
-    #     #      fname_pref = 'logfgas_logSigmaGas_radius',
-    #     #      #xlim = [-7.5, -3.5],
-    #     #      xlim = None,
-    #     #      ylim = None,
-    #     #      zlim = None,
-    #     #      x_major_locator = 0.5,
-    #     #      x_minor_locator = 0.1,
-    #     #      y_major_locator = 0.25,
-    #     #      y_minor_locator = 0.05,
-    #     #      contour = False, 
-    #     #      run_stats = True, 
-    #     #      OLS = False,
-    #     #      ),
-    #     # dict(x = np.ma.log10(f_gas__rg.flatten()),
-    #     #      y = np.ma.log10(H.McorSD__Trg[iT].flatten() / H.aSFRSD__Trg[iT].flatten()),
-    #     #      z = RbinCenter__rg,
-    #     #      xlabel = r'$\log\ f_{gas}(R)$',
-    #     #      ylabel = r'$\log\ \langle \frac{\mu_\star}{\Sigma_{SFR}} \rangle$ [yr]',
-    #     #      zlabel = r'R [HLR]',
-    #     #      fname_pref = 'logfgas_McorSD_SFRSD_radius',
-    #     #      #xlim = [-7.5, -3.5],
-    #     #      xlim = None,
-    #     #      ylim = None,
-    #     #      zlim = None,
-    #     #      x_major_locator = 0.5,
-    #     #      x_minor_locator = 0.1,
-    #     #      y_major_locator = 0.5,
-    #     #      y_minor_locator = 0.1,
-    #     #      contour = False, 
-    #     #      run_stats = True, 
-    #     #      OLS = False,
-    #     #      ),
-    #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    #     dict(x = np.ma.log10(f_gas__g),
-    #          y = np.ma.masked_where(H.O_HIICHIM__g == 0.,H.O_HIICHIM__g, copy=True),
-    #          z = H.dist_zone__g,
-    #          xlabel = r'$\log\ f_{gas}$', 
-    #          ylabel = r'O_HIICHIM', 
-    #          zlabel = r'zone distance [HLR]', 
-    #          fname_pref = 'logfgas_O_HIICHIM_zoneDistance',
-    #          xlim = None,
-    #          ylim = None,
-    #          zlim = None, 
-    #          x_major_locator = 0.5,
-    #          x_minor_locator = 0.1,
-    #          y_major_locator = 0.2,
-    #          y_minor_locator = 0.04,
-    #          contour = False, 
-    #          run_stats = True, 
-    #          OLS = False
-    #          ),
-    #     dict(x = np.ma.masked_where(H.O_HIICHIM__g == 0.,H.O_HIICHIM__g, copy=True),
-    #          y = np.ma.log10(DGR__g),
-    #          z = H.dist_zone__g,  
-    #          xlabel = 'O_HIICHIM', 
-    #          ylabel = r'$\log$ DGR',
-    #          zlabel = r'zone distance [HLR]',
-    #          fname_pref = 'OHIICHIM_logDGR_zoneDistance',
-    #          xlim = None,
-    #          ylim = None,
-    #          zlim = None,
-    #          x_major_locator = 0.5,
-    #          x_minor_locator = 0.1,
-    #          y_major_locator = 0.5,
-    #          y_minor_locator = 0.1,
-    #          contour = False, 
-    #          run_stats = True, 
-    #          OLS = False,
-    #          ),
-    #     dict(x = np.ma.masked_where(H.O_O3N2_M13__g == 0.,H.O_O3N2_M13__g, copy=True),
-    #          y = np.ma.log10(DGR__g),
-    #          z = H.dist_zone__g,  
-    #          xlabel = 'O3N2_M13', 
-    #          ylabel = r'$\log$ DGR',
-    #          zlabel = r'zone distance [HLR]',
-    #          fname_pref = 'O3N2M13_logDGR_zoneDistance',
-    #          xlim = None,
-    #          ylim = None,
-    #          zlim = None,
-    #          x_major_locator = 0.5,
-    #          x_minor_locator = 0.1,
-    #          y_major_locator = 0.5,
-    #          y_minor_locator = 0.1,
-    #          contour = False, 
-    #          run_stats = True, 
-    #          OLS = False,
-    #          ),
-    #     dict(x = np.ma.log10(f_gas__g),
-    #          y = np.ma.masked_where(H.O_O3N2_M13__g == 0.,H.O_O3N2_M13__g, copy=True),
-    #          z = H.dist_zone__g,
-    #          xlabel = r'$\log\ f_{gas}$', 
-    #          ylabel = r'O3N2_M13', 
-    #          zlabel = r'zone distance [HLR]', 
-    #          fname_pref = 'logfgas_O3N2M13_zoneDistance',
-    #          xlim = None,
-    #          ylim = None,
-    #          zlim = None, 
-    #          x_major_locator = 0.5,
-    #          x_minor_locator = 0.1,
-    #          y_major_locator = 0.2,
-    #          y_minor_locator = 0.04,
-    #          contour = False, 
-    #          run_stats = True, 
-    #          OLS = False
-    #          ),                
-    #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    #     # dict(x = np.ma.log10(SigmaGas__rg.flatten()), 
-    #     #      y = np.ma.log10(H.aSFRSD_Ha__rg.flatten() * 1e6),
-    #     #      #y = np.ma.log10(H.aSFRSD__Trg[iT].flatten() * 1e6),
-    #     #      z = RbinCenter__rg.flatten(),
-    #     #      xlabel = r'$\log\ \Sigma_{gas}(R)\ [M_\odot yr^{-1} pc^{-2}]$',
-    #     #      ylabel = r'$\log\ \overline{\Sigma_{SFR}}(t_\star, R)\ [M_\odot yr^{-1} kpc^{-2}]$',
-    #     #      zlabel = r'R [HLR]',
-    #     #      fname = 'logSigmaGas_logSigmaSFR_radius_%dgals',
-    #     #      xlim = [-4.5, -1.5],
-    #     #      ylim = None,
-    #     #      zlim = None,
-    #     #      x_major_locator = 0.5,
-    #     #      x_minor_locator = 0.1,
-    #     #      y_major_locator = 0.5,
-    #     #      y_minor_locator = 0.1,
-    #     #      contour = False, 
-    #     #      run_stats = True, 
-    #     #      OLS = True,
-    #     #      ),
-    #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    # ]
-    #     
-    # for D in plotArgs:
-    #     tSF = H.tSF__T[iT]
-    #     fname = '%s_%.2fMyr_%dgals.%s' % (D['fname_pref'], tSF/1e6, H.N_gals, img_output_ext)
-    #     D.update(tSF = H.tSF__T[iT], H = H, DGR = DGR, fname = fname)
-    #     f_plot(**D)
-    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+
+
+
+    xaxis = {
+        'logfgasR' : dict(
+                        v = np.ma.log10(f_gas__rg),
+                        label = r'$\log\ f_{gas}$',
+                        lim = [-3, 0],
+                        majloc = 1.,
+                        minloc = 0.2,
+                        limprc = [0, 100],
+                    ),
+    }
+    yaxis = {
+        'alogZmassR' : dict(
+                        v = H.alogZ_mass__Urg[-1], 
+                        label = r'$\langle \log\ Z_\star \rangle_M$ (R, t < %.2f Gyr)' % (H.tZ__U[-1] / 1e9),
+                        lim = [ -0.75, 0.25],
+                        majloc = 0.25,
+                        minloc = 0.05,
+                        limprc = [0, 100],
+                      ),
+    }
+    #zk, zv = H.get_plot_dict(iT, -1, key = 'zoneDistHLR')
+    for xk, xv in xaxis.iteritems():
+        for yk, yv in yaxis.iteritems():
+            if xk != yk:
+                tSF = H.tSF__T[iT]
+                if mask_radius is True:
+                    xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
+                    yv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
+                    zlim = [RNuc, 2]
+                    filename = '%s_%s_radius_maskradius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
+                else:
+                    zlim = [0, 2]
+                    filename = '%s_%s_radius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
+                plot_zbins(
+                    debug = debug,
+                    x = xv['v'],
+                    xlabel = xv['label'],
+                    y = yv['v'],
+                    ylabel = yv['label'],
+                    xlim = xv['lim'],
+                    ylim = yv['lim'],
+                    z = (H.RbinCenter__r[..., np.newaxis] * np.ones_like(H.aSFRSD_Ha__rg)).flatten(),
+                    zlim = zlim,
+                    zlabel = r'R (HLR)',
+                    zmask = None, 
+                    kwargs_figure = dict(figsize=(10,8), dpi = 100),
+                    kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
+                    running_stats = True,
+                    rs_gaussian_smooth = True,
+                    rs_percentiles = True,
+                    rs_gs_fwhm = 8,
+                    rs_frac_box = 20,
+                    kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+                    rs_errorbar = False,
+                    kwargs_suptitle = dict(fontsize = 12),
+                    suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
+                    filename = filename,
+                    x_major_locator = xv['majloc'],
+                    x_minor_locator = xv['minloc'],
+                    y_major_locator = yv['majloc'],
+                    y_minor_locator = yv['minloc'],
+                    kwargs_legend = dict(fontsize = 12),
+                    cb = True,
+                )
+
+
+    xaxis = {
+        'logfgasR' : dict(
+                        v = np.ma.log10(f_gas__rg),
+                        label = r'$\log\ f_{gas}$',
+                        lim = [-3, 0],
+                        majloc = 1.,
+                        minloc = 0.2,
+                        limprc = [0, 100],
+                    ),
+    }
+    yaxis = {
+        'logO3N2M13R' : dict(
+                        v = H.O_O3N2_M13__rg, 
+                        label = r'12 + $\log\ O/H$ (R, logO3N2, Marino, 2013)',
+                        lim = [8.0, 9.0],
+                        majloc = 0.25,
+                        minloc = 0.05,
+                        limprc = [0, 100],
+                       ),
+    }
+    #zk, zv = H.get_plot_dict(iT, -1, key = 'zoneDistHLR')
+    for xk, xv in xaxis.iteritems():
+        for yk, yv in yaxis.iteritems():
+            if xk != yk:
+                tSF = H.tSF__T[iT]
+                if mask_radius is True:
+                    xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
+                    yv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
+                    zlim = [RNuc, 2]
+                    filename = '%s_%s_radius_maskradius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
+                else:
+                    zlim = [0, 2]
+                    filename = '%s_%s_radius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
+                plot_zbins(
+                    debug = debug,
+                    x = xv['v'],
+                    xlabel = xv['label'],
+                    y = yv['v'],
+                    ylabel = yv['label'],
+                    xlim = xv['lim'],
+                    ylim = yv['lim'],
+                    zlim = zlim,
+                    zlabel = r'R (HLR)',
+                    z = (H.RbinCenter__r[..., np.newaxis] * np.ones_like(H.aSFRSD_Ha__rg)).flatten(),
+                    zmask = None, 
+                    kwargs_figure = dict(figsize=(10,8), dpi = 100),
+                    kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
+                    running_stats = True,
+                    rs_gaussian_smooth = True,
+                    rs_percentiles = True,
+                    rs_gs_fwhm = 8,
+                    rs_frac_box = 20,
+                    kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+                    rs_errorbar = False,
+                    kwargs_suptitle = dict(fontsize = 12),
+                    suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
+                    #filename = '%s_%s_%s_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6),
+                    filename = filename,
+                    x_major_locator = xv['majloc'],
+                    x_minor_locator = xv['minloc'],
+                    y_major_locator = yv['majloc'],
+                    y_minor_locator = yv['minloc'],
+                    kwargs_legend = dict(fontsize = 12),
+                    cb = True,
+                )
+
+
+
+
+
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+#     #################################################################################
+#     #################################################################################
+#     #################################################################################
+#     xaxis = {
+#         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#         # 'alogZmass' : dict(
+#         #                 v = H.alogZ_mass__Ug[-1], 
+#         #                 label = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr))' % (H.tZ__U[-1] / 1e9),
+#         #                 #lim = [7., 9.5],
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #               ),
+#         # #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#         # # 'OHIICHIM' : dict(
+#         # #                 v = H.O_HIICHIM__g, 
+#         # #                 label = r'12 + $\log\ O/H$ (HII-CHI-mistry, EPM, 2014)',
+#         # #                 #lim = [7., 9.5],
+#         # #                 majloc = 0.5,
+#         # #                 minloc = 0.1,
+#         # #                 limprc = [0, 100],
+#         # #              ),
+#         # #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#         # 'logO3N2S06' : dict(
+#         #                 v = H.logZ_neb_S06__g + np.log10(4.9e-4) + 12, 
+#         #                 label = r'12 + $\log\ O/H$ (logO3N2, Stasinska, 2006)',
+#         #                 #lim = [7., 9.5],
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #                ),
+#         # 'logO3N2M13' : dict(
+#         #                 v = H.O_O3N2_M13__g, 
+#         #                 label = r'12 + $\log\ O/H$ (logO3N2, Marino, 2013)',
+#         #                 #lim = [7., 9.5],
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #                ),
+#         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#         'logfgas' : dict(
+#                         v = np.ma.log10(f_gas__g),
+#                         label = r'$\log\ f_{gas}$',
+#                         #lim =,
+#                         majloc = 0.5,
+#                         minloc = 0.1,
+#                         limprc = [0, 100],
+#                     ),
+#         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#         # 'logtauV' : dict(
+#         #                 v = np.ma.log10(H.tau_V__Tg[iT]), 
+#         #                 label = r'$\log\ \tau_V^\star$',
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #             ),
+#         # 'logtauVneb' : dict(
+#         #                 v = np.ma.log10(H.tau_V_neb__g), 
+#         #                 label = r'$\log\ \tau_V^{neb}$',
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #                ),
+#         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     }
+#     yaxis = {
+#         'alogZmass' : dict(
+#                         v = H.alogZ_mass__Ug[-1], 
+#                         label = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr))' % (H.tZ__U[-1] / 1e9),
+#                         #lim = [7., 9.5],
+#                         majloc = 0.5,
+#                         minloc = 0.1,
+#                         limprc = [0, 100],
+#                       ),
+#         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#         # 'logO3N2S06' : dict(
+#         #                 v = H.logZ_neb_S06__g + np.log10(4.9e-4) + 12, 
+#         #                 label = r'12 + $\log\ O/H$ (logO3N2, Stasinska, 2006)',
+#         #                 #lim = [7., 9.5],
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #                ),
+#         # 'logO3N2M13' : dict(
+#         #                 v = H.O_O3N2_M13__g, 
+#         #                 label = r'12 + $\log\ O/H$ (logO3N2, Marino, 2013)',
+#         #                 #lim = [7., 9.5],
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #                ),
+#         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#         # 'logSFRSD' : dict(
+#         #                 v = np.ma.log10(H.SFRSD__Tg[iT] * 1e6), 
+#         #                 label = r'$\log\ \Sigma_{SFR}^\star(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$',
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #              ),
+#         # 'logSFRSDHa' : dict(
+#         #                 v = np.ma.log10(H.SFRSD_Ha__g * 1e6), 
+#         #                 label = r'$\log\ \Sigma_{SFR}^{neb}\ [M_\odot yr^{-1} kpc^{-2}]$',
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #                ),
+#         # 'logDGR' : dict(
+#         #             v = np.ma.log10(DGR__g),
+#         #             label = r'$\log$ DGR',
+#         #             majloc = 0.5,
+#         #             minloc = 0.1,
+#         #             limprc = [0, 100],
+#         #            ),
+#         # 'logDGRHa' : dict(
+#         #                 v = np.ma.log10(DGR_Ha__g),
+#         #                 label = r'$\log$ DGR',
+#         #                 majloc = 0.5,
+#         #                 minloc = 0.1,
+#         #                 limprc = [0, 100],
+#         #            ),
+#         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     }
+#     for xk, xv in xaxis.iteritems():
+#         for yk, yv in yaxis.iteritems():
+#             if xk != yk:
+#                 tSF = H.tSF__T[iT]
+#                 plot_zbins(
+#                     debug = debug,
+#                     x = xv['v'],
+#                     xlabel = xv['label'],
+#                     y = yv['v'],
+#                     ylabel = yv['label'],
+#                     xlimprc = xv['limprc'],
+#                     #ylimprc = yv['limprc'],
+#                     #xlim = xv['lim'],
+#                     #ylim = yv['lim'],
+#                     kwargs_figure = dict(figsize=(10,8), dpi = 100),
+#                     kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
+#                     running_stats = True,
+#                     rs_gaussian_smooth = True,
+#                     rs_percentiles = True,
+#                     rs_gs_fwhm = 8,
+#                     kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+#                     rs_errorbar = False,
+#                     kwargs_suptitle = dict(fontsize = 12),
+#                     suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
+#                     filename = '%s_%s_%.2fMyr.png' % (xk, yk, tSF / 1e6),
+#                     #x_major_locator = xv['majloc'],
+#                     #x_minor_locator = xv['minloc'],
+#                     #y_major_locator = yv['majloc'],
+#                     #y_minor_locator = yv['minloc'],
+#                     kwargs_legend = dict(fontsize = 12),
+#                 )
+#     
+#     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     # plotArgs = [
+#     #     dict(x = H.logZ_neb_S06__g,
+#     #          y = np.ma.log10(DGR__g),
+#     #          z = np.ma.log10(H.McorSD__g), 
+#     #          xlabel = r'$\log\ Z_{neb}$ [$Z_\odot$]',
+#     #          ylabel = r'$\log$ DGR',
+#     #          zlabel = r'$\log\ \mu_\star$ [$M_\odot\ pc^{-2}$]',
+#     #          fname_pref = 'logZneb_logDGR_McorSD',
+#     #          xlim = None,
+#     #          ylim = None,
+#     #          zlim = None,
+#     #          x_major_locator = 0.1,
+#     #          x_minor_locator = 0.02,
+#     #          y_major_locator = 0.5,
+#     #          y_minor_locator = 0.1,
+#     #          contour = False, 
+#     #          run_stats = True, 
+#     #          OLS = False,
+#     #          ),
+#     #     dict(x = H.alogZ_mass__Ug[iU],
+#     #          y = np.ma.log10(DGR__g),
+#     #          z = H.dist_zone__g,  
+#     #          xlabel = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[iU] / 1e9),
+#     #          ylabel = r'$\log$ DGR',
+#     #          zlabel = r'zone distance [HLR]',
+#     #          fname_pref = 'alogZmass_logDGR_zoneDistance',
+#     #          xlim = None,
+#     #          ylim = None,
+#     #          zlim = None,
+#     #          x_major_locator = 0.5,
+#     #          x_minor_locator = 0.1,
+#     #          y_major_locator = 0.5,
+#     #          y_minor_locator = 0.1,
+#     #          contour = False, 
+#     #          run_stats = True, 
+#     #          OLS = False,
+#     #          ),
+#     #     dict(x = H.logZ_neb_S06__g, 
+#     #          y = np.ma.log10(DGR__g),
+#     #          z = np.ma.log10(H.reply_arr_by_zones(H.McorSD_GAL__g)),
+#     #          xlabel = r'$\log\ Z_{neb}$ [$Z_\odot$]',
+#     #          ylabel = r'$\log$ DGR',
+#     #          zlabel = r'$\log\ M_\star$ [$M_\odot\ pc^{-2}$]',
+#     #          fname_pref = 'logZneb_logDGR_McorSDGAL', 
+#     #          xlim = None,
+#     #          ylim = None,
+#     #          zlim = None,
+#     #          x_major_locator = 0.1,
+#     #          x_minor_locator = 0.02,
+#     #          y_major_locator = 0.5,
+#     #          y_minor_locator = 0.1,
+#     #          contour = False, 
+#     #          run_stats = True, 
+#     #          OLS = False,
+#     #          ),
+#     #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     #     # dict(
+#     #     #      x = np.ma.log10(f_gas__rg.flatten()), 
+#     #     #      y = H.alogZ_mass__Urg[-1].flatten(), 
+#     #     #      z = RbinCenter__rg, 
+#     #     #      xlabel = r'$\log\ f_{gas}(R)$', 
+#     #     #      ylabel = r'$\langle \log\ Z_\star \rangle_M(R)$ [$Z_\odot$]', 
+#     #     #      zlabel = r'R [HLR]', 
+#     #     #      fname_pref = 'logfgas_alogZmass_radius',
+#     #     #      #xlim = [-7.5, -3.5],
+#     #     #      xlim = None,
+#     #     #      ylim = [-1.5, 0.3], 
+#     #     #      zlim = None, 
+#     #     #      x_major_locator = 0.5,
+#     #     #      x_minor_locator = 0.1,
+#     #     #      y_major_locator = 0.2,
+#     #     #      y_minor_locator = 0.04,
+#     #     #      contour = False, 
+#     #     #      run_stats = True, 
+#     #     #      OLS = False
+#     #     #      ),
+#     #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     #     dict(x = np.ma.log10(f_gas__rg.flatten()),
+#     #          y = H.logZ_neb_S06__rg.flatten(),
+#     #          z = RbinCenter__rg,
+#     #          xlabel = r'$\log\ f_{gas}(R)$',
+#     #          ylabel = r'$\langle \log\ Z_{neb} \rangle(R)$ [$Z_\odot$]',
+#     #          zlabel = r'R [HLR]',
+#     #          fname_pref = 'logfgas_logZneb_radius',
+#     #          #xlim = [-7.5, -3.5],
+#     #          xlim = None,
+#     #          ylim = None,
+#     #          #ylim = [-0.5, 0.2],
+#     #          zlim = None,
+#     #          x_major_locator = 0.5,
+#     #          x_minor_locator = 0.1,
+#     #          y_major_locator = 0.1,
+#     #          y_minor_locator = 0.02,
+#     #          contour = False, 
+#     #          run_stats = True, 
+#     #          OLS = False,
+#     #          ),
+#     #     dict(x = np.ma.log10(f_gas__g),
+#     #          y = H.logZ_neb_S06__g,
+#     #          z = H.dist_zone__g,
+#     #          xlabel = r'$\log\ f_{gas}$',
+#     #          ylabel = r'$\langle \log\ Z_{neb} \rangle$ [$Z_\odot$]',
+#     #          zlabel = r'zone distance [HLR]',
+#     #          fname_pref = 'logfgas_logZneb_zoneDistance',
+#     #          #xlim = [-7.5, -3.5],
+#     #          xlim = None,
+#     #          ylim = None,
+#     #          #ylim = [-0.5, 0.2],
+#     #          zlim = None,
+#     #          x_major_locator = 0.5,
+#     #          x_minor_locator = 0.1,
+#     #          y_major_locator = 0.1,
+#     #          y_minor_locator = 0.02,
+#     #          contour = False, 
+#     #          run_stats = True, 
+#     #          OLS = False,
+#     #          ),
+#     #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     #     # dict(x = np.ma.log10(f_gas__rg.flatten()),
+#     #     #      y = np.ma.log10(H.McorSD__Trg[iT].flatten()),
+#     #     #      z = RbinCenter__rg,
+#     #     #      xlabel = r'$\log\ f_{gas}(R)$',
+#     #     #      ylabel = r'$\log\ \langle \mu_\star \rangle(R)$ [$M_\odot \ pc^{-2}$]',
+#     #     #      zlabel = r'R [HLR]',
+#     #     #      fname_pref = 'logfgas_logMcorSD_radius',
+#     #     #      #xlim = [-7.5, -3.5],
+#     #     #      xlim = None,
+#     #     #      ylim = [1, 4.7],
+#     #     #      zlim = None,
+#     #     #      x_major_locator = 0.5,
+#     #     #      x_minor_locator = 0.1,
+#     #     #      y_major_locator = 0.5,
+#     #     #      y_minor_locator = 0.1,
+#     #     #      contour = False, 
+#     #     #      run_stats = True, 
+#     #     #      OLS = False,
+#     #     #      ),
+#     #     # dict(x = np.ma.log10(f_gas__rg.flatten()),
+#     #     #      y = np.ma.log10(SigmaGas__rg.flatten()),
+#     #     #      z = RbinCenter__rg,
+#     #     #      xlabel = r'$\log\ f_{gas}(R)$',
+#     #     #      ylabel = r'$\log\ \langle \Sigma_{gas} \rangle(R)$ [$M_\odot \ pc^{-2}$]',
+#     #     #      zlabel = r'R [HLR]',
+#     #     #      fname_pref = 'logfgas_logSigmaGas_radius',
+#     #     #      #xlim = [-7.5, -3.5],
+#     #     #      xlim = None,
+#     #     #      ylim = None,
+#     #     #      zlim = None,
+#     #     #      x_major_locator = 0.5,
+#     #     #      x_minor_locator = 0.1,
+#     #     #      y_major_locator = 0.25,
+#     #     #      y_minor_locator = 0.05,
+#     #     #      contour = False, 
+#     #     #      run_stats = True, 
+#     #     #      OLS = False,
+#     #     #      ),
+#     #     # dict(x = np.ma.log10(f_gas__rg.flatten()),
+#     #     #      y = np.ma.log10(H.McorSD__Trg[iT].flatten() / H.aSFRSD__Trg[iT].flatten()),
+#     #     #      z = RbinCenter__rg,
+#     #     #      xlabel = r'$\log\ f_{gas}(R)$',
+#     #     #      ylabel = r'$\log\ \langle \frac{\mu_\star}{\Sigma_{SFR}} \rangle$ [yr]',
+#     #     #      zlabel = r'R [HLR]',
+#     #     #      fname_pref = 'logfgas_McorSD_SFRSD_radius',
+#     #     #      #xlim = [-7.5, -3.5],
+#     #     #      xlim = None,
+#     #     #      ylim = None,
+#     #     #      zlim = None,
+#     #     #      x_major_locator = 0.5,
+#     #     #      x_minor_locator = 0.1,
+#     #     #      y_major_locator = 0.5,
+#     #     #      y_minor_locator = 0.1,
+#     #     #      contour = False, 
+#     #     #      run_stats = True, 
+#     #     #      OLS = False,
+#     #     #      ),
+#     #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     #     dict(x = np.ma.log10(f_gas__g),
+#     #          y = np.ma.masked_where(H.O_HIICHIM__g == 0.,H.O_HIICHIM__g, copy=True),
+#     #          z = H.dist_zone__g,
+#     #          xlabel = r'$\log\ f_{gas}$', 
+#     #          ylabel = r'O_HIICHIM', 
+#     #          zlabel = r'zone distance [HLR]', 
+#     #          fname_pref = 'logfgas_O_HIICHIM_zoneDistance',
+#     #          xlim = None,
+#     #          ylim = None,
+#     #          zlim = None, 
+#     #          x_major_locator = 0.5,
+#     #          x_minor_locator = 0.1,
+#     #          y_major_locator = 0.2,
+#     #          y_minor_locator = 0.04,
+#     #          contour = False, 
+#     #          run_stats = True, 
+#     #          OLS = False
+#     #          ),
+#     #     dict(x = np.ma.masked_where(H.O_HIICHIM__g == 0.,H.O_HIICHIM__g, copy=True),
+#     #          y = np.ma.log10(DGR__g),
+#     #          z = H.dist_zone__g,  
+#     #          xlabel = 'O_HIICHIM', 
+#     #          ylabel = r'$\log$ DGR',
+#     #          zlabel = r'zone distance [HLR]',
+#     #          fname_pref = 'OHIICHIM_logDGR_zoneDistance',
+#     #          xlim = None,
+#     #          ylim = None,
+#     #          zlim = None,
+#     #          x_major_locator = 0.5,
+#     #          x_minor_locator = 0.1,
+#     #          y_major_locator = 0.5,
+#     #          y_minor_locator = 0.1,
+#     #          contour = False, 
+#     #          run_stats = True, 
+#     #          OLS = False,
+#     #          ),
+#     #     dict(x = np.ma.masked_where(H.O_O3N2_M13__g == 0.,H.O_O3N2_M13__g, copy=True),
+#     #          y = np.ma.log10(DGR__g),
+#     #          z = H.dist_zone__g,  
+#     #          xlabel = 'O3N2_M13', 
+#     #          ylabel = r'$\log$ DGR',
+#     #          zlabel = r'zone distance [HLR]',
+#     #          fname_pref = 'O3N2M13_logDGR_zoneDistance',
+#     #          xlim = None,
+#     #          ylim = None,
+#     #          zlim = None,
+#     #          x_major_locator = 0.5,
+#     #          x_minor_locator = 0.1,
+#     #          y_major_locator = 0.5,
+#     #          y_minor_locator = 0.1,
+#     #          contour = False, 
+#     #          run_stats = True, 
+#     #          OLS = False,
+#     #          ),
+#     #     dict(x = np.ma.log10(f_gas__g),
+#     #          y = np.ma.masked_where(H.O_O3N2_M13__g == 0.,H.O_O3N2_M13__g, copy=True),
+#     #          z = H.dist_zone__g,
+#     #          xlabel = r'$\log\ f_{gas}$', 
+#     #          ylabel = r'O3N2_M13', 
+#     #          zlabel = r'zone distance [HLR]', 
+#     #          fname_pref = 'logfgas_O3N2M13_zoneDistance',
+#     #          xlim = None,
+#     #          ylim = None,
+#     #          zlim = None, 
+#     #          x_major_locator = 0.5,
+#     #          x_minor_locator = 0.1,
+#     #          y_major_locator = 0.2,
+#     #          y_minor_locator = 0.04,
+#     #          contour = False, 
+#     #          run_stats = True, 
+#     #          OLS = False
+#     #          ),                
+#     #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     #     # dict(x = np.ma.log10(SigmaGas__rg.flatten()), 
+#     #     #      y = np.ma.log10(H.aSFRSD_Ha__rg.flatten() * 1e6),
+#     #     #      #y = np.ma.log10(H.aSFRSD__Trg[iT].flatten() * 1e6),
+#     #     #      z = RbinCenter__rg.flatten(),
+#     #     #      xlabel = r'$\log\ \Sigma_{gas}(R)\ [M_\odot yr^{-1} pc^{-2}]$',
+#     #     #      ylabel = r'$\log\ \overline{\Sigma_{SFR}}(t_\star, R)\ [M_\odot yr^{-1} kpc^{-2}]$',
+#     #     #      zlabel = r'R [HLR]',
+#     #     #      fname = 'logSigmaGas_logSigmaSFR_radius_%dgals',
+#     #     #      xlim = [-4.5, -1.5],
+#     #     #      ylim = None,
+#     #     #      zlim = None,
+#     #     #      x_major_locator = 0.5,
+#     #     #      x_minor_locator = 0.1,
+#     #     #      y_major_locator = 0.5,
+#     #     #      y_minor_locator = 0.1,
+#     #     #      contour = False, 
+#     #     #      run_stats = True, 
+#     #     #      OLS = True,
+#     #     #      ),
+#     #     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     # ]
+#     #     
+#     # for D in plotArgs:
+#     #     tSF = H.tSF__T[iT]
+#     #     fname = '%s_%.2fMyr_%dgals.%s' % (D['fname_pref'], tSF/1e6, H.N_gals, img_output_ext)
+#     #     D.update(tSF = H.tSF__T[iT], H = H, DGR = DGR, fname = fname)
+#     #     f_plot(**D)
+#     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
             

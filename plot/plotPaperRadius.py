@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 import CALIFAUtils as C
 
 debug = True
+mask_radius = True
 
 mpl.rcParams['font.size'] = 17
 mpl.rcParams['axes.labelsize'] = 17
@@ -50,6 +51,13 @@ if __name__ == '__main__':
         xkeys = [ 'atfluxR', 'alogZmassR', 'logO3N2S06R', 'logO3N2M13R', 'logMcorSDR', 'xYR', 'logWHaWHbR' ]
         ykeys = [ 'tauVdiffR', 'tauVRatioR', 'logWHaWHbR' ]
         for fnamepref, xv, yv in H.plot_xyz_keys_iter(iT = iT, iU = -1, xkeys = xkeys, ykeys = ykeys):
+            if mask_radius is True:
+                m = (H.RbinCenter__r < 0.5) 
+                xv['v'][~m] = np.ma.masked
+                yv['v'][~m] = np.ma.masked
+                filename = '%s_maskradius_%.2fMyr.png' % (fnamepref, tSF / 1e6)
+            else:  
+                filename = '%s_%.2fMyr.png' % (fnamepref, tSF / 1e6)
             xk = fnamepref.split('_')[0]
             yk = fnamepref.split('_')[1]
             if xk == yk:
@@ -77,7 +85,7 @@ if __name__ == '__main__':
                 kwargs_suptitle = dict(fontsize = 12),
                 kwargs_legend = dict(fontsize = 12, loc = 'best'),
                 suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                filename = '%s_%.2fMyr.png' % (fnamepref, tSF / 1e6),
+                filename = filename,
             )
              
             mask = []
@@ -91,7 +99,10 @@ if __name__ == '__main__':
             mask.append((ba <= 0.39))
             mask.append((np.bitwise_and(ba > 0.39, ba <= 0.63)))
             mask.append((np.bitwise_and(ba > 0.63, ba <= 1.)))
-            
+            if mask_radius is True:
+                filename = '%s_bacolors_maskradius_%.2fMyr.png' % (fnamepref, tSF / 1e6)
+            else:
+                filename = '%s_bacolors_%.2fMyr.png' % (fnamepref, tSF / 1e6)
             C.plot_zbins(
                 debug = debug,
                 x = xv['v'],
@@ -109,7 +120,6 @@ if __name__ == '__main__':
                 kwargs_plot_rs = dict(c = 'k', ls = '--', lw = 2, label = 'Median (xy) (run. stats)'),
                 kwargs_suptitle = dict(fontsize = 12),
                 suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                filename = '%s_bacolors_%.2fMyr.png' % (fnamepref, tSF / 1e6),
                 kwargs_legend = dict(fontsize = 12, loc = 'best'),
                 z = H.reply_arr_by_radius(H.ba_GAL__g),
                 zlabel = r'$\frac{b}{a}$',
@@ -121,6 +131,7 @@ if __name__ == '__main__':
                 zlimprc = [0, 100],
                 zbins_rs_gaussian_smooth = True,
                 zbins_rs_gs_fwhm = 4.,
+                filename = filename,
             )
 
             f, axArr = plt.subplots(1, 3)
@@ -157,7 +168,10 @@ if __name__ == '__main__':
                  
             suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)                            
             f.suptitle(suptitle, fontsize = 12)
-            filename = '%s_ba_%.2fMyr.png' % (fnamepref, tSF / 1e6)
+            if mask_radius is True:
+                filename = '%s_ba_maskradius_%.2fMyr.png' % (fnamepref, tSF / 1e6)
+            else:
+                filename = '%s_ba_%.2fMyr.png' % (fnamepref, tSF / 1e6)
             C.debug_var(debug, filename = filename)
             f.savefig(filename)
             plt.close(f)
@@ -171,12 +185,23 @@ if __name__ == '__main__':
         xkeys = [ 'baR' ]
         ykeys = [ 'tauVdiffR', 'tauVRatioR' , 'logWHaWHbR' ]
         for fnamepref, xv, yv in H.plot_xyz_keys_iter(iT = iT, iU = -1, xkeys = xkeys, ykeys = ykeys):
+            if mask_radius is True:
+                m = (H.RbinCenter__r < 0.5) 
+                xv['v'][~m] = np.ma.masked
+                yv['v'][~m] = np.ma.masked
+                filename = '%s_maskradius_%.2fMyr.png' % (fnamepref, tSF / 1e6)
+            else:  
+                filename = '%s_%.2fMyr.png' % (fnamepref, tSF / 1e6)
             xk = fnamepref.split('_')[0]
             yk = fnamepref.split('_')[1]
             xv.update(dict(limprc = [0, 100]))
             yv.update(dict(limprc = [0, 100]))
             xv.update(updates[xk])
             yv.update(updates[yk])
+            if mask_radius is True:
+                filename = '%s_maskradius_%.2fMyr.png' % (fnamepref, tSF / 1e6)
+            else:
+                filename = '%s_%.2fMyr.png' % (fnamepref, tSF / 1e6)
             C.plot_zbins(
                 debug = debug,
                 x = xv['v'],
@@ -196,7 +221,7 @@ if __name__ == '__main__':
                 kwargs_suptitle = dict(fontsize = 12),
                 kwargs_legend = dict(fontsize = 12, loc = 'best'),
                 suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                filename = '%s_%.2fMyr.png' % (fnamepref, tSF / 1e6),
+                filename = filename,
             )
             zkeys = [ 'atfluxR', 'alogZmassR', 'logO3N2S06R', 'logMcorSDR', 'xYR', 'logWHaWHbR' ]
             for zk in zkeys:
@@ -217,7 +242,10 @@ if __name__ == '__main__':
                 mask.append((zv['v'] <= zlimsup[0]))
                 mask.append((np.bitwise_and(zv['v'] > zlimsup[0], zv['v'] <= zlimsup[1])))
                 mask.append((np.bitwise_and(zv['v'] > zlimsup[1], zv['v'] <= zlimsup[2])))
-
+                if mask_radius is True:
+                    filename = '%s_%s_maskradius_%.2fMyr.png' % (fnamepref, zk, tSF / 1e6)
+                else:
+                    filename = '%s_%s_%.2fMyr.png' % (fnamepref, zk, tSF / 1e6)
                 C.plot_zbins(
                     debug = debug,
                     x = xv['v'],
@@ -235,7 +263,6 @@ if __name__ == '__main__':
                     kwargs_plot_rs = dict(c = 'k', ls = '--', lw = 2, label = 'Median (xy) (run. stats)'),
                     kwargs_suptitle = dict(fontsize = 12),
                     suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                    filename = '%s_%s_%.2fMyr.png' % (fnamepref, zk, tSF / 1e6),
                     kwargs_legend = dict(fontsize = 12, loc = 'best'),
                     zname = zname,
                     z = zv['v'],
@@ -247,4 +274,5 @@ if __name__ == '__main__':
                     zlim = zv['lim'],
                     zbins_rs_gaussian_smooth = True,
                     zbins_rs_gs_fwhm = 4.,
+                    filename = '%s_%s_%.2fMyr.png' % (fnamepref, zk, tSF / 1e6),
                 )
