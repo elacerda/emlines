@@ -420,183 +420,185 @@ if __name__ == '__main__':
 
 
 
-        xkeys = [ 'alogZmass' ]
-        ykeys = [ 'logO3N2M13' ]
-        for fnamepref, xv, yv in H.plot_xyz_keys_iter(iT = iT, iU = 1, xkeys = xkeys, ykeys = ykeys):
-            xk = fnamepref.split('_')[0]
-            yk = fnamepref.split('_')[1]
-            plot_zbins(
-                debug = True,
-                x = xv['v'],
-                y = yv['v'],
-                xlabel = xv['label'],
-                ylabel = yv['label'],
-                xlim = xv['lim'],
-                ylim = yv['lim'],
-                kwargs_figure = dict(figsize = (10, 8), dpi = 100),
-                kwargs_scatter = dict(c = 'b', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.3, label = ''),
-                #ols = True,
-                #kwargs_ols = dict(c = 'k', pos_x = 0.99, pos_y = 0.02, fs = 12, rms = True, text = True),
-                #kwargs_ols_plot = dict(c = 'k', ls = '-.', lw = 1.2, label = 'OLS'),
-                running_stats = True,
-                rs_gaussian_smooth = True,
-                rs_percentiles = True,
-                rs_gs_fwhm = 8,
-                rs_frac_box = 80,
-                kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-                suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                kwargs_suptitle = dict(fontsize = 12),
-                kwargs_legend = dict(loc = 'best'),
-                filename = '%s_%.2fMyrs.png' % (fnamepref, tSF / 1e6),
-            )
 
 
 
 
-            plot_zbins(
-                debug = True,
-                x = H.alogZ_mass__Ug[iU],
-                y = H.O_O3N2_M13__g,
-                xlabel = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[iU] / 1e9),
-                ylabel = r'12 + $\log\ O/H$ (logO3N2, Marino, 2013)',
-                xlim = [ -0.75, 0.25],
-                ylim = [8.2, 8.7],
-                kwargs_figure = dict(figsize = (10, 8), dpi = 100),
-                kwargs_scatter = dict(c = 'b', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.3, label = ''),
-                #ols = True,
-                #kwargs_ols = dict(c = 'k', pos_x = 0.99, pos_y = 0.02, fs = 12, rms = True, text = True),
-                #kwargs_ols_plot = dict(c = 'k', ls = '-.', lw = 1.2, label = 'OLS'),
-                running_stats = True,
-                rs_gaussian_smooth = True,
-                rs_percentiles = True,
-                rs_gs_fwhm = 8,
-                rs_frac_box = 80,
-                kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-                suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                kwargs_suptitle = dict(fontsize = 12),
-                kwargs_legend = dict(loc = 'best'),
-                filename = '%s_%.2fGyrs.png' % ('alogZmass_logO3N2M13', H.tZ__U[iU] / 1e9),
-            )
-            plot_zbins(
-                debug = True,
-                x = H.alogZ_mass__Urg[iU],
-                y = H.O_O3N2_M13__rg,
-                xlabel = r'$\langle \log\ Z_\star \rangle_M$ (R, t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[iU] / 1e9),
-                ylabel = r'12 + $\log\ O/H$ (R, logO3N2, Marino, 2013)',
-                xlim = [ -0.75, 0.25],
-                ylim = [8.2, 8.7],
-                kwargs_figure = dict(figsize = (10, 8), dpi = 100),
-                kwargs_scatter = dict(c = 'b', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.3, label = ''),
-                #ols = True,
-                #kwargs_ols = dict(c = 'k', pos_x = 0.99, pos_y = 0.02, fs = 12, rms = True, text = True),
-                #kwargs_ols_plot = dict(c = 'k', ls = '-.', lw = 1.2, label = 'OLS'),
-                running_stats = True,
-                rs_gaussian_smooth = True,
-                rs_percentiles = True,
-                rs_gs_fwhm = 8,
-                rs_frac_box = 80,
-                kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-                suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                kwargs_suptitle = dict(fontsize = 12),
-                kwargs_legend = dict(loc = 'best'),
-                filename = '%s_%.2fGyrs.png' % ('alogZmassR_logO3N2M13R', H.tZ__U[iU] / 1e9),
-            )
+    mpl.rcParams['font.size'] = 18
+    mpl.rcParams['axes.labelsize'] = 18
+    mpl.rcParams['axes.titlesize'] = 20
+    mpl.rcParams['xtick.labelsize'] = 16
+    mpl.rcParams['ytick.labelsize'] = 16 
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = 'Times New Roman'
 
 
-        xkeys = [ 'tauV' ]
-        ykeys = [ 'tauVNeb' ]
+    iT = 11
+    xk, xv = H.get_plot_dict(iT = iT, iU = -1, key = 'tauVdiff')
+    yk, yv = H.get_plot_dict(iT = iT, iU = -1, key = 'logWHaWHb')
+    plot_zbins(
+        debug = True,
+        x = xv['v'],
+        y = yv['v'],
+        xlabel = xv['label'],
+        ylabel = yv['label'],
+        xlim = [-.75, 2],
+        ylim = [.4, .85],
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        # xlimprc = [0, 100],
+        # ylimprc = [0, 100],
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        #ols = True,
+        #kwargs_ols = dict(c = 'k', pos_x = 0.99, pos_y = 0.02, fs = 12, rms = True, text = True),
+        #kwargs_ols_plot = dict(c = 'k', ls = '-.', lw = 1.2, label = 'OLS'),
+        running_stats = True,
+        rs_gaussian_smooth = True,
+        rs_percentiles = True,
+        rs_gs_fwhm = 8,
+        rs_frac_box = 80,
+        kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+        kwargs_legend = dict(loc = 'best'),
+        kwargs_figure = dict(figsize = (10, 8), dpi = 100),
+        kwargs_scatter = dict(c = 'b', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.3, label = ''),
+        kwargs_suptitle = dict(fontsize = 16),
+        suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
+        filename = '%s_%s_%.2fMyr.png' % (xk, yk, tSF / 1e6),
+        x_major_locator = .5,
+        x_minor_locator = .1,
+        y_major_locator = .05,
+        y_minor_locator = .01,
+    )     
 
-        f = plt.figure()
-        f.set_size_inches(10, 8)
-        f.set_dpi(100)
-        iU = -1
-        for fnamepref, xv, yv in H.plot_xyz_keys_iter(iT = iT, iU = iU, xkeys = xkeys, ykeys = ykeys):
-            xk = fnamepref.split('_')[0]
-            yk = fnamepref.split('_')[1]
-            kw = plot_zbins(
-                f = f, 
-                ax = f.gca(),
-                return_kwargs = True,
-                debug = True,
-                x = xv['v'],
-                y = yv['v'],
-                xlabel = xv['label'],
-                ylabel = yv['label'],
-                xlim = xv['lim'],
-                ylim = yv['lim'],
-                z = H.zone_dist_HLR__g,
-                zlabel = r'R (HLR)',
-                zmask = None,
-                zlim = [0, 2],
-                cb = True,
-                kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.6, label = ''),
-                ols = True,
-                kwargs_ols = dict(c = 'r', pos_x = 0.99, pos_y = 0.02, fs = 12, rms = True, text = True),
-                kwargs_ols_plot = dict(c = 'r', ls = '-', lw = 2, label = 'OLS'),
-                running_stats = True,
-                rs_gaussian_smooth = True,
-                rs_percentiles = True,
-                rs_gs_fwhm = 8,
-                kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-                kwargs_legend = dict(loc = 'best'),
-                legend = False,
-            )
-        ax_kw = kw['ax']
-        ax_kw.plot(ax_kw.get_xlim(), (1/0.44) * np.asarray(ax_kw.get_xlim()), c = 'b', ls = '-.', lw = 3, label = r'$\tau_V^\star\ =\ 0.44\ \tau_V^{neb}$')
-        suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
-        ax_kw.legend(**dict(loc = 'upper left', fontsize = 14))
-        kwargs_suptitle = dict(fontsize = 12)
-        filename = '%s_%.2fMyrs.png' % (fnamepref, tSF / 1e6)
-        f.suptitle(suptitle, fontsize = 10)
-        f.savefig(filename)
+    iT = 11
+    xk, xv = H.get_plot_dict(iT = iT, iU = -1, key = 'ba')
+    yk, yv = H.get_plot_dict(iT = iT, iU = -1, key = 'tauVdiff')
+    zk, zv = H.get_plot_dict(iT = iT, iU = -1, key = 'xY')    
+    mask = []
+    labels = [ 
+        r'$x_Y \leq\ 20$',
+        r'$x_Y\ >\ 20$',
+    ]
+    colors = ['b', 'k']
+    mask.append((zv['v'] <= 20))
+    mask.append((zv['v'] > 20))
+    f = plt.figure()
+    f.set_size_inches(10, 8)
+    ax = f.gca()
+    i = 0
+    for msk in mask:
+        plot_zbins(
+            f = f,
+            ax = ax,
+            x = xv['v'][msk],
+            y = yv['v'][msk],
+            xlabel = xv['label'],
+            ylabel = yv['label'],
+            xlim = [0, 1],
+            ylim = [-.75, 2],
+            running_stats = True,
+            rs_gaussian_smooth = True,
+            #rs_percentiles = True,
+            rs_gs_fwhm = 8,
+            rs_frac_box = 20,
+            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+            # z = zv['v'],
+            # zlabel = zv['label'],
+            # zmask = None,
+            # zlim = [0, 50],
+            #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+            #cb = True,
+            kwargs_plot_rs = dict(c = colors[i], lw = 2, label = labels[i]),
+            kwargs_legend = dict(loc = 'best'),
+            kwargs_figure = dict(figsize = (10, 8), dpi = 100),
+            kwargs_scatter = dict(c = colors[i], marker = 'o', s = 10, edgecolor = 'none', alpha = 0.6, label = ''),
+            kwargs_suptitle = dict(fontsize = 16),
+            y_major_locator = .5,
+            y_minor_locator = .1,
+            x_major_locator = .2,
+            x_minor_locator = .05,
+        )
+        i += 1
+    suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)                            
+    f.suptitle(suptitle, fontsize = 12)
+    filename = '%s_%s_%s_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6)
+    f.savefig(filename)
+    plt.close(f)
+    
+    
 
+    iT = 11
+    xk, xv = H.get_plot_dict(iT = iT, iU = -1, key = 'tauVdiff')
+    yk, yv = H.get_plot_dict(iT = iT, iU = -1, key = 'logWHaWHb')
+    mask = []
+    ba = H.reply_arr_by_zones(H.ba_GAL__g)
+    balimsup = [0.4, 0.64, 1.]
+    labels = [ 
+        r'$\frac{b}{a}\ \leq\ 0.4$',
+        r'$0.4\ <\ \frac{b}{a}\ \leq\ 0.64$',
+        r'$0.64\ \leq\ \frac{b}{a}$',
+    ]
+    colors = ['r', 'g', 'b']
+    mask.append((ba <= 0.39))
+    mask.append((np.bitwise_and(ba > 0.39, ba <= 0.63)))
+    mask.append((np.bitwise_and(ba > 0.63, ba <= 1.)))
+    f = plt.figure()
+    f.set_size_inches(10, 8)
+    ax = f.gca()
+    i = 0
+    for msk in mask:
+        plot_zbins(
+            f = f,
+            ax = ax,
+            debug = True,
+            x = xv['v'][msk],
+            y = yv['v'][msk],
+            xlim = [-.75, 2],
+            ylim = [.4, .85],
+            running_stats = True,
+            rs_gaussian_smooth = True,
+            rs_percentiles = None,
+            rs_gs_fwhm = 8,
+            rs_frac_box = 80,
+            kwargs_scatter = dict(c = colors[i], marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
+            kwargs_plot_rs = dict(c = colors[i], lw = 2, label = labels[i]),
+            rs_errorbar = False,
+            kwargs_legend = dict(fontsize = 12),
+        )
+        i += 1
         
-        
-        xkeys = [ 'tauVR' ]
-        ykeys = [ 'tauVNebR' ]
-        f = plt.figure()
-        f.set_size_inches(10, 8)
-        f.set_dpi(100)
-        iU = -1
-        for fnamepref, xv, yv in H.plot_xyz_keys_iter(iT = iT, iU = iU, xkeys = xkeys, ykeys = ykeys):
-            xk = fnamepref.split('_')[0]
-            yk = fnamepref.split('_')[1]
-            kw = plot_zbins(
-                f = f, 
-                ax = f.gca(),
-                return_kwargs = True,
-                debug = True,
-                x = xv['v'],
-                y = yv['v'],
-                xlabel = xv['label'],
-                ylabel = yv['label'],
-                z = (H.RbinCenter__r[..., np.newaxis] * np.ones_like(H.aSFRSD_Ha__rg)).flatten(),
-                zlim = [0, 2],
-                zlabel = r'R (HLR)',
-                zmask = None, 
-                cb = True,
-                xlim = xv['lim'],
-                ylim = yv['lim'],
-                kwargs_figure = dict(figsize = (10, 8), dpi = 100),
-                kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.6, label = ''),
-                ols = True,
-                kwargs_ols = dict(c = 'r', pos_x = 0.99, pos_y = 0.02, fs = 12, rms = True, text = True),
-                kwargs_ols_plot = dict(c = 'r', ls = '-', lw = 2, label = 'OLS'),
-                running_stats = True,
-                rs_gaussian_smooth = True,
-                rs_percentiles = True,
-                rs_gs_fwhm = 8,
-                kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-                legend = False,
-            )
-        ax_kw = kw['ax']
-        ax_kw.plot(ax_kw.get_xlim(), (1/0.44) * np.asarray(ax_kw.get_xlim()), c = 'b', ls = '-.', lw = 3, label = r'$\tau_V^\star\ =\ 0.44\ \tau_V^{neb}$')
-        suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
-        ax_kw.legend(**dict(loc = 'upper left', fontsize = 14))
-        kwargs_suptitle = dict(fontsize = 12)
-        filename = '%s_%.2fMyrs.png' % (fnamepref, tSF / 1e6)
-        f.suptitle(suptitle, fontsize = 10)
-        f.savefig(filename)
+    suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)                            
+    f.suptitle(suptitle, fontsize = 12)
+    filename = '%s_%s_ba_%.2fMyr.png' % (xk, yk, tSF / 1e6)
+    f.savefig(filename)
+    plt.close(f)
+
+
+    
+    plot_zbins(
+        debug = True,
+        x = xv['v'],
+        y = yv['v'],
+        xlabel = xv['label'],
+        ylabel = yv['label'],
+        xlim = [-.75, 2],
+        ylim = [.4, .85],
+        running_stats = True,
+        rs_gaussian_smooth = True,
+        rs_percentiles = True,
+        rs_gs_fwhm = 8,
+        rs_frac_box = 80,
+        kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+        kwargs_legend = dict(loc = 'best'),
+        kwargs_figure = dict(figsize = (10, 8), dpi = 100),
+        kwargs_scatter = dict(c = 'b', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.3, label = ''),
+        kwargs_suptitle = dict(fontsize = 16),
+        suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
+        filename = '%s_%s_%.2fMyr.png' % (xk, yk, tSF / 1e6),
+        x_major_locator = .5,
+        x_minor_locator = .1,
+        y_major_locator = .05,
+        y_minor_locator = .01,
+    )     
 
 
 

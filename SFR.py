@@ -183,7 +183,7 @@ if __name__ == '__main__':
         # Only spiral
         if args.spiral and (tipo <= 8 or tipo >= 12.5): 
             ALL.mask_gal(iGal)
-            print '<<< %s galaxy: is not a spiral (type: %d)' % (califaID, tipo) 
+            print '<<< %s galaxy: is not a spiral (type: %f)' % (califaID, tipo) 
             continue
 
         ALL.N_zones__g[iGal] = K.N_zone

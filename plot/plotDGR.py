@@ -6,13 +6,16 @@ import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.pyplot import MultipleLocator
+from matplotlib.pyplot import cm
 import sys
 import CALIFAUtils as C
 from CALIFAUtils.plots import plotScatterColorAxis, plot_text_ax, plot_zbins
+import CALIFAUtils
 
 debug = True
 mask_radius = True
-RNuc = 0.5
+#RNuc = 0.5
+#RNuc = 1.0
 
 mpl.rcParams['font.size'] = 20
 mpl.rcParams['axes.labelsize'] = 20
@@ -92,6 +95,8 @@ if __name__ == '__main__':
     ########################
     
     DGR = 10. ** (-2.21)
+    #DGR__rg = 10. ** (-2.21 + 1./(H.O_O3N2_M13__rg ** 2.))
+    #DGR__rg = 10. ** (-0.21)
     k = dustdim / DGR
     k__g = dustdim / DGR__g
     k__rg = dustdim / DGR__rg
@@ -107,90 +112,91 @@ if __name__ == '__main__':
     f_gas__rg = 1. / (1. + (H.McorSD__Trg[iT] / SigmaGas__rg))
     RbinCenter__rg = ((np.ones_like(f_gas__rg).T * H.RbinCenter__r).T).flatten()
 
-    xaxis = {
-        'logfgas' : dict(
-                        v = np.ma.log10(f_gas__g),
-                        label = r'$\log\ f_{gas}$',
-                        lim = [-3, 0],
-                        majloc = 1.,
-                        minloc = 0.2,
-                        limprc = [0, 100],
-                    ),
-    }
-    yaxis = {
-        'alogZmass' : dict(
-                        v = H.alogZ_mass__Ug[-1], 
-                        label = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr)' % (H.tZ__U[-1] / 1e9),
-                        lim = [ -0.75, 0.25],
-                        majloc = 0.25,
-                        minloc = 0.05,
-                        limprc = [0, 100],
-                      ),
-        'logO3N2M13' : dict(
-                        v = H.O_O3N2_M13__g, 
-                        label = r'12 + $\log\ O/H$ (logO3N2, Marino, 2013)',
-                        lim = [8.0, 9.0],
-                        majloc = 0.25,
-                        minloc = 0.05,
-                        limprc = [0, 100],
-                       ),
-    }
-    
-    zk, zv = H.get_plot_dict(iT, -1, key = 'zoneDistHLR')
-    for xk, xv in xaxis.iteritems():
-        for yk, yv in yaxis.iteritems():
-            if xk != yk:
-                tSF = H.tSF__T[iT]
-                if mask_radius is True:
-                    xv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
-                    yv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
-                    zlim = [RNuc, 2]
-                    filename = '%s_%s_%s_maskradius_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6)
-                else:
-                    zlim = [0, 2]
-                    filename = '%s_%s_%s_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6)
-                plot_zbins(
-                    debug = debug,
-                    x = xv['v'],
-                    xlabel = xv['label'],
-                    y = yv['v'],
-                    ylabel = yv['label'],
-                    xlim = xv['lim'],
-                    ylim = yv['lim'],
-                    zlim = zlim,
-                    z = zv['v'],
-                    zmask = None,
-                    zlabel = r'R (HLR)', 
-                    kwargs_figure = dict(figsize=(10,8), dpi = 100),
-                    kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
-                    running_stats = True,
-                    rs_gaussian_smooth = True,
-                    rs_percentiles = True,
-                    rs_gs_fwhm = 8,
-                    rs_frac_box = 80,
-                    kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-                    rs_errorbar = False,
-                    kwargs_suptitle = dict(fontsize = 12),
-                    suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                    filename = filename,
-                    x_major_locator = xv['majloc'],
-                    x_minor_locator = xv['minloc'],
-                    y_major_locator = yv['majloc'],
-                    y_minor_locator = yv['minloc'],
-                    kwargs_legend = dict(fontsize = 12),
-                    cb = True,
-                )
-
-
-
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # xaxis = {
+    #     'logfgas' : dict(
+    #                     v = np.ma.log10(f_gas__g),
+    #                     label = r'$\log\ f_{gas}$',
+    #                     lim = [-3, 0],
+    #                     majloc = 1.,
+    #                     minloc = 0.2,
+    #                     limprc = [0, 100],
+    #                 ),
+    # }
+    # yaxis = {
+    #     'alogZmass' : dict(
+    #                     v = H.alogZ_mass__Ug[-1], 
+    #                     label = r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr)' % (H.tZ__U[-1] / 1e9),
+    #                     lim = [ -0.75, 0.25],
+    #                     majloc = 0.25,
+    #                     minloc = 0.05,
+    #                     limprc = [0, 100],
+    #                   ),
+    #     'logO3N2M13' : dict(
+    #                     v = H.O_O3N2_M13__g, 
+    #                     label = r'12 + $\log\ O/H$ (logO3N2, Marino, 2013)',
+    #                     lim = [8.0, 9.0],
+    #                     majloc = 0.25,
+    #                     minloc = 0.05,
+    #                     limprc = [0, 100],
+    #                    ),
+    # }
+    # 
+    # zk, zv = H.get_plot_dict(iT, -1, key = 'zoneDistHLR')
+    # for xk, xv in xaxis.iteritems():
+    #     for yk, yv in yaxis.iteritems():
+    #         if xk != yk:
+    #             tSF = H.tSF__T[iT]
+    #             if mask_radius is True:
+    #                 xv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
+    #                 yv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
+    #                 zlim = [RNuc, 2]
+    #                 suptitle = r'NGals:%d  R > %.1fHLR  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, RNuc, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
+    #                 filename = '%s_%s_%s_maskradius_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6)
+    #             else:
+    #                 zlim = [0, 2]
+    #                 suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
+    #                 filename = '%s_%s_%s_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6)
+    #             plot_zbins(
+    #                 debug = debug,
+    #                 x = xv['v'],
+    #                 xlabel = xv['label'],
+    #                 y = yv['v'],
+    #                 ylabel = yv['label'],
+    #                 xlim = xv['lim'],
+    #                 ylim = yv['lim'],
+    #                 zlim = zlim,
+    #                 z = zv['v'],
+    #                 zmask = None,
+    #                 zlabel = r'R (HLR)', 
+    #                 kwargs_figure = dict(figsize=(10,8), dpi = 100),
+    #                 kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
+    #                 running_stats = True,
+    #                 rs_gaussian_smooth = True,
+    #                 rs_percentiles = True,
+    #                 rs_gs_fwhm = 8,
+    #                 rs_frac_box = 80,
+    #                 kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+    #                 rs_errorbar = False,
+    #                 kwargs_suptitle = dict(fontsize = 12),
+    #                 suptitle = suptitle,
+    #                 filename = filename,
+    #                 x_major_locator = xv['majloc'],
+    #                 x_minor_locator = xv['minloc'],
+    #                 y_major_locator = yv['majloc'],
+    #                 y_minor_locator = yv['minloc'],
+    #                 kwargs_legend = dict(fontsize = 12),
+    #                 cb = True,
+    #             )
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
     xaxis = {
         'logfgasR' : dict(
                         v = np.ma.log10(f_gas__rg),
                         label = r'$\log\ f_{gas}$',
-                        lim = [-3, 0],
-                        majloc = 1.,
-                        minloc = 0.2,
+                        lim = [-4, 0],
+                        majloc = 0.5,
+                        minloc = 0.1,
                         limprc = [0, 100],
                     ),
     }
@@ -198,127 +204,193 @@ if __name__ == '__main__':
         'alogZmassR' : dict(
                         v = H.alogZ_mass__Urg[-1], 
                         label = r'$\langle \log\ Z_\star \rangle_M$ (R, t < %.2f Gyr)' % (H.tZ__U[-1] / 1e9),
-                        lim = [ -0.75, 0.25],
-                        majloc = 0.25,
+                        lim = [ -1.4, 0.4],
+                        majloc = 0.2,
                         minloc = 0.05,
                         limprc = [0, 100],
                       ),
-    }
-    #zk, zv = H.get_plot_dict(iT, -1, key = 'zoneDistHLR')
-    for xk, xv in xaxis.iteritems():
-        for yk, yv in yaxis.iteritems():
-            if xk != yk:
-                tSF = H.tSF__T[iT]
-                if mask_radius is True:
-                    xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
-                    yv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
-                    zlim = [RNuc, 2]
-                    filename = '%s_%s_radius_maskradius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
-                else:
-                    zlim = [0, 2]
-                    filename = '%s_%s_radius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
-                plot_zbins(
-                    debug = debug,
-                    x = xv['v'],
-                    xlabel = xv['label'],
-                    y = yv['v'],
-                    ylabel = yv['label'],
-                    xlim = xv['lim'],
-                    ylim = yv['lim'],
-                    z = (H.RbinCenter__r[..., np.newaxis] * np.ones_like(H.aSFRSD_Ha__rg)).flatten(),
-                    zlim = zlim,
-                    zlabel = r'R (HLR)',
-                    zmask = None, 
-                    kwargs_figure = dict(figsize=(10,8), dpi = 100),
-                    kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
-                    running_stats = True,
-                    rs_gaussian_smooth = True,
-                    rs_percentiles = True,
-                    rs_gs_fwhm = 8,
-                    rs_frac_box = 20,
-                    kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-                    rs_errorbar = False,
-                    kwargs_suptitle = dict(fontsize = 12),
-                    suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                    filename = filename,
-                    x_major_locator = xv['majloc'],
-                    x_minor_locator = xv['minloc'],
-                    y_major_locator = yv['majloc'],
-                    y_minor_locator = yv['minloc'],
-                    kwargs_legend = dict(fontsize = 12),
-                    cb = True,
-                )
-
-
-    xaxis = {
-        'logfgasR' : dict(
-                        v = np.ma.log10(f_gas__rg),
-                        label = r'$\log\ f_{gas}$',
-                        lim = [-3, 0],
-                        majloc = 1.,
-                        minloc = 0.2,
-                        limprc = [0, 100],
-                    ),
-    }
-    yaxis = {
         'logO3N2M13R' : dict(
                         v = H.O_O3N2_M13__rg, 
                         label = r'12 + $\log\ O/H$ (R, logO3N2, Marino, 2013)',
-                        lim = [8.0, 9.0],
-                        majloc = 0.25,
+                        lim = [8., 9.0],
+                        majloc = 0.2,
                         minloc = 0.05,
                         limprc = [0, 100],
                        ),
+        'atfluxR' : dict(
+                        v = H.at_flux__rg, 
+                        label = r'$\langle \log\ t \rangle_L (R)$ [yr]', 
+                        lim = [8, 10], 
+                        majloc = 0.5, 
+                        minloc = 0.1,
+                        limprc = [0, 100],
+                    ),             
     }
-    #zk, zv = H.get_plot_dict(iT, -1, key = 'zoneDistHLR')
+    #zk, zv = H.get_plot_dict(iT, -1, key = 'atfluxR')
+    #zk, zv = H.get_plot_dict(iT, -1, key = 'alogSFRSDR')
+    zk, zv = H.get_plot_dict(iT, -1, key = 'morfTypeR')
     for xk, xv in xaxis.iteritems():
         for yk, yv in yaxis.iteritems():
             if xk != yk:
                 tSF = H.tSF__T[iT]
-                if mask_radius is True:
-                    xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
-                    yv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
-                    zlim = [RNuc, 2]
-                    filename = '%s_%s_radius_maskradius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
-                else:
-                    zlim = [0, 2]
-                    filename = '%s_%s_radius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
-                plot_zbins(
-                    debug = debug,
-                    x = xv['v'],
-                    xlabel = xv['label'],
-                    y = yv['v'],
-                    ylabel = yv['label'],
-                    xlim = xv['lim'],
-                    ylim = yv['lim'],
-                    zlim = zlim,
-                    zlabel = r'R (HLR)',
-                    z = (H.RbinCenter__r[..., np.newaxis] * np.ones_like(H.aSFRSD_Ha__rg)).flatten(),
-                    zmask = None, 
-                    kwargs_figure = dict(figsize=(10,8), dpi = 100),
-                    kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
-                    running_stats = True,
-                    rs_gaussian_smooth = True,
-                    rs_percentiles = True,
-                    rs_gs_fwhm = 8,
-                    rs_frac_box = 20,
-                    kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-                    rs_errorbar = False,
-                    kwargs_suptitle = dict(fontsize = 12),
-                    suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
-                    #filename = '%s_%s_%s_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6),
-                    filename = filename,
-                    x_major_locator = xv['majloc'],
-                    x_minor_locator = xv['minloc'],
-                    y_major_locator = yv['majloc'],
-                    y_minor_locator = yv['minloc'],
-                    kwargs_legend = dict(fontsize = 12),
-                    cb = True,
-                )
+                f, axArr = plt.subplots(1, 2)
+                f.set_dpi(100)
+                f.set_size_inches(14, 8)
+                ax = f.gca()
+                i = 0
+                filename = '%s_%s_%s_%.2fMyr.png' % (xk, yk, zk, tSF / 1e6)
+                suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
+                cbarr = [ False, False ]
+                for Rn in [ 0.5, 1.0 ]:
+                    print '######' , i 
+                    x = np.ma.copy(xv['v'])
+                    y = np.ma.copy(yv['v'])
+                    if mask_radius is True:
+                        x[~(H.RbinCenter__r > Rn)] = np.ma.masked
+                        y[~(H.RbinCenter__r > Rn)] = np.ma.masked
+                    xm, ym, zm = CALIFAUtils.ma_mask_xyz(x = x, y = y, z = H.reply_arr_by_radius(H.morfType_GAL__g))
+                    zticks_mask = [(zm > 8.9) & (zm <= 9.5), (zm == 10), (zm == 10.5), (zm >= 11.) & (zm <= 11.5)]
+                    #zticks_mask = [(zm == 9), (zm == 9.5), (zm == 10), (zm == 10.5), (zm == 11.), (zm == 11.5)]
+                    zticks = [9., 9.5, 10, 10.5, 11., 11.5]
+                    zticklabels = ['Sa', 'Sab', 'Sb', 'Sbc', 'Sc', 'Scd']
+                    zbins_colors = ['r', 'g', 'y', 'b']
+                    #zbins_labels = ['Sa + Sab: %d' % len(xm[zticks_mask[0]]), 'Sb: %d' % len(xm[zticks_mask[1]]), 'Sbc: %d' % len(xm[zticks_mask[2]]), 'Sc + Scd: %d' % len(xm[zticks_mask[3]])]
+                    zbins_labels = ['Sa + Sab', 'Sb', 'Sbc', 'Sc + Scd']
+                    kw = plot_zbins(
+                        return_kwargs = True,
+                        f = f,
+                        ax = axArr[i],
+                        debug = debug,
+                        x = x,
+                        y = y,
+                        z = zv['v'],
+                        zmask = False, 
+                        xlabel = xv['label'],
+                        ylabel = yv['label'],
+                        zlabel = zv['label'],
+                        xlim = xv['lim'],
+                        ylim = yv['lim'],
+                        zlim = [9, 11.5],
+                        #zlim = zv['lim'],
+                        #zmask = True,
+                        zticks = zticks,  
+                        zticklabels = zticklabels,
+                        zbins = len(zticks_mask),
+                        zbins_labels = zbins_labels,
+                        zbins_rs_gaussian_smooth = True,
+                        zbins_rs_gs_fwhm = 16,
+                        zbins_rs_frac_box = 10,
+                        zbins_mask = zticks_mask,
+                        zbins_colors = zbins_colors,
+                        x_major_locator = xv['majloc'],
+                        x_minor_locator = xv['minloc'],
+                        y_major_locator = yv['majloc'],
+                        y_minor_locator = yv['minloc'],
+                        legend = True,
+                        cmap = cm.RdYlBu,
+                        cb = cbarr[i],
+                        #running_stats = True,
+                        #rs_gaussian_smooth = True,
+                        #rs_percentiles = True,
+                        #rs_gs_fwhm = 8,
+                        #rs_frac_box = 20,
+                        #kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+                        #rs_errorbar = False,
+                        kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.8, label = ''),
+                        kwargs_legend = dict(loc = 'bottom right', fontsize = 12, frameon = False),
+                        #kwargs_suptitle = dict(fontsize = 12),
+                    )
+                    ax = kw['ax']
+                    ax.set_title(r'R > %.1f HLR' % Rn)
+                    init_pos_x, final_pos_y, pos_y_step = 0.02, 0.02, 0.04
+                    fs = 14
+                    for j in xrange(len(zticks_mask)):
+                        c = zbins_colors[j]
+                        pos_y = final_pos_y + pos_y_step * (len(zticks_mask) - j - 1)
+                        txt = str(len(zm[zticks_mask[j]])) 
+                        kw_text = dict(pos_x = init_pos_x, pos_y = pos_y, fs = fs, va = 'bottom', ha = 'left', c = c)
+                        plot_text_ax(ax, txt, **kw_text)
+                    del x
+                    del y
+                    i += 1
+                cax = f.add_axes([0.92, 0.1, 0.02, 0.8])
+                cb = f.colorbar(kw['sc'], cax=cax, ticks = zticks)
+                cb.set_label(kw['zlabel'])
+                cb.ax.set_yticklabels(zticklabels)
+                f.suptitle(suptitle, fontsize = 12)
+                #plt.tight_layout()
+                f.savefig(filename)
+                plt.close(f)
 
 
-
-
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # xaxis = {
+    #     'logfgasR' : dict(
+    #                     v = np.ma.log10(f_gas__rg),
+    #                     label = r'$\log\ f_{gas}$',
+    #                     lim = [-3, 0],
+    #                     majloc = 1.,
+    #                     minloc = 0.2,
+    #                     limprc = [0, 100],
+    #                 ),
+    # }
+    # yaxis = {
+    #     'logO3N2M13R' : dict(
+    #                     v = H.O_O3N2_M13__rg, 
+    #                     label = r'12 + $\log\ O/H$ (R, logO3N2, Marino, 2013)',
+    #                     lim = [8.0, 9.0],
+    #                     majloc = 0.25,
+    #                     minloc = 0.05,
+    #                     limprc = [0, 100],
+    #                    ),
+    # }
+    # #zk, zv = H.get_plot_dict(iT, -1, key = 'zoneDistHLR')
+    # for xk, xv in xaxis.iteritems():
+    #     for yk, yv in yaxis.iteritems():
+    #         if xk != yk:
+    #             tSF = H.tSF__T[iT]
+    #             if mask_radius is True:
+    #                 xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
+    #                 yv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
+    #                 zlim = [RNuc, 2]
+    #                 suptitle = r'NGals:%d  R > %.1fHLR  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, RNuc, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
+    #                 filename = '%s_%s_radius_maskradius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
+    #             else:
+    #                 zlim = [0, 2]
+    #                 suptitle = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (tSF / 1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax),
+    #                 filename = '%s_%s_radius_%.2fMyr.png' % (xk, yk, tSF / 1e6)
+    #             plot_zbins(
+    #                 debug = debug,
+    #                 x = xv['v'].flatten(),
+    #                 xlabel = xv['label'],
+    #                 y = yv['v'].flatten(),
+    #                 ylabel = yv['label'],
+    #                 xlim = xv['lim'],
+    #                 ylim = yv['lim'],
+    #                 zlim = zlim,
+    #                 zlabel = r'R (HLR)',
+    #                 z = H.Rtoplot(xv['v'].shape).flatten(),
+    #                 zmask = None, 
+    #                 kwargs_figure = dict(figsize=(10,8), dpi = 100),
+    #                 kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
+    #                 running_stats = True,
+    #                 rs_gaussian_smooth = True,
+    #                 rs_percentiles = True,
+    #                 rs_gs_fwhm = 8,
+    #                 rs_frac_box = 20,
+    #                 kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+    #                 rs_errorbar = False,
+    #                 kwargs_suptitle = dict(fontsize = 12),
+    #                 suptitle = suptitle,
+    #                 filename = filename,
+    #                 x_major_locator = xv['majloc'],
+    #                 x_minor_locator = xv['minloc'],
+    #                 y_major_locator = yv['majloc'],
+    #                 y_minor_locator = yv['minloc'],
+    #                 kwargs_legend = dict(fontsize = 12),
+    #                 cb = True,
+    #             )
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 # 

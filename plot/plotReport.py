@@ -77,7 +77,7 @@ for i in range(0, NRows):
         ax = axArr[i, j] 
         x = np.ma.log10(SFR__Tg[iT])
         y = np.ma.log10(SFR_Ha__g)
-        xm, ym = C.ma_mask_xy(x, y)
+        xm, ym = C.ma_mask_xyz(x, y)
         xm[~m_rad__g] = np.ma.masked
         ym[~m_rad__g] = np.ma.masked
         age = tSF__T[iT]
@@ -167,7 +167,7 @@ for i in range(0, NRows):
         ax = axArr[i, j] 
         x = np.ma.log10(SFRSD__Tg[iT] * 1e6)
         y = np.ma.log10(SFRSD_Ha__g  * 1e6)
-        xm, ym = C.ma_mask_xy(x, y)
+        xm, ym = C.ma_mask_xyz(x, y)
         if mask_radius is True:
             xm[~m_rad__g] = np.ma.masked
             ym[~m_rad__g] = np.ma.masked
@@ -299,7 +299,7 @@ for i in range(0, NRows):
         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
         x = np.ma.log10(aSFRSD__Trg[iT].flatten() * 1e6)
         y = np.ma.log10(aSFRSD_Ha__rg.flatten() * 1e6)
-        xm, ym = C.ma_mask_xy(x, y)
+        xm, ym = C.ma_mask_xyz(x, y)
         a[iT], b[iT], sigma_a, sigma_b = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.96, y_pos = 0.05, fs = 8)
         b2[iT] = (ym - xm).mean()
         Rs[iT], _ = st.spearmanr(xm.compressed(), ym.compressed())
@@ -393,7 +393,7 @@ for i in range(0, NRows):
         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
         x = np.ma.log10(aSFRSD_norm__rg.flatten())
         y = np.ma.log10(aSFRSD_Ha_norm__rg.flatten())
-        xm, ym = C.ma_mask_xy(x, y)
+        xm, ym = C.ma_mask_xyz(x, y)
         scat = ax.scatter(xm, ym, c = 'black', marker = 'o', s = 0.3, edgecolor = 'none', alpha = 0.6)
         a[iT], b[iT], sigma_a, sigma_b = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.96, y_pos = 0.05, fs = 8)
         b2[iT] = (ym - xm).mean()
@@ -474,7 +474,7 @@ for i in range(0, NRows):
         ax = axArr[i, j] 
         x = np.ma.log10(integrated_SFR__Tg[iT])
         y = np.ma.log10(integrated_SFR_Ha__g)
-        xm, ym = C.ma_mask_xy(x, y)
+        xm, ym = C.ma_mask_xyz(x, y)
         age = tSF__T[iT]
         C.debug_var(debug, masked = xm.mask.sum(), not_masked = len(x) - xm.mask.sum(), total = len(x))
         #print 'integrated SFR x SFR_Ha Age: %.2f Myr: masked %d points of %d (total: %d)' % (age / 1e6, xm.mask.sum(), len(x), len(x) - xm.mask.sum())        
@@ -563,7 +563,7 @@ for i in range(0, NRows):
         ax = axArr[i, j] 
         x = np.ma.log10(integrated_SFRSD__Tg[iT] * 1e6)
         y = np.ma.log10(integrated_SFRSD_Ha__g  * 1e6)
-        xm, ym = C.ma_mask_xy(x, y)
+        xm, ym = C.ma_mask_xyz(x, y)
         age = tSF__T[iT]
         C.debug_var(debug, masked = xm.mask.sum(), not_masked = len(x) - xm.mask.sum(), total = len(x))
         #print 'integrated SFRSD x SFRSD_Ha Age: %.2f Myr: masked %d points of %d (total: %d)' % (age / 1e6, xm.mask.sum(), len(x), len(x) - xm.mask.sum())

@@ -43,7 +43,7 @@ if __name__ == '__main__':
         z =  H.reply_arr_by_zones(H.morfType_GAL__g)
         mask = x.mask | y.mask
         zm = np.ma.masked_array(z, mask = mask)
-        zticks_mask = [(zm > 8.9) & (zm <= 9.5), (zm == 10), (zm == 10.5), (zm >= 11.) & (zm > 9) & (zm <= 11.5)]
+        zticks_mask = [(zm > 8.9) & (zm <= 9.5), (zm == 10), (zm == 10.5), (zm >= 11.)]
         zticks = [9., 9.5, 10, 10.5, 11., 11.5]
         zticklabels = ['Sa', 'Sab', 'Sb', 'Sbc', 'Sc', 'Scd']
 
