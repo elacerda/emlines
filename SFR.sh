@@ -2,7 +2,8 @@
 #for file in /Users/lacerda/CALIFA/list_SFR/rem_ba_morph/list_0123.txt /Users/lacerda/CALIFA/listOf300GalPrefixes.txt
 #dryrun=true
 dryrun=false
-for file in /Users/lacerda/CALIFA/listOf298GalPrefixes.txt
+#for file in /Users/lacerda/CALIFA/listOf298GalPrefixes.txt
+for file in /Users/lacerda/CALIFA/listv20_q050.d15a.txt
 do
     bname=$(basename $file)
     name=${bname%.txt}
@@ -101,7 +102,7 @@ do
 
     #maxtauvneberr=0.15
     maxtauvneberr=0.25
-    OPTS="--rgbcuts -L $file --spiral --minpopx $minpopx --mintauv $mintauv --mintauvneb $mintauvneb"
+    OPTS="-G --rgbcuts -L $file --spiral --minpopx $minpopx --mintauv $mintauv --mintauvneb $mintauvneb"
     output="SFR_${minpopx}_${mintauv}_${mintauvneb}_${maxtauvneberr}_resid_rgbcuts_${name}"
     echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr -H ${output}.h5 &> ${output}.log &"
     echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log"
@@ -112,7 +113,7 @@ do
     fi
 
     maxtauvneberr=0.5
-    OPTS="--rgbcuts -L $file --spiral --minpopx $minpopx --mintauv $mintauv --mintauvneb $mintauvneb"
+    OPTS="-G --rgbcuts -L $file --spiral --minpopx $minpopx --mintauv $mintauv --mintauvneb $mintauvneb"
     output="SFR_${minpopx}_${mintauv}_${mintauvneb}_${maxtauvneberr}_resid_rgbcuts_${name}"
     echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr -H ${output}.h5 &> ${output}.log &"
     echo "./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log"
@@ -121,5 +122,4 @@ do
         time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr               -H ${output}.h5      &> ${output}.log &
         time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
     fi
-d
 done

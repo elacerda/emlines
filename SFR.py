@@ -17,6 +17,7 @@ from CALIFAUtils.scripts import calc_alogZ_Stuff
 from CALIFAUtils.scripts import radialProfileWeighted
 
 def parser_args():
+    paths = C.paths
     default_args = {
         'debug' : False,
         'underS06' : False,
@@ -31,23 +32,23 @@ def parser_args():
         'rbinfin' : 2.0,
         'rbinstep' : 0.1,
         'maxiTSF' :-1,
-        'gals_filename' : C.califa_work_dir + 'listOf300GalPrefixes.txt',
+        'gals_filename' : paths.califa_work_dir + 'listv20_q050.d15a.txt',
         'rgbcuts' : False,
         'filter_residual' : False,
+        'gasprop' : False,
+        'v_run' : -1,
     }
+    
     parser = ap.ArgumentParser(description = '%s' % sys.argv[0])
     parser.add_argument('--debug', '-D',
                         action = 'store_true',
                         default = default_args['debug'])
+    parser.add_argument('--gasprop', '-G',
+                        action = 'store_true',
+                        default = default_args['gasprop'])
     parser.add_argument('--spiral', '-S',
                         action = 'store_true',
                         default = default_args['spiral'])
-    parser.add_argument('--underS06',
-                        action = 'store_true',
-                        default = default_args['underS06'])
-    parser.add_argument('--rgbcuts',
-                        action = 'store_true',
-                        default = default_args['rgbcuts'])
     parser.add_argument('--filter_residual', '-R',
                         action = 'store_true',
                         default = default_args['filter_residual'])
@@ -58,6 +59,20 @@ def parser_args():
                         metavar = 'FILE',
                         type = str,
                         default = default_args['hdf5'])
+    parser.add_argument('--v_run',
+                        metavar = 'INT',
+                        type = int,
+                        default = default_args['v_run'])
+    parser.add_argument('--gals_filename', '-L',
+                        metavar = 'FILE',
+                        type = str,
+                        default = default_args['gals_filename'])
+    parser.add_argument('--underS06',
+                        action = 'store_true',
+                        default = default_args['underS06'])
+    parser.add_argument('--rgbcuts',
+                        action = 'store_true',
+                        default = default_args['rgbcuts'])
     parser.add_argument('--minpopx',
                         help = 'Negative to disable mask in popx',
                         metavar = 'FRAC',
@@ -91,10 +106,6 @@ def parser_args():
                         metavar = 'iT',
                         type = int,
                         default = default_args['maxiTSF'])
-    parser.add_argument('--gals_filename', '-L',
-                        metavar = 'FILE',
-                        type = str,
-                        default = default_args['gals_filename'])
 
     return parser.parse_args()
 
@@ -103,21 +114,21 @@ def print_args(args):
     for k, v in args.__dict__.iteritems():
         print k, v 
 
-def verify_files(K, califaID):
+def verify_files(K, califaID, EL = True, GP = True):
     if K is None:
         print '<<< %s galaxy: miss files' % califaID
-        return False
-    if K.EL is None:
+        return 0, False
+    if EL == True and K.EL is None:
         print '<<< %s galaxy: miss EmLines files' % califaID
-        return False 
-    if K.GP._hdulist is None:
+        return 1, False
+        if K.EL.flux[0, :].sum() == 0.:
+            print '<<< %s EmLines FITS problem' % califaID
+            return 2, False
+    if GP is True and K.GP._hdulist is None:
         print '<<< %s galaxy: miss gasprop file' % califaID
-        return False
+        return 2, False
     # Problem in FITS file
-    if K.EL.flux[0, :].sum() == 0.:
-        print '<<< %s EmLines FITS problem' % califaID
-        return False
-    return True        
+    return 0, True       
 
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -163,26 +174,36 @@ if __name__ == '__main__':
     N_U = len(tZ__U)
 
     ALL = ALLGals(N_gals, NRbins, N_T, N_U)
-    
+
     # automatically read PyCASSO and EmLines data cubes.
-    for iGal, K in C.loop_cubes(gals.tolist(), imax = maxGals, EL = True, GP = True):
+    for iGal, K in C.loop_cubes(gals.tolist(), imax = maxGals, EL = True, GP = args.gasprop, v_run = args.v_run):        
+    #for iGal in xrange(len(gals)):
         t_init_gal = time.clock()
         califaID = gals[iGal] 
-
+        #K =  C.read_one_cube(califaID, EL = True, GP = args.gasprop, v_run = args.v_run)
         ALL.califaIDs[iGal] = califaID
-
-        if verify_files(K, califaID) is not True:
+        
+        sit, verify = verify_files(K, califaID, EL = True, GP = args.gasprop)
+        
+        if verify is not True:
             ALL.mask_gal(iGal)
+            print '<<< ', califaID, sit
+            if sit == 1:
+                K.close()
+            elif sit == 2:
+                K.EL.close()
+                K.close()
             continue
 
         tipos, tipo, tipo_m, tipo_p = C.get_morfologia(califaID)
         
-        print tipo
-        print type(tipo)
-        
         # Only spiral
         if args.spiral and (tipo <= 8 or tipo >= 12.5): 
             ALL.mask_gal(iGal)
+            if args.gasprop is True:
+                K.GP.close()
+            K.EL.close()
+            K.close()
             print '<<< %s galaxy: is not a spiral (type: %f)' % (califaID, tipo) 
             continue
 
@@ -359,7 +380,10 @@ if __name__ == '__main__':
         maskOkLine = {}
         if args.rgbcuts is True:
             for l in lines_central_wl:
-                pos, sigma, snr =  K.GP._dlcons[l]['pos'], K.GP._dlcons[l]['sigma'], K.GP._dlcons[l]['SN']
+                if args.gasprop is True:
+                    pos, sigma, snr =  K.GP._dlcons[l]['pos'], K.GP._dlcons[l]['sigma'], K.GP._dlcons[l]['SN']
+                else:
+                    pos, sigma, snr = 3.0, 3.0, 3.0
                 C.debug_var(args.debug, pref = l, pos = pos, sigma = sigma, snr = snr)
                 maskOkLine[l] = K.EL._setMaskLineFluxNeg(l) 
                 maskOkLine[l] |= K.EL._setMaskLineDisplacement(l, pos)
@@ -538,54 +562,59 @@ if __name__ == '__main__':
         ####################################################
         ####################################################
 
-        ####################################################
-        # GasProp Ruben ####################################
-        ####################################################
-        # Values in GasProp could be NaN. This values will be masked at 
-        # ALL.stiack_zones_data() with mask = np.isnan(vect)
-        chb_in__z = K.GP.REDDENING.chb_in
-        c_Ha_Hb__z = K.GP.REDDENING.c_Ha_Hb
-        # O_HIICHIM may have zeros.
-        O_HIICHIM__z = np.where(K.GP.EMPAB.O_HIICHIM == 0., np.nan, K.GP.EMPAB.O_HIICHIM)
-        O_O3N2_M13__z = K.GP.EMPAB.O_O3N2_M13
-        O_O3N2_PP04__z = K.GP.EMPAB.O_O3N2_PP04
-        O_direct_O_23__z = K.GP.ELEMAB.O_direct_O_23
-        
-        ALL._chb_in__g.append(chb_in__z)
-        ALL._c_Ha_Hb__g.append(c_Ha_Hb__z)
-        ALL._O_HIICHIM__g.append(O_HIICHIM__z)
-        ALL._O_O3N2_M13__g.append(O_O3N2_M13__z)
-        ALL._O_O3N2_PP04__g.append(O_O3N2_PP04__z)
-        ALL._O_direct_O_23__g.append(O_direct_O_23__z)
+        if args.gasprop:
+            ####################################################
+            # GasProp Ruben ####################################
+            ####################################################
+            # Values in GasProp could be NaN. This values will be masked at 
+            # ALL.stiack_zones_data() with mask = np.isnan(vect)
+            chb_in__z = K.GP.REDDENING.chb_in
+            c_Ha_Hb__z = K.GP.REDDENING.c_Ha_Hb
+            # O_HIICHIM may have zeros.
+            O_HIICHIM__z = np.where(K.GP.EMPAB.O_HIICHIM == 0., np.nan, K.GP.EMPAB.O_HIICHIM)
+            O_O3N2_M13__z = K.GP.EMPAB.O_O3N2_M13
+            O_O3N2_PP04__z = K.GP.EMPAB.O_O3N2_PP04
+            O_direct_O_23__z = K.GP.ELEMAB.O_direct_O_23
+            
+            ALL._chb_in__g.append(chb_in__z)
+            ALL._c_Ha_Hb__g.append(c_Ha_Hb__z)
+            ALL._O_HIICHIM__g.append(O_HIICHIM__z)
+            ALL._O_O3N2_M13__g.append(O_O3N2_M13__z)
+            ALL._O_O3N2_PP04__g.append(O_O3N2_PP04__z)
+            ALL._O_direct_O_23__g.append(O_direct_O_23__z)
+    
+            ALL.integrated_chb_in__g[iGal] = K.GP.REDDENING.integrated_chb_in
+            ALL.integrated_c_Ha_Hb__g[iGal] = K.GP.REDDENING.integrated_c_Ha_Hb
+            ALL.integrated_O_HIICHIM__g[iGal] = K.GP.EMPAB.integrated_O_HIICHIM
+            ALL.integrated_O_O3N2_M13__g[iGal] = K.GP.EMPAB.integrated_O_O3N2_M13
+            ALL.integrated_O_O3N2_PP04__g[iGal] = K.GP.EMPAB.integrated_O_O3N2_PP04
+            ALL.integrated_O_direct_O_23__g[iGal] = K.GP.ELEMAB.integrated_O_direct_O_23
+    
+            _O_HIICHIM__z = np.ma.masked_array(O_HIICHIM__z, mask = np.isnan(O_HIICHIM__z)) 
+            _O_O3N2_M13__z = np.ma.masked_array(O_O3N2_M13__z, mask = np.isnan(O_O3N2_M13__z))
+            _O_O3N2_PP04__z = np.ma.masked_array(O_O3N2_PP04__z, mask = np.isnan(O_O3N2_PP04__z))
+            _O_direct_O_23__z = np.ma.masked_array(O_direct_O_23__z, mask = np.isnan(O_direct_O_23__z))
+            
+            O_HIICHIM__yx = K.zoneToYX(_O_HIICHIM__z, extensive = False)
+            O_HIICHIM__r = K.radialProfile(O_HIICHIM__yx, Rbin__r, rad_scale = K.HLR_pix)
+            O_O3N2_M13__yx = K.zoneToYX(_O_O3N2_M13__z, extensive = False)
+            O_O3N2_M13__r = K.radialProfile(O_O3N2_M13__yx, Rbin__r, rad_scale = K.HLR_pix)
+            O_O3N2_PP04__yx = K.zoneToYX(_O_O3N2_PP04__z, extensive = False)
+            O_O3N2_PP04__r = K.radialProfile(O_O3N2_PP04__yx, Rbin__r, rad_scale = K.HLR_pix)
+            O_direct_O_23__yx = K.zoneToYX(_O_direct_O_23__z, extensive = False)
+            O_direct_O_23__r = K.radialProfile(O_direct_O_23__yx, Rbin__r, rad_scale = K.HLR_pix)
+            
+            ALL.O_HIICHIM__rg[:, iGal] = O_HIICHIM__r
+            ALL.O_O3N2_M13__rg[:, iGal] = O_O3N2_M13__r
+            ALL.O_O3N2_PP04__rg[:, iGal] = O_O3N2_PP04__r 
+            ALL.O_direct_O_23__rg[:, iGal] = O_direct_O_23__r
 
-        ALL.integrated_chb_in__g[iGal] = K.GP.REDDENING.integrated_chb_in
-        ALL.integrated_c_Ha_Hb__g[iGal] = K.GP.REDDENING.integrated_c_Ha_Hb
-        ALL.integrated_O_HIICHIM__g[iGal] = K.GP.EMPAB.integrated_O_HIICHIM
-        ALL.integrated_O_O3N2_M13__g[iGal] = K.GP.EMPAB.integrated_O_O3N2_M13
-        ALL.integrated_O_O3N2_PP04__g[iGal] = K.GP.EMPAB.integrated_O_O3N2_PP04
-        ALL.integrated_O_direct_O_23__g[iGal] = K.GP.ELEMAB.integrated_O_direct_O_23
-
-        _O_HIICHIM__z = np.ma.masked_array(O_HIICHIM__z, mask = np.isnan(O_HIICHIM__z)) 
-        _O_O3N2_M13__z = np.ma.masked_array(O_O3N2_M13__z, mask = np.isnan(O_O3N2_M13__z))
-        _O_O3N2_PP04__z = np.ma.masked_array(O_O3N2_PP04__z, mask = np.isnan(O_O3N2_PP04__z))
-        _O_direct_O_23__z = np.ma.masked_array(O_direct_O_23__z, mask = np.isnan(O_direct_O_23__z))
-        
-        O_HIICHIM__yx = K.zoneToYX(_O_HIICHIM__z, extensive = False)
-        O_HIICHIM__r = K.radialProfile(O_HIICHIM__yx, Rbin__r, rad_scale = K.HLR_pix)
-        O_O3N2_M13__yx = K.zoneToYX(_O_O3N2_M13__z, extensive = False)
-        O_O3N2_M13__r = K.radialProfile(O_O3N2_M13__yx, Rbin__r, rad_scale = K.HLR_pix)
-        O_O3N2_PP04__yx = K.zoneToYX(_O_O3N2_PP04__z, extensive = False)
-        O_O3N2_PP04__r = K.radialProfile(O_O3N2_PP04__yx, Rbin__r, rad_scale = K.HLR_pix)
-        O_direct_O_23__yx = K.zoneToYX(_O_direct_O_23__z, extensive = False)
-        O_direct_O_23__r = K.radialProfile(O_direct_O_23__yx, Rbin__r, rad_scale = K.HLR_pix)
-        
-        ALL.O_HIICHIM__rg[:, iGal] = O_HIICHIM__r
-        ALL.O_O3N2_M13__rg[:, iGal] = O_O3N2_M13__r
-        ALL.O_O3N2_PP04__rg[:, iGal] = O_O3N2_PP04__r 
-        ALL.O_direct_O_23__rg[:, iGal] = O_direct_O_23__r
-        
-        print 'time per galaxy: %s %.2f' % (califaID, time.clock() - t_init_gal)
+        if args.gasprop is True:
+            K.GP.close()
+        K.EL.close()
         K.close()
+        del K
+        print 'time per galaxy: %s %.2f' % (califaID, time.clock() - t_init_gal)
 
     t_init_stack = time.clock()        
     ALL.stack_zones_data()
