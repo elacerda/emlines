@@ -209,14 +209,16 @@ if __name__ == '__main__':
                         minloc = 0.05,
                         limprc = [0, 100],
                       ),
-        'logO3N2M13R' : dict(
-                        v = H.O_O3N2_M13__rg, 
-                        label = r'12 + $\log\ O/H$ (R, logO3N2, Marino, 2013)',
-                        lim = [8., 9.0],
-                        majloc = 0.2,
-                        minloc = 0.05,
-                        limprc = [0, 100],
-                       ),
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        # 'logO3N2M13R' : dict(
+        #                 v = H.O_O3N2_M13__rg, 
+        #                 label = r'12 + $\log\ O/H$ (R, logO3N2, Marino, 2013)',
+        #                 lim = [8., 9.0],
+        #                 majloc = 0.2,
+        #                 minloc = 0.05,
+        #                 limprc = [0, 100],
+        #                ),
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
         'atfluxR' : dict(
                         v = H.at_flux__rg, 
                         label = r'$\langle \log\ t \rangle_L (R)$ [yr]', 
