@@ -266,7 +266,7 @@ if __name__ == '__main__':
             maskNotOk__z = np.zeros((K.N_zone), dtype=np.bool)
             
             if args.filter_residual is True:
-                maskNotOk__z |= ~(K.filterResidual())
+                maskNotOk__z |= ~(K.filterResidual(w2 = 4600))
                 C.debug_var(args.debug, pref = '    >>>',
                     tSF = '%.2fMyr' % (tSF / 1e6),
                     NnotOkResidual = (~(K.filterResidual())).sum()
