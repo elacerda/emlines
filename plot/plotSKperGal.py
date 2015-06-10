@@ -24,6 +24,22 @@ mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
+def verify_files(K, califaID, EL = True, GP = True):
+    if K is None:
+        print '<<< %s galaxy: miss files' % califaID
+        return False
+    if EL == True and K.EL is None:
+        print '<<< %s galaxy: miss EmLines files' % califaID
+        return False
+        if K.EL.flux[0, :].sum() == 0.:
+            print '<<< %s EmLines FITS problem' % califaID
+            return False
+    if GP is True and K.GP._hdulist is None:
+        print '<<< %s galaxy: miss gasprop file' % califaID
+        return False
+    # Problem in FITS file
+    return True    
+
 def print_args(args):
     for k, v in args.__dict__.iteritems():
         print k, v 
@@ -36,6 +52,7 @@ def parser_args():
         'hdf5' : None,
         'califaID' : 'K0073',
         'itSF' : 11,
+        'vrunstr' : 'v20_q050.d15a',
     }
     
     parser.add_argument('--debug', '-D',
@@ -54,6 +71,10 @@ def parser_args():
                         metavar = '',
                         type = int,
                         default = default['itSF'])
+    parser.add_argument('--vrunstr',
+                        metavar = 'RUNCODE',
+                        type = str,
+                        default = default['vrunstr'])
 
     return parser.parse_args()
 
@@ -61,7 +82,6 @@ def parser_args():
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-imgDir = C.califa_work_dir + 'images/'
 
 Zsun = 0.019
 
@@ -116,8 +136,9 @@ if __name__ == '__main__':
     SFRSD_Ha__z = getattr(H, '%s_SFRSD_Ha__g' % galName)
     aSFRSD_Ha__r = getattr(H, '%s_aSFRSD_Ha__rg' % galName)
     
+    imgDir = C.paths.califa_work_dir + 'images/'
+    K = C.read_one_cube(galName, EL = True, v_run = args.vrunstr)
     galaxyImgFile = imgDir + galName + '.jpg'
-    K = C.read_one_cube(galName, EL = True)
     
     # Setup elliptical-rings geometry
     pa, ba = K.getEllipseParams()
