@@ -83,6 +83,24 @@ def O_O3N2_M13(Ha_obs, Hb_obs, O3_obs, N2_obs, mask_zones, tau_V = None, correct
         N2 *= np.ma.exp(q[3] * tau_V_m)
     return np.ma.log10(O3 * Ha / (N2 * Hb)) 
 
+def O3N2(Ha_obs, Hb_obs, O3_obs, N2_obs, mask_zones, tau_V = None, correct = False):
+    Hb = np.ma.masked_array(Hb_obs, mask = mask_zones)
+    O3 = np.ma.masked_array(O3_obs, mask = mask_zones)
+    Ha = np.ma.masked_array(Ha_obs, mask = mask_zones)
+    N2 = np.ma.masked_array(N2_obs, mask = mask_zones)
+    if correct is True:
+        tau_V_m = np.ma.masked_array(tau_V, mask = mask_zones)
+        from pystarlight.util import redenninglaws
+        q = redenninglaws.Cardelli_RedLaw([4861, 5007, 6563, 6583])
+        Hb *= np.ma.exp(q[0] * tau_V_m) 
+        O3 *= np.ma.exp(q[1] * tau_V_m) 
+        Ha *= np.ma.exp(q[2] * tau_V_m) 
+        N2 *= np.ma.exp(q[3] * tau_V_m)
+    O3Hb = np.ma.log10(O3/Hb)
+    N2Ha = np.ma.log10(N2/Ha)
+    O3N2 = np.ma.log10(O3 * Ha / (N2 * Hb))
+    return O3Hb, N2Ha, O3N2
+
 if __name__ == '__main__':
     # Parse arguments 
     args = parser_args()
