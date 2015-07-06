@@ -18,3 +18,9 @@ plot/SKperGal
 *.list
 plot/BW8
 rgb-plots
+hdf5
+plot/*.pdf
+*.pdf
+*.txt
+*.xlsx
+log
