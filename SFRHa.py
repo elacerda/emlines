@@ -51,7 +51,7 @@ if __name__ == '__main__':
         base        = StarlightBase(baseFile, b, hdf5 = True)
         
         max_yr      = base.ageBase[-1]
-        max_yr      = 1e7
+        max_yr      = 1e8
         mask        = base.l_ssp <= 912         # Angstrom
         
         f_ssp   = base.f_ssp[:,:,mask]

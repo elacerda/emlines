@@ -25,3 +25,4 @@ plot/*.pdf
 *.xlsx
 log
 *.pyc
+*.h5
