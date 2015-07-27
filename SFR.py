@@ -21,6 +21,7 @@ def parser_args():
     default_args = {
         'debug' : False,
         'underS06' : False,
+        'whanSF' : False,
         'hdf5' : None,
         'spiral' : False,
         'weiradprof' : True,
@@ -70,6 +71,9 @@ def parser_args():
     parser.add_argument('--underS06',
                         action = 'store_true',
                         default = default_args['underS06'])
+    parser.add_argument('--whanSF',
+                        action = 'store_true',
+                        default = default_args['whanSF'])
     parser.add_argument('--rgbcuts',
                         action = 'store_true',
                         default = default_args['rgbcuts'])
@@ -198,7 +202,29 @@ if __name__ == '__main__':
         tipos, tipo, tipo_m, tipo_p = C.get_morfologia(califaID)
         
         # Only spiral
-        if args.spiral and (tipo <= 8 or tipo >= 12.5): 
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        # [('E0', 0),
+        # ('E1', 1),
+        # ('E2', 2),
+        # ('E3', 3),
+        # ('E4', 4),
+        # ('E5', 5),
+        # ('E6', 6),
+        # ('E7', 7),
+        # ('S0', 8),
+        # ('S0a', 8.5),
+        # ('Sa', 9),
+        # ('Sab', 9.5),
+        # ('Sb', 10),
+        # ('Sbc', 10.5),
+        # ('Sc', 11),
+        # ('Scd', 11.5),
+        # ('Sd', 12),
+        # ('Sdm', 12.5),
+        # ('Sm', 13),
+        # ('Ir', 14)]
+        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        if args.spiral and (tipo <= 8.5 or tipo >= 12.5):  # between Sa ... Sd
             ALL.mask_gal(iGal)
             if args.gasprop is True:
                 K.GP.close()
@@ -259,7 +285,7 @@ if __name__ == '__main__':
             at_flux__z = np.ma.masked_array(K.at_flux__z)
             at_mass__z = np.ma.masked_array(K.at_mass__z)
             
-            x_Y__z = calc_xY(K, tSF)
+            x_Y__z, integrated_x_Y = calc_xY(K, tSF)
             aux = calc_SFR(K, tSF)
             SFR__z = np.ma.masked_array(aux[0])
             SFRSD__z = np.ma.masked_array(aux[1])
@@ -292,15 +318,6 @@ if __name__ == '__main__':
             at_flux__z[maskNotOk__z] = np.ma.masked
             at_mass__z[maskNotOk__z] = np.ma.masked
                 
-            tau_V__yx = K.zoneToYX(tau_V__z, extensive = False, surface_density = False)
-            aSFRSD__yx = K.zoneToYX(SFRSD__z, extensive = False, surface_density = False)
-            McorSD__yx = K.zoneToYX(Mcor__z, extensive = True)
-            at_flux__yx = K.zoneToYX(at_flux__z, extensive = False, surface_density = False)
-            at_mass__yx = K.zoneToYX(at_mass__z, extensive = False, surface_density = False)
-            x_Y__yx = K.zoneToYX(x_Y__z, extensive = False, surface_density = False)
-            at_flux_dezon__yx = K.zoneToYX(at_flux__z, extensive = True)
-            at_mass_dezon__yx = K.zoneToYX(at_mass__z, extensive = True)
-            
             ALL._x_Y__Tg[iT].append(x_Y__z)
             ALL._tau_V__Tg[iT].append(tau_V__z.data)
             ALL._tau_V_mask__Tg[iT].append(tau_V__z.mask)
@@ -312,21 +329,25 @@ if __name__ == '__main__':
             ALL._SFRSD_mask__Tg[iT].append(SFRSD__z.mask)
             ALL._at_flux__Tg[iT].append(at_flux__z)
             ALL._at_mass__Tg[iT].append(at_mass__z)
-
+            ALL.integrated_x_Y__Tg[:, iGal] = integrated_x_Y
             integrated_SFR = SFR__z.sum()
             ALL.integrated_SFR__Tg[iT, iGal] = integrated_SFR
             ALL.integrated_SFRSD__Tg[iT, iGal] = integrated_SFR / K.zoneArea_pc2.sum()
 
-            ALL.x_Y__Trg[iT, :, iGal] = K.radialProfile(x_Y__yx, Rbin__r, rad_scale = K.HLR_pix)
-            ALL.McorSD__Trg[iT, :, iGal] = K.radialProfile(McorSD__yx, Rbin__r, rad_scale = K.HLR_pix)
-            ALL.aSFRSD__Trg[iT, :, iGal] = K.radialProfile(aSFRSD__yx, Rbin__r, rad_scale = K.HLR_pix)
-            ALL.tau_V__Trg[iT, :, iGal] = K.radialProfile(tau_V__yx, Rbin__r, rad_scale = K.HLR_pix)
-            ALL.at_flux__Trg[iT, :, iGal] = K.radialProfile(at_flux__yx, Rbin__r, rad_scale = K.HLR_pix)
-            ALL.at_mass__Trg[iT, :, iGal] = K.radialProfile(at_mass__yx, Rbin__r, rad_scale = K.HLR_pix)
-            ALL.at_flux_dezon__Trg[iT, :, iGal] = K.radialProfile(at_flux_dezon__yx, Rbin__r, rad_scale = K.HLR_pix)
-            ALL.at_mass_dezon__Trg[iT, :, iGal] = K.radialProfile(at_mass_dezon__yx, Rbin__r, rad_scale = K.HLR_pix)
-            Lobn__yx = K.zoneToYX(K.Lobn__z, extensive = True)
+            # Radial Profiles:
+            ALL.x_Y__Trg[iT, :, iGal] = K.zoneToRad(x_Y__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
+            ALL.McorSD__Trg[iT, :, iGal] = K.zoneToRad(Mcor__z, Rbin__r, rad_scale = K.HLR_pix)
+            ALL.aSFRSD__Trg[iT, :, iGal] = K.zoneToRad(SFRSD__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
+            ALL.tau_V__Trg[iT, :, iGal] = K.zoneToRad(tau_V__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
+            ALL.at_flux__Trg[iT, :, iGal] = K.zoneToRad(at_flux__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
+            ALL.at_mass__Trg[iT, :, iGal] = K.zoneToRad(at_mass__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
+            ALL.at_flux_dezon__Trg[iT, :, iGal] = K.zoneToRad(at_flux__z, Rbin__r, rad_scale = K.HLR_pix)
+            ALL.at_mass_dezon__Trg[iT, :, iGal] = K.zoneToRad(at_mass__z, Rbin__r, rad_scale = K.HLR_pix)
+            Lobn__yx = K.zoneToYX(K.Lobn__z, extensive = False, surface_density = False)
+            at_flux__yx = K.zoneToYX(at_flux__z, extensive = False, surface_density = False)
             ALL.at_flux_wei__Trg[iT, :, iGal] = radialProfileWeighted(at_flux__yx, Lobn__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
+            McorSD__yx = K.zoneToYX(Mcor__z)
+            at_mass__yx = K.zoneToYX(at_mass__z, extensive = False, surface_density = False)
             ALL.at_mass_wei__Trg[iT, :, iGal] = radialProfileWeighted(at_mass__yx, McorSD__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
             
         for iU, tZ in enumerate(tZ__U):
@@ -405,11 +426,16 @@ if __name__ == '__main__':
         maskOkLines__z = np.bitwise_and(maskOkLines__z, maskOkLine[N2_central_wl])  
 
         maskOkBPT__z = np.ones((K.N_zone), dtype = np.bool)
+        maskOkwhan__z = np.ones((K.N_zone), dtype = np.bool)
         if args.underS06:
             L = Lines()
             N2Ha = np.ma.log10(K.EL.N2_obs__z / K.EL.Ha_obs__z)
             O3Hb = np.ma.log10(K.EL.O3_obs__z / K.EL.Hb_obs__z)
             maskOkBPT__z = L.maskBelowlinebpt('S06', N2Ha, O3Hb)
+        if args.whanSF:
+            N2Ha = np.ma.log10(K.EL.N2_obs__z / K.EL.Ha_obs__z)
+            WHa = K.EL.EW[i_Ha, :]
+            maskOkwhan__z = np.bitwise_and(np.greater(WHa, 3.), np.less_equal(N2Ha, -0.4))
         ##########################
 
         ########## tau_V #########
@@ -419,6 +445,7 @@ if __name__ == '__main__':
         maskOkTauVNeb__z &= maskOkLine[Ha_central_wl]
         maskOkTauVNeb__z &= maskOkLine[Hb_central_wl]
         maskOkTauVNeb__z &= maskOkBPT__z
+        maskOkTauVNeb__z &= maskOkwhan__z
         
         C.debug_var(args.debug, 
             NOkHb = maskOkLine[Hb_central_wl].sum(),
@@ -493,6 +520,9 @@ if __name__ == '__main__':
 
         ALL.EW_Ha__rg[:, iGal] = EW_Ha__r
         ALL.EW_Hb__rg[:, iGal] = EW_Hb__r
+
+        ALL.integrated_EW_Ha__g[iGal] = K.EL.integrated_EW[i_Ha]
+        ALL.integrated_EW_Hb__g[iGal] = K.EL.integrated_EW[i_Hb]
         ##########################
 
         #### intrinsic Ha Lum ####
