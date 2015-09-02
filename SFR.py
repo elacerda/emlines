@@ -203,7 +203,8 @@ if __name__ == '__main__':
         
         # Only spiral
         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-        # [('E0', 0),
+        # [
+        # ('E0', 0),
         # ('E1', 1),
         # ('E2', 2),
         # ('E3', 3),
@@ -222,7 +223,8 @@ if __name__ == '__main__':
         # ('Sd', 12),
         # ('Sdm', 12.5),
         # ('Sm', 13),
-        # ('Ir', 14)]
+        # ('Ir', 14),
+        # ]
         #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
         if args.spiral and (tipo <= 8.5 or tipo >= 12.5):  # between Sa ... Sd
             ALL.mask_gal(iGal)
@@ -547,8 +549,8 @@ if __name__ == '__main__':
         L_int_Ha__z = np.ma.masked_array(L_int_Ha__z, mask = ~maskOkTauVNeb__z)
         
         integrated_eHa = np.ma.exp(K.EL._qCCM['6563'] * K.EL.integrated_tau_V_neb)
-        integrated_L_obs_Ha__L = K.EL._F_to_L(K.EL.integrated_flux) / L_sun
-        integrated_L_int_Ha = integrated_L_obs_Ha__L[i_Ha] * integrated_eHa
+        integrated_L_obs__L = K.EL._F_to_L(K.EL.integrated_flux) / L_sun
+        integrated_L_int_Ha = integrated_L_obs__L[i_Ha] * integrated_eHa
         
         # L_int_Ha_err__Lz intrinsic Ha luminosity propagated error
         q = K.EL._qCCM['6563'] / (K.EL._qCCM['4861'] - K.EL._qCCM['6563'])
@@ -557,10 +559,15 @@ if __name__ == '__main__':
         L_int_Ha_err__z = np.where(maskOkTauVNeb__z == True, L_obs_Ha_err__z, eHa * np.sqrt(a ** 2.0 + b ** 2.0))
         L_int_Ha_err__z = np.ma.masked_array(L_int_Ha_err__z, mask = ~maskOkTauVNeb__z)
         
+        ALL._L_obs_Ha__g.append(L_obs_Ha__z.data)
+        ALL._L_obs_Ha_mask__g.append(L_obs_Ha__z.mask)
+        ALL._L_obs_Ha_err__g.append(L_obs_Ha_err__z.data)
+
         ALL._L_int_Ha__g.append(L_int_Ha__z.data)
         ALL._L_int_Ha_mask__g.append(L_int_Ha__z.mask)
         ALL._L_int_Ha_err__g.append(L_int_Ha_err__z.data)
 
+        ALL.integrated_L_obs_Ha__g[iGal] = integrated_L_obs__L[i_Ha]
         ALL.integrated_L_int_Ha__g[iGal] = integrated_L_int_Ha
         ##########################
 
