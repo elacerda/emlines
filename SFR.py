@@ -156,7 +156,7 @@ if __name__ == '__main__':
     RRange = [  .5, 1., 1.5, 2.  ]
     
     # Reading galaxies file,
-    gals, _ = C.sort_gals(args.gals_filename)
+    gals, _ = C.sort_gals(gals = args.gals_filename, order = 1)
     N_gals = len(gals)
     maxGals = None
     if args.debug:
