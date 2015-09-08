@@ -26,3 +26,4 @@ plot/*.pdf
 log
 *.pyc
 *.h5
+*.jpg

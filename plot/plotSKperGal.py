@@ -9,12 +9,13 @@ import argparse as ap
 import CALIFAUtils as C
 import matplotlib as mpl
 from matplotlib import pyplot as plt
+from CALIFAUtils.objects import runstats
 from CALIFAUtils.plots import plot_text_ax
 from matplotlib.pyplot import MultipleLocator
-from CALIFAUtils.scripts import DrawHLRCircle
+from CALIFAUtils.plots import DrawHLRCircle
 from CALIFAUtils.plots import plotOLSbisectorAxis
 from CALIFAUtils.scripts import calc_running_stats
-from CALIFAUtils.scripts import DrawHLRCircleInSDSSImage
+from CALIFAUtils.plots import DrawHLRCircleInSDSSImage
 
 mpl.rcParams['font.size'] = 16
 mpl.rcParams['axes.labelsize'] = 16
@@ -214,45 +215,32 @@ if __name__ == '__main__':
     ax.grid()
     f.colorbar(ax = ax, mappable = im, use_gridspec = True)
 
+    default_rs_kwargs = dict(smooth = True, sigma = 1.2, overlap = 0.4)
+    
     ax = axArr[1, 0]
     ax.set_axis_on()
     x = np.ma.log10(tau_V__rg.flatten())
     y = np.ma.log10(aSFRSD__rg.flatten() * 1e6)
-    mask = x.mask | y.mask  
-    xm = np.ma.masked_array(x, mask = mask)
-    ym = np.ma.masked_array(y, mask = mask)
+    xm, ym = C.ma_mask_xyz(x, y)
     xlabel = r'$\log\ \tau_V^{\star}(R)$'
     ylabel = r'$\log\ \langle \Sigma_{SFR}^\star(t_\star, R)\rangle\ [M_\odot yr^{-1} kpc^{-2}]$'
     xlim = [-1.5, xm.max()]
     ylim = [-3.5, 1]
-    sc = ax.scatter(x, y, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.4)
-    nBox = 20
-    dxBox = (xm.max() - xm.min()) / (nBox - 1.)
-    X = x[~mask]
-    Y = y[~mask]
-    aux = calc_running_stats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
-    xbinCenter = aux[0]
-    xMedian = aux[1]
-    xMean = aux[2]
-    xStd = aux[3]
-    yMedian = aux[4]
-    yMean = aux[5]
-    yStd = aux[6]
-    nInBin = aux[7]
-    xPrc = aux[8]
-    yPrc = aux[9]
-    ax.plot(xMedian, yMedian, 'k', lw = 2)
-    ax.plot(xPrc[0], yPrc[0], 'k--', lw = 2)
-    ax.plot(xPrc[1], yPrc[1], 'k--', lw = 2)
+    sc = ax.scatter(xm, ym, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.4)
+    rs_kwargs = default_rs_kwargs.copy()
+    rs = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs) 
+    ax.plot(rs.xS, rs.yS, 'k', lw = 2)
+    ax.plot(rs.xPrc[0], rs.yPrc[0], 'k--', lw = 2)
+    ax.plot(rs.xPrc[1], rs.yPrc[1], 'k--', lw = 2)
+    ax.plot(rs.xPrc[2], rs.yPrc[2], 'k--', lw = 2)
+    ax.plot(rs.xPrc[3], rs.yPrc[3], 'k--', lw = 2)
     txt = '%.2f Myr' % (age / 1e6)
     plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
-    a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.98, pos_y = 0.02, fs = 14)
+    a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.98, pos_y = 0.08, fs = 14)
     ##########################
     x = np.ma.log10(atau_V__r)
     y = np.ma.log10(aSFRSD__r * 1e6)
-    mask = x.mask | y.mask
-    xm = np.ma.masked_array(x, mask = mask)
-    ym = np.ma.masked_array(y, mask = mask)
+    xm, ym = C.ma_mask_xyz(x, y)
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
     # xr = xm + np.cos(a_ols) + ym * np.sin(a_ols)
     # vmax = xr.mean() + 2. * xr.std()
@@ -323,40 +311,27 @@ if __name__ == '__main__':
     ax.set_title(xlabel, y = -0.15)
     ax.grid()
     f.colorbar(ax = ax, mappable = im, use_gridspec = True)
-
+    
     ax = axArr[2, 0]
     ax.set_axis_on()
     x = np.ma.log10(tau_V_neb__rg.flatten())
     y = np.ma.log10(aSFRSD_Ha__rg.flatten() * 1e6)
-    mask = x.mask | y.mask
-    xm = np.ma.masked_array(x, mask = mask)
-    ym = np.ma.masked_array(y, mask = mask)
+    xm, ym = C.ma_mask_xyz(x, y)
     xlabel = r'$\log\ \tau_V^{neb}(R)$'
     ylabel = r'$\log\ \langle \Sigma_{SFR}^{neb}(R)\rangle\ [M_\odot yr^{-1} kpc^{-2}]$' 
     xlim = [-1.5, xm.max()]
     ylim = [-3.5, 1]
-    sc = ax.scatter(x, y, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.4)
-    nBox = 20
-    dxBox = (xm.max() - xm.min()) / (nBox - 1.)
-    X = x[~mask]
-    Y = y[~mask]
-    aux = calc_running_stats(X, Y, dxBox = dxBox, xbinIni = X.min(), xbinFin = X.max(), xbinStep = dxBox)
-    xbinCenter = aux[0]
-    xMedian = aux[1]
-    xMean = aux[2]
-    xStd = aux[3]
-    yMedian = aux[4]
-    yMean = aux[5]
-    yStd = aux[6]
-    nInBin = aux[7]
-    xPrc = aux[8]
-    yPrc = aux[9]
-    ax.plot(xMedian, yMedian, 'k', lw = 2)
-    ax.plot(xPrc[0], yPrc[0], 'k--', lw = 2)
-    ax.plot(xPrc[1], yPrc[1], 'k--', lw = 2)
+    sc = ax.scatter(xm, ym, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.4)
+    rs_kwargs = default_rs_kwargs.copy()
+    rs = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs) 
+    ax.plot(rs.xS, rs.yS, 'k', lw = 2)
+    ax.plot(rs.xPrc[0], rs.yPrc[0], 'k--', lw = 2)
+    ax.plot(rs.xPrc[1], rs.yPrc[1], 'k--', lw = 2)
+    ax.plot(rs.xPrc[2], rs.yPrc[2], 'k--', lw = 2)
+    ax.plot(rs.xPrc[3], rs.yPrc[3], 'k--', lw = 2)
     txt = '%.2f Myr' % (age / 1e6)
     plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
-    a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.98, pos_y = 0.02, fs = 14)
+    a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.98, pos_y = 0.08, fs = 14)
     ##########################
     x = np.ma.log10(atau_V_neb__r)
     y = np.ma.log10(aSFRSD_Ha__r * 1e6)

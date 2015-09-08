@@ -141,6 +141,7 @@ if __name__ == '__main__':
     SFRSD__Tz = H.get_prop_gal(H.SFRSD__Tg, args.califaID)
     tau_V__Tz = H.get_prop_gal(H.tau_V__Tg, args.califaID)
     alogZ_mass__Uz = H.get_prop_gal(H.alogZ_mass__Ug, args.califaID)
+    at_flux__Tz = H.get_prop_gal(H.at_flux__Tg, args.califaID)
     x_Y__Tz = H.get_prop_gal(H.x_Y__Tg, args.califaID)
     #### Radial averages
     McorSD__r = H.get_prop_gal(H.McorSD__Tg, args.califaID)
@@ -148,6 +149,7 @@ if __name__ == '__main__':
     tau_V__Tr = H.get_prop_gal(H.tau_V__Trg, args.califaID)
     aSFRSD__Tr = H.get_prop_gal(H.aSFRSD__Trg, args.califaID)
     alogZ_mass__Ur = H.get_prop_gal(H.alogZ_mass__Urg, args.califaID)
+    at_flux__Tr = H.get_prop_gal(H.at_flux__Trg, args.califaID)
     x_Y__Tr = H.get_prop_gal(H.x_Y__Trg, args.califaID)
 
     ## Nebul.
@@ -504,100 +506,62 @@ if __name__ == '__main__':
     default_sc_kwargs = dict(marker = 'o', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
     default_rs_kwargs = dict(smooth = True, sigma = 1.2, overlap = 0.4)
     default_im_kwargs = dict(interpolation = 'nearest', origin = 'lower', aspect = 'auto', cmap = mpl.cm.spectral)
-
-    phys__r = [
-        np.ma.log10(tau_V__Tr[iT]), np.ma.log10(tau_V_neb__r),
-        np.ma.log10(aSFRSD__Tr[iT]), np.ma.log10(aSFRSD_Ha__r),
-        np.ma.log10(McorSD__Tr[iT]), O_O3N2_M13__r, alogZ_mass__Ur[-1],
+    
+    phys__z = [
+        tau_V__Tz[iT], 
+        tau_V_neb__z,
+        SFRSD__Tz[iT] * 1e6, 
+        SFRSD_Ha__z * 1e6,
+        McorSD__Tz[iT], 
+        O_O3N2_M13__z, 
+        alogZ_mass__Uz[-1],
     ]
+    
+    phys__yx = [
+        K.zoneToYX(prop, extensive = False, surface_density = False) 
+            for prop in phys__z
+    ]
+    
+    phys__r = [
+        np.ma.log10(tau_V__Tr[iT]), 
+        np.ma.log10(tau_V_neb__r),
+        np.ma.log10(aSFRSD__Tr[iT] * 1e6), 
+        np.ma.log10(aSFRSD_Ha__r * 1e6),
+        np.ma.log10(McorSD__Tr[iT]), 
+        O_O3N2_M13__r, 
+        alogZ_mass__Ur[-1],
+    ]
+    
     labels__r = [
         r'$\log\ \tau_V^\star (R)$',
         r'$\log\ \tau_V^{neb} (R)$',
-        r'$\log\ \Sigma_{SFR}^\star (t_\star, R)\ [M_\odot yr^{-1} pc^{-2}]$',
-        r'$\log\ \Sigma_{SFR}^{neb} (R)\ [M_\odot yr^{-1} pc^{-2}]$',
+        r'$\log\ \Sigma_{SFR}^\star (t_\star, R)\ [M_\odot yr^{-1} kpc^{-2}]$',
+        r'$\log\ \Sigma_{SFR}^{neb} (R)\ [M_\odot yr^{-1} kpc^{-2}]$',
         r'$\log\ \mu_\star (R)$ [$M_\odot \ pc^{-2}$]',
         r'12 + $\log\ O/H\ (R)$',
         r'$\langle \log\ Z_\star \rangle_M (R)$ (t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[-1] / 1e9),
     ]
-    from CALIFAUtils.scripts import calc_SFR
-    from CALIFAUtils.scripts import calc_xY
-    from pycasso.util import radialProfile
-    tSF = H.tSF__T[iT]
-    x_Y__z = calc_xY(K, tSF)
-    aux = calc_SFR(K, tSF)
-    SFR__z = np.ma.masked_array(aux[0])
-    SFRSD__z = np.ma.masked_array(aux[1])
-    Mcor__z = np.ma.masked_array(K.Mcor__z)
-    McorSD__z = np.ma.masked_array(K.Mcor__z / K.zoneArea_pc2)
-    tau_V__z = np.ma.masked_array(K.tau_V__z)
-    maskNotOk__z = np.zeros((K.N_zone), dtype = np.bool)
-    maskNotOk__z |= ~(K.filterResidual(w2 = 4600))
-    maskNotOk__z |= (x_Y__z < H.xOkMin) 
-    maskNotOk__z |= (tau_V__z < H.tauVOkMin)
-    tau_V__z[maskNotOk__z] = np.ma.masked
-    SFR__z[maskNotOk__z] = np.ma.masked
-    SFRSD__z[maskNotOk__z] = np.ma.masked
-    Mcor__z[maskNotOk__z] = np.ma.masked
-    McorSD__z[maskNotOk__z] = np.ma.masked
-    
-    bins = H.RbinCenter__r[maskRadiusOk__r]
-    Nbins = len(bins)
-    perf = np.ma.empty((Nbins)) 
-    prop = tau_V__z
-    for i, bin_center in enumerate(bins):
-        bin_edges = (bin_center - H.RbinStep / 2., bin_center + H.RbinStep / 2.)
-        zones_slice = np.bitwise_and(np.less_equal(K.zoneDistance_HLR, bin_edges[1]),
-                                    np.greater(K.zoneDistance_HLR, bin_edges[0]))   
-        perf[i] = np.mean(prop[zones_slice])
-    perf[np.isnan(perf)] = np.ma.masked
-        
-    
-    
-    
-    
 
-    phys__z = [ 
-        tau_V__Tz[iT], tau_V_neb__z,
-        SFRSD__Tz[iT], SFRSD_Ha__z,
-        McorSD__Tz[iT], O_O3N2_M13__z, alogZ_mass__Uz[-1],
+    labels__z = [
+        r'$\log\ \tau_V^\star$',
+        r'$\log\ \tau_V^{neb}$',
+        r'$\log\ \Sigma_{SFR}^\star (t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$',
+        r'$\log\ \Sigma_{SFR}^{neb}\ [M_\odot yr^{-1} kpc^{-2}]$',
+        r'$\log\ \mu_\star$ [$M_\odot \ pc^{-2}$]',
+        r'12 + $\log\ O/H$',
+        r'$\langle \log\ Z_\star \rangle_M$ (t < %.2f Gyr) [$Z_\odot$]' % (H.tZ__U[-1] / 1e9),
     ]
-    phys_K__z = [ 
-        tau_V__z[iT], tau_V_neb__z,
-        SFRSD__z[iT], SFRSD_Ha__z,
-        McorSD__z[iT], O_O3N2_M13__z, alogZ_mass__Uz[-1],
-    ]
-    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    # phys__z = [ 
-    #     np.ma.log10(tau_V__z), np.ma.log10(tau_V_neb__z),
-    #     np.ma.log10(SFRSD__z), np.ma.log10(SFRSD_Ha__z), 
-    #     np.ma.log10(McorSD__z), O_O3N2_M13__z, alogZ_mass__Uz[-1],
-    # ]
-    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    
-    phys__yx = [ 
-        K.zoneToYX(np.ma.masked_array(phys, mask = phys.mask | ~maskRadiusOk__z),
-                   extensive = False , surface_density = False) 
-        for phys in phys__z 
-    ]
-    phys__yx = [ 
-        K.zoneToYX(np.ma.masked_array(phys, mask = phys.mask | ~maskRadiusOk__z),
-                   extensive = False , surface_density = False) 
-        for phys in phys__z 
-    ]
-    #phys__yx = [ K.zoneToYX(phys, extensive = False , surface_density = False) for phys in phys__z ]
-    calc_phys__r = [ 
-        radialProfile(prop = phys, bin_r = H.Rbin__r,
-                      x0 = K.x0, y0 = K.y0, ba = K.ba, pa = K.pa, mask = K.qMask, rad_scale = K.HLR_pix) 
-        for phys in phys__yx 
-    ]
-    calc_phys_K__r = [ K.radialProfile(phys, bin_r = H.Rbin__r, rad_scale = K.HLR_pix) for phys in phys__yx ]
     
     if args.debug: 
         sys.exit('bai')
 
+    mtype_str = ['E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'S0', 'S0a', 'Sa', 'Sab', 'Sb', 'Sbc', 'Sc', 'Scd', 'Sd', 'Sdm', 'Sm', 'Ir']
+    mtype_num = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 14])
+
     with PdfPages(output) as pdf:
+        #########################
+        ######## PAGE 1 #########
         ##########################
-        ######### PAGE 1 #########
         NRows = 4
         NCols = 4
         f = plt.figure()
@@ -613,24 +577,38 @@ if __name__ == '__main__':
         plt.setp(ax.get_xticklabels(), visible = False)
         plt.setp(ax.get_yticklabels(), visible = False)
         ax.imshow(galimg, origin = 'lower')
+        
+        txt = r'%s' % K.califaID
+        kw_text = dict(pos_x = 0.98, pos_y = 0.98, fs = 20, va = 'top', ha = 'right', c = 'white')
+        plot_text_ax(ax, txt, **kw_text)
+           
+        txt = r'%s' % mtype_str[np.where(mtype_num == mtype)[0][0]]
+        kw_text = dict(pos_x = 0.02, pos_y = 0.02, fs = 20, va = 'bottom', ha = 'left', c = 'white')
+        plot_text_ax(ax, txt, **kw_text)
+
+        txt = r'b/a %.2f [pyc: %.2f]' % (ba, ba_pyc)
+        kw_text = dict(pos_x = 0.99, pos_y = 0.01, fs = 15, va = 'bottom', ha = 'right', c = 'white')
+        plot_text_ax(ax, txt, **kw_text)
+        
         DrawHLRCircleInSDSSImage(ax, K.HLR_pix, K.pa, K.ba)
-        
         loc = [ [0, 2], [1, 2], [2, 0], [2, 2], [3, 0], [3, 2] ]
-        
-        for i in xrange(len(loc)):
+        N = len(loc)
+        for i in xrange(N):
             pos = loc[i][:]
             ax = plt.subplot2grid(grid_shape, loc = pos)
             ax.set_axis_on()
-            im = plot_ma_map(ax = ax, map = phys__yx[i], p = [1, 99], K = K, **dict(cmap = mpl.cm.hot))
+            if i < N - 1:
+                y = np.ma.log10(phys__yx[i])
+            else:
+                y = phys__yx[i]
+            im = plot_ma_map(ax = ax, map = y, p = [1, 99], K = K, **dict(cmap = mpl.cm.hot))
             cb = f.colorbar(ax = ax, mappable = im)
             ax.set_title(labels__r[i], stretch = 'condensed', y = 1.01, fontsize = 10)
             pos[-1] += 1
             ax = plt.subplot2grid(grid_shape, loc = pos)
             ax.set_axis_on()
             ax.plot(H.RbinCenter__r, phys__r[i], 'o-')
-            ax.plot(H.RbinCenter__r, np.ma.log10(calc_phys__r[i]), 'o-')
             ax.set_xlim(minR, H.Rbin__r[-1])
-        
         f.subplots_adjust(hspace = 0.2, wspace = 0.3)
         pdf.savefig(f)
         plt.close(f)
@@ -645,26 +623,24 @@ if __name__ == '__main__':
         page_size_inches = (NCols * 3, NRows * 1.5)
         f.set_size_inches(page_size_inches)
         grid_shape = (NRows, NCols)
-         
         ax = plt.subplot2grid(grid_shape, loc = (0, 0))
         ax.set_axis_on()
-        
         rs_kwargs = default_rs_kwargs.copy()
         sc_kwargs = default_sc_kwargs.copy()
-        ax.axhline(y = RR_DGR, c = 'y')
         x = H.RbinCenter__r
-        xm, ym_BR_DGR_ols__r = C.ma_mask_xyz(x, y = BR_DGR_ols__r, mask = ~maskRadiusOk__r) 
+        xm, ym_BR_DGR_ols__r = C.ma_mask_xyz(x, y = BR_DGR_ols__r, mask = ~maskRadiusOk__r)
+        ax.plot(xm, ym_BR_DGR_ols__r, '.-', c = 'b')
         m_aux = ~maskRadiusOk__r | BR_DGR_up_ols__r.mask | BR_DGR_up_ols__r.mask
         xm, ym_BR_DGR_up_ols__r = C.ma_mask_xyz(x, y = BR_DGR_up_ols__r, mask = m_aux)
         xm, ym_BR_DGR_down_ols__r = C.ma_mask_xyz(x, y = BR_DGR_down_ols__r, mask = m_aux)
+        ax.fill_between(xm, ym_BR_DGR_up_ols__r, ym_BR_DGR_down_ols__r, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
         xm, ym_SK_DGR__r = C.ma_mask_xyz(x, y = SK_DGR__r, mask = ~maskRadiusOk__r) 
+        ax.plot(xm, ym_SK_DGR__r, '.-', c = 'g')
         xm, ym_SK_DGR_Ha_r = C.ma_mask_xyz(x, y = SK_DGR_Ha__r, mask = ~maskRadiusOk__r) 
-        ax.plot(x, ym_BR_DGR_ols__r, '.-', c = 'b')
-        ax.plot(x, ym_SK_DGR__r, '.-', c = 'g')
-        ax.plot(x, ym_SK_DGR_Ha_r, '.-', c = 'black')
-        ax.fill_between(x, ym_BR_DGR_up_ols__r, ym_BR_DGR_down_ols__r, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
+        ax.plot(xm, ym_SK_DGR_Ha_r, '.-', c = 'black')
+        ax.axhline(y = RR_DGR, c = 'y')
         ax.set_xlim(minR, H.RbinFin)
-        #ax.set_ylim(0, .5)
+        ax.set_ylim(0, .025)
         ax.set_title('Radial bins')
         ax.set_ylabel(r'$\delta_{DGR}$')
         ax.yaxis.set_major_locator(MaxNLocator(6))
@@ -682,29 +658,25 @@ if __name__ == '__main__':
             x = K.zoneDistance_HLR
             xm, ym_BR_DGR_ols__z = C.ma_mask_xyz(x, y = BR_DGR_ols__z, mask = ~maskRadiusOk__z)
             rs_BR_DGR_ols = runstats(xm.compressed(), ym_BR_DGR_ols__z.compressed(), nBox = 20, **rs_kwargs)
-            
-            m_aux = ~maskRadiusOk__z | BR_DGR_up_ols__z.mask | BR_DGR_up_ols__z.mask 
-            xm, yup = C.ma_mask_xyz(x, y = BR_DGR_up_ols__z, mask = m_aux)
+            xm, yup = C.ma_mask_xyz(x = K.zoneDistance_HLR, y = BR_DGR_up_ols__z, mask = ~maskRadiusOk__z) 
             rs_BR_DGR_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
-            xm, ydown = C.ma_mask_xyz(x, y = BR_DGR_down_ols__z, mask = m_aux) 
+            xm, ydown = C.ma_mask_xyz(x = K.zoneDistance_HLR, y = BR_DGR_down_ols__z, mask = yup.mask) 
             rs_BR_DGR_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-            
-            xm, ym = C.ma_mask_xyz(x, y = SK_DGR__z, mask = ~maskRadiusOk__z) 
+            xm, ym = C.ma_mask_xyz(x = K.zoneDistance_HLR, y = SK_DGR__z, mask = ~maskRadiusOk__z)
             rs_SK_DGR = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            
-            xm, ym = C.ma_mask_xyz(x, y = SK_DGR_Ha__z, mask = ~maskRadiusOk__z) 
+            xm, ym = C.ma_mask_xyz(x = K.zoneDistance_HLR, y = SK_DGR_Ha__z, mask = ~maskRadiusOk__z)
             rs_SK_DGR_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
             if args.scatter is True:
                 ax.scatter(rs_BR_DGR_ols.x, rs_BR_DGR_ols.y, c = 'b', **sc_kwargs)
                 ax.scatter(rs_SK_DGR.x, rs_SK_DGR.y, c = 'g', **sc_kwargs)
-                ax.scatter(rs_SK_DGR_Ha.x, rs_SK_DGR_Ha.y, c = 'g', **sc_kwargs)
-            ax.plot(rs_BR_DGR_ols.xS, rs_BR_DGR_ols.yS, '.-', c = 'b')
-            ax.plot(rs_SK_DGR.xS, rs_SK_DGR.yS, '.-', c = 'g')
-            ax.plot(rs_SK_DGR_Ha.xS, rs_SK_DGR_Ha.yS, '.-', c = 'black')
+                ax.scatter(rs_SK_DGR_Ha.x, rs_SK_DGR_Ha.y, c = 'black', **sc_kwargs)
+            ax.plot(rs_BR_DGR_ols.xS, rs_BR_DGR_ols.yS, '.-', c = 'b', label = r'BR from $\tau_V^\star$')
+            ax.plot(rs_SK_DGR.xS, rs_SK_DGR.yS, '.-', c = 'g', label = r'SK from synt.')
+            ax.plot(rs_SK_DGR_Ha.xS, rs_SK_DGR_Ha.yS, '.-', c = 'black', label = r'SK from H$\alpha$')
             ax.fill_between(rs_BR_DGR_up_ols.xS, rs_BR_DGR_up_ols.yS, rs_BR_DGR_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
             ax.axhline(y = RR_DGR, label = 'RR (const.)', c = 'y')
             plt.setp(ax.get_xticklabels(), visible = False)
-            ax.set_ylim(0, .1)
+            ax.set_ylim(0, .025)
             ax.set_xlim(minR, H.Rbin__r[-1])
             ax.tick_params(axis = 'y', which = 'major', pad = 10)
             ax.set_title('Zones')
@@ -713,42 +685,26 @@ if __name__ == '__main__':
          
         ax = plt.subplot2grid(grid_shape, loc = (1, 0))
         ax.set_axis_on()
-        xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(BR_SigmaGas_ols__r), mask = ~maskRadiusOk__r) 
-        rs_BR_SigmaGas_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+        xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(BR_SigmaGas_ols__r), mask = ~maskRadiusOk__r)
+        ax.plot(xm, ym, '.-', c = 'b')
         xm, yup = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(BR_SigmaGas_up_ols__r), mask = ~maskRadiusOk__r) 
-        rs_BR_SigmaGas_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
         xm, ydown = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(BR_SigmaGas_down_ols__r), mask = yup.mask) 
-        rs_BR_SigmaGas_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
+        ax.fill_between(xm, yup, ydown, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
         xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(BR_SigmaGas_Ha_ols__r), mask = ~maskRadiusOk__r)
-        rs_BR_SigmaGas_Ha_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+        ax.plot(xm, ym, '.-', c = 'r')
         xm, yup = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(BR_SigmaGas_Ha_up_ols__r), mask = ~maskRadiusOk__r) 
-        rs_BR_SigmaGas_Ha_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
         xm, ydown = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(BR_SigmaGas_Ha_down_ols__r), mask = yup.mask) 
-        rs_BR_SigmaGas_Ha_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
+        ax.fill_between(xm, yup, ydown, edgecolor = 'k', facecolor = 'r', alpha = 0.4)
         xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(SK_SigmaGas__r), mask = ~maskRadiusOk__r)
-        rs_SK_SigmaGas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+        ax.plot(xm, ym, '.-', c = 'g')
         xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(SK_SigmaGas_Ha__r), mask = ~maskRadiusOk__r)
-        rs_SK_SigmaGas_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+        ax.plot(xm, ym, '.-', c = 'k')
         xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = np.ma.log10(RR_SigmaGas__r), mask = ~maskRadiusOk__r) 
-        rs_RR_SigmaGas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        if args.scatter is True:
-            ax.scatter(rs_BR_SigmaGas_ols.x, rs_BR_SigmaGas_ols.y, c = 'b', **sc_kwargs)
-            ax.scatter(rs_BR_SigmaGas_Ha_ols.x, rs_BR_SigmaGas_Ha_ols.y, c = 'r', **sc_kwargs)
-            ax.scatter(rs_SK_SigmaGas.x, rs_SK_SigmaGas.y, c = 'g', **sc_kwargs)
-            ax.scatter(rs_SK_SigmaGas_Ha.x, rs_SK_SigmaGas_Ha.y, c = 'black', **sc_kwargs)
-            ax.scatter(rs_RR_SigmaGas.x, rs_RR_SigmaGas.y, c = 'y', **sc_kwargs)
-        ax.plot(rs_BR_SigmaGas_ols.xS, rs_BR_SigmaGas_ols.yS, '.-', c = 'b')
-        ax.plot(rs_BR_SigmaGas_Ha_ols.xS, rs_BR_SigmaGas_Ha_ols.yS, '.-', c = 'r')
-        ax.plot(rs_SK_SigmaGas.xS, rs_SK_SigmaGas.yS, '.-', c = 'g')
-        ax.plot(rs_SK_SigmaGas_Ha.xS, rs_SK_SigmaGas_Ha.yS, '.-', c = 'black')
-        ax.plot(rs_RR_SigmaGas.xS, rs_RR_SigmaGas.yS, '.-', c = 'y')
-        ax.fill_between(rs_BR_SigmaGas_up_ols.xS, rs_BR_SigmaGas_up_ols.yS, rs_BR_SigmaGas_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
-        ax.fill_between(rs_BR_SigmaGas_Ha_up_ols.xS, rs_BR_SigmaGas_Ha_up_ols.yS, rs_BR_SigmaGas_Ha_down_ols.yS, edgecolor = 'k', facecolor = 'r', alpha = 0.4)
+        ax.plot(xm, ym, '.-', c = 'y')
         ax.set_xlim(minR, H.RbinFin)
         ax.set_ylim(0.4, 2)
         ax.yaxis.set_major_locator(MaxNLocator(6))
         ax.grid()
-        plt.setp(ax.get_xticklabels(), visible = False)
         plt.setp(ax.get_yticklabels(), visible = False)
         ax.set_ylabel(r'$\log\ \Sigma_{gas}$ [M${}_\odot$ pc${}^{-2}$]')
          
@@ -793,42 +749,27 @@ if __name__ == '__main__':
             plt.setp(ax.get_xticklabels(), visible = False)
             ax.yaxis.set_major_locator(MaxNLocator(6))
             ax.grid()
-         
+        
         ax = plt.subplot2grid(grid_shape, loc = (2, 0))
         ax.set_axis_on()
         xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = BR_f_gas_ols__r, mask = ~maskRadiusOk__r) 
-        rs_BR_f_gas_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+        ax.plot(xm, ym, '.-', c = 'b')
         xm, yup = C.ma_mask_xyz(x = H.RbinCenter__r, y = BR_f_gas_up_ols__r, mask = ~maskRadiusOk__r) 
-        rs_BR_f_gas_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
         xm, ydown = C.ma_mask_xyz(x = H.RbinCenter__r, y = BR_f_gas_down_ols__r, mask = yup.mask) 
-        rs_BR_f_gas_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
+        ax.fill_between(xm, yup, ydown, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
         xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = BR_f_gas_Ha_ols__r, mask = ~maskRadiusOk__r)
-        rs_BR_f_gas_Ha_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+        ax.plot(xm, ym, '.-', c = 'r')
         xm, yup = C.ma_mask_xyz(x = H.RbinCenter__r, y = BR_f_gas_Ha_up_ols__r, mask = ~maskRadiusOk__r) 
-        rs_BR_f_gas_Ha_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
         xm, ydown = C.ma_mask_xyz(x = H.RbinCenter__r, y = BR_f_gas_Ha_down_ols__r, mask = yup.mask) 
-        rs_BR_f_gas_Ha_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
+        ax.fill_between(xm, yup, ydown, edgecolor = 'k', facecolor = 'r', alpha = 0.4)
         xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = SK_f_gas__r, mask = ~maskRadiusOk__r)
-        rs_SK_f_gas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+        ax.plot(xm, ym, '.-', c = 'g')
         xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = SK_f_gas_Ha__r, mask = ~maskRadiusOk__r)
-        rs_SK_f_gas_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+        ax.plot(xm, ym, '.-', c = 'k')
         xm, ym = C.ma_mask_xyz(x = H.RbinCenter__r, y = RR_f_gas__r, mask = ~maskRadiusOk__r) 
-        rs_RR_f_gas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        if args.scatter is True:
-            ax.scatter(rs_BR_f_gas_ols.x, rs_BR_f_gas_ols.y, c = 'b', **sc_kwargs)
-            ax.scatter(rs_BR_f_gas_Ha_ols.x, rs_BR_f_gas_Ha_ols.y, c = 'r', **sc_kwargs)
-            ax.scatter(rs_SK_f_gas.x, rs_SK_f_gas.y, c = 'g', **sc_kwargs)
-            ax.scatter(rs_SK_f_gas_Ha.x, rs_SK_f_gas_Ha.y, c = 'black', **sc_kwargs)
-            ax.scatter(rs_RR_f_gas.x, rs_RR_f_gas.y, c = 'y', **sc_kwargs)
-        ax.plot(rs_BR_f_gas_ols.xS, rs_BR_f_gas_ols.yS, '.-', c = 'b')
-        ax.plot(rs_BR_f_gas_Ha_ols.xS, rs_BR_f_gas_Ha_ols.yS, '.-', c = 'r')
-        ax.plot(rs_SK_f_gas.xS, rs_SK_f_gas.yS, '.-', c = 'g')
-        ax.plot(rs_SK_f_gas_Ha.xS, rs_SK_f_gas_Ha.yS, '.-', c = 'black')
-        ax.plot(rs_RR_f_gas.xS, rs_RR_f_gas.yS, '.-', c = 'y')
-        ax.fill_between(rs_BR_f_gas_up_ols.xS, rs_BR_f_gas_up_ols.yS, rs_BR_f_gas_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
-        ax.fill_between(rs_BR_f_gas_Ha_up_ols.xS, rs_BR_f_gas_Ha_up_ols.yS, rs_BR_f_gas_Ha_down_ols.yS, edgecolor = 'k', facecolor = 'r', alpha = 0.4)
+        ax.plot(xm, ym, '.-', c = 'y')
         ax.set_xlim(minR, H.RbinFin)
-        ax.set_ylim(0, .2)
+        ax.set_ylim(0, .3)
         ax.set_xlabel(r'R [HLR]')
         ax.set_ylabel(r'f${}_{gas}$')
         ax.yaxis.set_major_locator(MaxNLocator(6))
@@ -870,12 +811,12 @@ if __name__ == '__main__':
             ax.fill_between(rs_BR_f_gas_up_ols.xS, rs_BR_f_gas_up_ols.yS, rs_BR_f_gas_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
             ax.fill_between(rs_BR_f_gas_Ha_up_ols.xS, rs_BR_f_gas_Ha_up_ols.yS, rs_BR_f_gas_Ha_down_ols.yS, edgecolor = 'k', facecolor = 'r', alpha = 0.4)
             ax.set_xlim(minR, H.Rbin__r[-1])
-            ax.set_ylim(0, .2)
+            ax.set_ylim(0, .3)
             ax.tick_params(axis = 'y', which = 'major', pad = 15)
             ax.set_xlabel(r'R [HLR]')
             ax.yaxis.set_major_locator(MaxNLocator(6))
             ax.grid()
-         
+     
         ax = plt.subplot2grid(grid_shape, loc = (0, NCols - 1), rowspan = NRows)
         ax.set_axis_off()
         txt = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%' % (H.N_gals, (H.tSF__T[iT] / 1e6), H.xOkMin * 100.)
@@ -893,192 +834,474 @@ if __name__ == '__main__':
         f.subplots_adjust(hspace = 0.2, wspace = 0.3)
         pdf.savefig(f)
         plt.close(f)
+
+        ##########################
+        ##########################
+        ##########################
         
-#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-#         ##########################
-#         ######### PAGE 2 #########
-#         ##########################
-#         NRows = 3
-#         NCols = 3
-#         f = plt.figure()
-#         #f, axArr = plt.subplots(NRows, NCols)
-#         #f.set_size_inches((NCols * 3, NRows * 1.5))
-#         page_size_inches = (NCols * 3, NRows * 2.5)
-#         f.set_size_inches(page_size_inches)
-#         grid_shape = (NRows, NCols)
-#         xaxis = [ 'atfluxR', 'xYR', 'morfTypeR', 'baR', 'alogZmassR', 'logMcorSDR', 'logWHaWHbR' ]
-#         row, col = 0, 0
-#         for xk in xaxis:
-#             rs_kwargs = default_rs_kwargs.copy()
-#             sc_kwargs = default_sc_kwargs.copy()
-#             ax = plt.subplot2grid(grid_shape, loc = (row, col))
-#             _, xdict = H.get_plot_dict(iT, -1, xk)
-#             x = xdict['v']
-#             xm, ym_BR_DGR_ols = C.ma_mask_xyz(x = x, y = BR_DGR_ols__r, mask = ~maskRadiusOk__r)
-#             rs_BR_DGR_ols = runstats(xm.compressed(), ym_BR_DGR_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_DGR_up_ols = C.ma_mask_xyz(x = x, y = BR_DGR_up_ols__r, mask = ~maskRadiusOk__r)
-#             rs_BR_DGR_up_ols = runstats(xm.compressed(), ym_BR_DGR_up_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_DGR_down_ols = C.ma_mask_xyz(x = x, y = BR_DGR_down_ols__r, mask = ~maskRadiusOk__r)
-#             rs_BR_DGR_down_ols = runstats(xm.compressed(), ym_BR_DGR_down_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_SK_DGR = C.ma_mask_xyz(x = x, y = SK_DGR__r, mask = ~maskRadiusOk__r)
-#             rs_SK_DGR = runstats(xm.compressed(), ym_SK_DGR.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_SK_DGR_Ha = C.ma_mask_xyz(x = x, y = SK_DGR_Ha__r, mask = ~maskRadiusOk__r)
-#             rs_SK_DGR_Ha = runstats(xm.compressed(), ym_SK_DGR_Ha.compressed(), nBox = 20, **rs_kwargs)
-#             if args.scatter is True:
-#                 ax.scatter(rs_BR_DGR_ols.x, rs_BR_DGR_ols.y, marker = 'o', c = 'b', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_SK_DGR.x, rs_SK_DGR.y, marker = 'o', c = 'g', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_SK_DGR_Ha.x, rs_SK_DGR_Ha.y, marker = 'o', c = 'black', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#             ax.plot(rs_BR_DGR_ols.xS, rs_BR_DGR_ols.yS, '.-', c = 'b')
-#             ax.plot(rs_SK_DGR.xS, rs_SK_DGR.yS, '.-', c = 'g')
-#             ax.plot(rs_SK_DGR_Ha.xS, rs_SK_DGR_Ha.yS, '.-', c = 'black')
-#             ax.fill_between(rs_BR_DGR_up_ols.xS, rs_BR_DGR_up_ols.yS, rs_BR_DGR_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)            
-#             ax.xaxis.set_major_locator(MaxNLocator(6))
-#             ax.yaxis.set_major_locator(MaxNLocator(6))
-#             ax.grid()
-#             ax.set_xlabel(xdict['label'])
-#             ax.set_ylim(0, 15e-3)
-#             if col == 0:
-#                 ax.set_ylabel(r'$\delta_{DGR}$')
-#             if col == (NCols - 1):
-#                 row += 1
-#                 col = 0
-#             else:
-#                 col += 1
-#         f.subplots_adjust(hspace = 0.4, wspace = 0.4)
-#         pdf.savefig(f)
-#         plt.close(f)
-# 
-#         ##########################
-#         ######### PAGE 3 #########
-#         ##########################
-#         NRows = 3
-#         NCols = 3
-#         f = plt.figure()
-#         #f, axArr = plt.subplots(NRows, NCols)
-#         #f.set_size_inches((NCols * 3, NRows * 1.5))
-#         page_size_inches = (NCols * 3, NRows * 2.5)
-#         f.set_size_inches(page_size_inches)
-#         grid_shape = (NRows, NCols)
-#         xaxis = [ 'atfluxR', 'xYR', 'morfTypeR', 'baR', 'alogZmassR', 'logMcorSDR', 'logWHaWHbR' ]
-#         row, col = 0, 0
-#         for xk in xaxis:
-#             rs_kwargs = default_rs_kwargs.copy()
-#             sc_kwargs = default_sc_kwargs.copy()
-#             ax = plt.subplot2grid(grid_shape, loc = (row, col))
-#             _, xdict = H.get_plot_dict(iT, -1, xk)
-#             x = xdict['v']
-#             xm, ym_BR_SigmaGas_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_ols__r), mask = ~maskRadiusOk__r)
-#             rs_BR_SigmaGas_ols = runstats(xm.compressed(), ym_BR_SigmaGas_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_SigmaGas_up_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_up_ols__r), mask = ~maskRadiusOk__r)
-#             rs_BR_SigmaGas_up_ols = runstats(xm.compressed(), ym_BR_SigmaGas_up_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_SigmaGas_down_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_down_ols__r), mask = ~maskRadiusOk__r)
-#             rs_BR_SigmaGas_down_ols = runstats(xm.compressed(), ym_BR_SigmaGas_down_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_SigmaGas_Ha_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_ols__r), mask = ~maskRadiusOk__r)
-#             rs_BR_SigmaGas_Ha_ols = runstats(xm.compressed(), ym_BR_SigmaGas_Ha_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_SigmaGas_Ha_up_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_up_ols__r), mask = ~maskRadiusOk__r)
-#             rs_BR_SigmaGas_Ha_up_ols = runstats(xm.compressed(), ym_BR_SigmaGas_Ha_up_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_SigmaGas_Ha_down_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_down_ols__r), mask = ~maskRadiusOk__r)
-#             rs_BR_SigmaGas_Ha_down_ols = runstats(xm.compressed(), ym_BR_SigmaGas_Ha_down_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_SK_SigmaGas = C.ma_mask_xyz(x = x, y = np.log10(SK_SigmaGas__r), mask = ~maskRadiusOk__r)
-#             rs_SK_SigmaGas = runstats(xm.compressed(), ym_SK_SigmaGas.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_SK_SigmaGas_Ha = C.ma_mask_xyz(x = x, y = np.log10(SK_SigmaGas_Ha__r), mask = ~maskRadiusOk__r)
-#             rs_SK_SigmaGas_Ha = runstats(xm.compressed(), ym_SK_SigmaGas_Ha.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_RR_SigmaGas = C.ma_mask_xyz(x = x, y = np.log10(RR_SigmaGas__r), mask = ~maskRadiusOk__r)
-#             rs_RR_SigmaGas = runstats(xm.compressed(), ym_RR_SigmaGas.compressed(), nBox = 20, **rs_kwargs)
-#             if args.scatter is True:
-#                 ax.scatter(rs_BR_SigmaGas_ols.x, rs_BR_SigmaGas_ols.y, marker = 'o', c = 'b', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_BR_SigmaGas_Ha_ols.x, rs_BR_SigmaGas_Ha_ols.y, marker = 'o', c = 'r', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_SK_SigmaGas.x, rs_SK_SigmaGas.y, marker = 'o', c = 'g', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_SK_SigmaGas_Ha.x, rs_SK_SigmaGas_Ha.y, marker = 'o', c = 'black', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_RR_SigmaGas.x, rs_RR_SigmaGas.y, marker = 'o', c = 'y', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#             ax.plot(rs_BR_SigmaGas_ols.xS, rs_BR_SigmaGas_ols.yS, '.-', c = 'b')
-#             ax.plot(rs_BR_SigmaGas_Ha_ols.xS, rs_BR_SigmaGas_Ha_ols.yS, '.-', c = 'r')
-#             ax.plot(rs_SK_SigmaGas.xS, rs_SK_SigmaGas.yS, '.-', c = 'g')
-#             ax.plot(rs_SK_SigmaGas_Ha.xS, rs_SK_SigmaGas_Ha.yS, '.-', c = 'black')
-#             ax.plot(rs_RR_SigmaGas.xS, rs_RR_SigmaGas.yS, '.-', c = 'y')
-#             ax.fill_between(rs_BR_SigmaGas_up_ols.xS, rs_BR_SigmaGas_up_ols.yS, rs_BR_SigmaGas_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)            
-#             ax.fill_between(rs_BR_SigmaGas_Ha_up_ols.xS, rs_BR_SigmaGas_Ha_up_ols.yS, rs_BR_SigmaGas_Ha_down_ols.yS, edgecolor = 'k', facecolor = 'r', alpha = 0.4)            
-#             ax.xaxis.set_major_locator(MaxNLocator(6))
-#             ax.yaxis.set_major_locator(MaxNLocator(6))
-#             ax.grid()
-#             ax.set_xlabel(xdict['label'])
-#             ax.set_ylim(0.4, 2)
-#             #ax.set_ylim(0,15e-3)
-#             if col == 0:
-#                 ax.set_ylabel(r'$\log\ \Sigma_{gas}$ [M${}_\odot$ pc${}^{-2}$]')
-#             if col == (NCols - 1):
-#                 row += 1
-#                 col = 0
-#             else:
-#                 col += 1
-#         f.subplots_adjust(hspace = 0.4, wspace = 0.4)
-#         pdf.savefig(f)
-#         plt.close(f)
-# 
-#         ##########################
-#         ######### PAGE 4 #########
-#         ##########################
-#         NRows = 3
-#         NCols = 3
-#         f = plt.figure()
-#         #f, axArr = plt.subplots(NRows, NCols)
-#         #f.set_size_inches((NCols * 3, NRows * 1.5))
-#         page_size_inches = (NCols * 3, NRows * 2.5)
-#         f.set_size_inches(page_size_inches)
-#         grid_shape = (NRows, NCols)
-#         xaxis = [ 'atfluxR', 'xYR', 'morfTypeR', 'baR', 'alogZmassR', 'logMcorSDR', 'logWHaWHbR' ]
-#         row, col = 0, 0
-#         for xk in xaxis:
-#             rs_kwargs = default_rs_kwargs.copy()
-#             sc_kwargs = default_sc_kwargs.copy()
-#             ax = plt.subplot2grid(grid_shape, loc = (row, col))
-#             _, xdict = H.get_plot_dict(iT, -1, xk)
-#             x = xdict['v']
-#             xm, ym_BR_f_gas_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_ols__r, mask = ~maskRadiusOk__r)
-#             rs_BR_f_gas_ols = runstats(xm.compressed(), ym_BR_f_gas_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_f_gas_up_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_up_ols__r, mask = ~maskRadiusOk__r)
-#             rs_BR_f_gas_up_ols = runstats(xm.compressed(), ym_BR_f_gas_up_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_f_gas_down_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_down_ols__r, mask = ~maskRadiusOk__r)
-#             rs_BR_f_gas_down_ols = runstats(xm.compressed(), ym_BR_f_gas_down_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_f_gas_Ha_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_ols__r, mask = ~maskRadiusOk__r)
-#             rs_BR_f_gas_Ha_ols = runstats(xm.compressed(), ym_BR_f_gas_Ha_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_f_gas_Ha_up_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_up_ols__r, mask = ~maskRadiusOk__r)
-#             rs_BR_f_gas_Ha_up_ols = runstats(xm.compressed(), ym_BR_f_gas_Ha_up_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_BR_f_gas_Ha_down_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_down_ols__r, mask = ~maskRadiusOk__r)
-#             rs_BR_f_gas_Ha_down_ols = runstats(xm.compressed(), ym_BR_f_gas_Ha_down_ols.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_SK_f_gas = C.ma_mask_xyz(x = x, y = SK_f_gas__r, mask = ~maskRadiusOk__r)
-#             rs_SK_f_gas = runstats(xm.compressed(), ym_SK_f_gas.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_SK_f_gas_Ha = C.ma_mask_xyz(x = x, y = SK_f_gas_Ha__r, mask = ~maskRadiusOk__r)
-#             rs_SK_f_gas_Ha = runstats(xm.compressed(), ym_SK_f_gas_Ha.compressed(), nBox = 20, **rs_kwargs)
-#             xm, ym_RR_f_gas = C.ma_mask_xyz(x = x, y = RR_f_gas__r, mask = ~maskRadiusOk__r)
-#             rs_RR_f_gas = runstats(xm.compressed(), ym_RR_f_gas.compressed(), nBox = 20, **rs_kwargs)
-#             if args.scatter is True:
-#                 ax.scatter(rs_BR_f_gas_ols.x, rs_BR_f_gas_ols.y, marker = 'o', c = 'b', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_BR_f_gas_Ha_ols.x, rs_BR_f_gas_Ha_ols.y, marker = 'o', c = 'r', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_SK_f_gas.x, rs_SK_f_gas.y, marker = 'o', c = 'g', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_SK_f_gas_Ha.x, rs_SK_f_gas_Ha.y, marker = 'o', c = 'black', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#                 ax.scatter(rs_RR_f_gas.x, rs_RR_f_gas.y, marker = 'o', c = 'y', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
-#             ax.plot(rs_BR_f_gas_ols.xS, rs_BR_f_gas_ols.yS, '.-', c = 'b')
-#             ax.plot(rs_BR_f_gas_Ha_ols.xS, rs_BR_f_gas_Ha_ols.yS, '.-', c = 'r')
-#             ax.plot(rs_SK_f_gas.xS, rs_SK_f_gas.yS, '.-', c = 'g')
-#             ax.plot(rs_SK_f_gas_Ha.xS, rs_SK_f_gas_Ha.yS, '.-', c = 'black')
-#             ax.plot(rs_RR_f_gas.xS, rs_RR_f_gas.yS, '.-', c = 'y')
-#             ax.fill_between(rs_BR_f_gas_up_ols.xS, rs_BR_f_gas_up_ols.yS, rs_BR_f_gas_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)            
-#             ax.fill_between(rs_BR_f_gas_Ha_up_ols.xS, rs_BR_f_gas_Ha_up_ols.yS, rs_BR_f_gas_Ha_down_ols.yS, edgecolor = 'k', facecolor = 'r', alpha = 0.4)            
-#             ax.xaxis.set_major_locator(MaxNLocator(6))
-#             ax.yaxis.set_major_locator(MaxNLocator(6))
-#             ax.grid()
-#             ax.set_xlabel(xdict['label'])
-#             ax.set_ylim(0, 1)
-#             #ax.set_ylim(0,15e-3)
-#             if col == 0:
-#                 ax.set_ylabel(r'f${}_{gas}$')
-#             if col == (NCols - 1):
-#                 row += 1
-#                 col = 0
-#             else:
-#                 col += 1
-#         f.subplots_adjust(hspace = 0.4, wspace = 0.4)
-#         pdf.savefig(f)
-#         plt.close(f)
-#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        xaxis__r = phys__r[:]
+        xaxis__r.append(at_flux__Tr[iT])
+        labels = labels__r[:]
+        labels.append(r'$\langle \log\ t \rangle_L\ (R)$ [yr]')
+        
+        xaxis__z = phys__z[:]
+        xaxis__z.append(at_flux__Tz[iT])
+        lbls__z = labels__z[:]
+        lbls__z.append(r'$\langle \log\ t \rangle_L$ [yr]')
+        
+        ##########################
+        ######### PAGE 3 #########
+        ##########################
+        NRows = 3
+        NCols = 3
+        f = plt.figure()
+        f.suptitle(r'$\delta_{DGR}\ \times$ properties by radius')
+        #f, axArr = plt.subplots(NRows, NCols)
+        #f.set_size_inches((NCols * 3, NRows * 1.5))
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        row, col = 0, 0
+        for i, x in enumerate(xaxis__r):
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            sc_kwargs['s'] = 10
+            sc_kwargs['alpha'] = 0.9
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            xm, ym = C.ma_mask_xyz(x = x, y = BR_DGR_ols__r, mask = ~maskRadiusOk__r)
+            xm, yup = C.ma_mask_xyz(x = x, y = BR_DGR_up_ols__r, mask = ~maskRadiusOk__r)
+            xm, ydown = C.ma_mask_xyz(x = x, y = BR_DGR_down_ols__r, mask = ~maskRadiusOk__r)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'b', linestyle='None', fmt='.')
+            #ax.fill_between(xm, yup, ydown, edgecolor = 'k', facecolor = 'b', alpha = 0.4)            
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_DGR__r, mask = ~maskRadiusOk__r)
+            ax.scatter(xm, ym, c = 'g', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_DGR_Ha__r, mask = ~maskRadiusOk__r)
+            ax.scatter(xm, ym, c = 'black', **sc_kwargs)
+            ax.xaxis.set_major_locator(MaxNLocator(6))
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            ax.set_xlabel(labels[i])
+            ax.set_ylim(0, 0.025)
+            if col == 0:
+                ax.set_ylabel(r'$\delta_{DGR}$')
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)
+        
+        ##########################
+        ######### PAGE 4 #########
+        ##########################
+        NRows = 3
+        NCols = 3
+        f = plt.figure()
+        f.suptitle(r'$\delta_{DGR}\ \times$ properties by zones')
+        #f, axArr = plt.subplots(NRows, NCols)
+        #f.set_size_inches((NCols * 3, NRows * 1.5))
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        row, col = 0, 0
+        N = len(xaxis__z)
+        for i, x in enumerate(xaxis__z):
+            if i < N - 3:
+                x = np.ma.log10(x)
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            sc_kwargs['s'] = 5
+            sc_kwargs['alpha'] = 0.4
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            xm, ym = C.ma_mask_xyz(x = x, y = BR_DGR_ols__z, mask = ~maskRadiusOk__z)
+            xm, yup = C.ma_mask_xyz(x = x, y = BR_DGR_up_ols__z, mask = ~maskRadiusOk__z)
+            xm, ydown = C.ma_mask_xyz(x = x, y = BR_DGR_down_ols__z, mask = ~maskRadiusOk__z)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'b', linestyle='None', fmt='.')
+            #ax.fill_between(xm, yup, ydown, edgecolor = 'k', facecolor = 'b', alpha = 0.4)            
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_DGR__z, mask = ~maskRadiusOk__z)
+            ax.scatter(xm, ym, c = 'g', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_DGR_Ha__z, mask = ~maskRadiusOk__z)
+            ax.scatter(xm, ym, c = 'black', **sc_kwargs)
+            ax.xaxis.set_major_locator(MaxNLocator(6))
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            ax.set_xlabel(labels[i])
+            ax.set_ylim(0, 0.025)
+            if col == 0:
+                ax.set_ylabel(r'$\delta_{DGR}$')
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)       
+ 
+        ##########################
+        ######### PAGE 5 #########
+        ##########################
+        NRows = 3
+        NCols = 3
+        f = plt.figure()
+        f.suptitle(r'$\delta_{DGR}\ \times$ properties by zones with runstats')
+        #f, axArr = plt.subplots(NRows, NCols)
+        #f.set_size_inches((NCols * 3, NRows * 1.5))
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        row, col = 0, 0
+        N = len(xaxis__z)
+        for i, x in enumerate(xaxis__z):
+            if i < N - 3:
+                x = np.ma.log10(x)
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            sc_kwargs['s'] = 5
+            sc_kwargs['alpha'] = 0.3
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            xm, ym = C.ma_mask_xyz(x = x, y = BR_DGR_ols__z, mask = ~maskRadiusOk__z)
+            rs_BR_DGR_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_BR_DGR_ols.xS, rs_BR_DGR_ols.yS, '.-', c = 'b')
+            ax.scatter(rs_BR_DGR_ols.x, rs_BR_DGR_ols.y, c = 'b', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_DGR__z, mask = ~maskRadiusOk__z)
+            rs_SK_DGR = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_SK_DGR.xS, rs_SK_DGR.yS, '.-', c = 'g')
+            ax.scatter(rs_SK_DGR.x, rs_SK_DGR.y, c = 'g', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_DGR_Ha__z, mask = ~maskRadiusOk__z)
+            rs_SK_DGR_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_SK_DGR_Ha.xS, rs_SK_DGR_Ha.yS, '.-', c = 'k')
+            ax.scatter(rs_SK_DGR_Ha.x, rs_SK_DGR_Ha.y, c = 'k', **sc_kwargs)
+            ax.xaxis.set_major_locator(MaxNLocator(6))
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            ax.set_xlabel(labels[i])
+            ax.set_ylim(0, 0.025)
+            if col == 0:
+                ax.set_ylabel(r'$\delta_{DGR}$')
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)       
+
+        ##########################
+        ######### PAGE 6 #########
+        ##########################
+        NRows = 3
+        NCols = 3
+        f = plt.figure()
+        f.suptitle(r'$\log\ \Sigma_{gas}\ \times$ properties by radius')
+        #f, axArr = plt.subplots(NRows, NCols)
+        #f.set_size_inches((NCols * 3, NRows * 1.5))
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        row, col = 0, 0
+        for i, x in enumerate(xaxis__r):
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            sc_kwargs['s'] = 10
+            sc_kwargs['alpha'] = 0.9
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            xm, ym = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_ols__r), mask = ~maskRadiusOk__r)
+            xm, yup = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_up_ols__r), mask = ~maskRadiusOk__r)
+            xm, ydown = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_down_ols__r), mask = ~maskRadiusOk__r)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'b', linestyle='None', fmt='.')
+            xm, ym = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_ols__r), mask = ~maskRadiusOk__r)
+            xm, yup = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_up_ols__r), mask = ~maskRadiusOk__r)
+            xm, ydown = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_down_ols__r), mask = ~maskRadiusOk__r)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'r', linestyle='None', fmt='.')
+            xm, ym = C.ma_mask_xyz(x = x, y = np.log10(SK_SigmaGas__r), mask = ~maskRadiusOk__r)
+            ax.scatter(xm, ym, c = 'g', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = np.log10(SK_SigmaGas_Ha__r), mask = ~maskRadiusOk__r)
+            ax.scatter(xm, ym, c = 'black', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = np.log10(RR_SigmaGas__r), mask = ~maskRadiusOk__r)
+            ax.scatter(xm, ym, c = 'y', **sc_kwargs)
+
+            ax.xaxis.set_major_locator(MaxNLocator(6))
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            ax.set_xlabel(labels[i])
+            ax.set_ylim(0.4, 2)
+            #ax.set_ylim(0,15e-3)
+            if col == 0:
+                ax.set_ylabel(r'$\log\ \Sigma_{gas}$ [M${}_\odot$ pc${}^{-2}$]')
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)
+
+        ##########################
+        ######### PAGE 7 #########
+        ##########################
+        NRows = 3
+        NCols = 3
+        f = plt.figure()
+        f.suptitle(r'$\log\ \Sigma_{gas}\ \times$ properties by zones')
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        row, col = 0, 0
+        N = len(xaxis__z)
+        for i, x in enumerate(xaxis__z):
+            if i < N - 3:
+                x = np.ma.log10(x)
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            sc_kwargs['s'] = 5
+            sc_kwargs['alpha'] = 0.4
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(BR_SigmaGas_ols__z), mask = ~maskRadiusOk__z)
+            xm, yup = C.ma_mask_xyz(x = x, y = np.ma.log10(BR_SigmaGas_up_ols__z), mask = ~maskRadiusOk__z)
+            xm, ydown = C.ma_mask_xyz(x = x, y = np.ma.log10(BR_SigmaGas_down_ols__z), mask = ~maskRadiusOk__z)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'b', linestyle='None', fmt='.')
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(BR_SigmaGas_Ha_ols__z), mask = ~maskRadiusOk__z)
+            xm, yup = C.ma_mask_xyz(x = x, y = np.ma.log10(BR_SigmaGas_Ha_up_ols__z), mask = ~maskRadiusOk__z)
+            xm, ydown = C.ma_mask_xyz(x = x, y = np.ma.log10(BR_SigmaGas_Ha_down_ols__z), mask = ~maskRadiusOk__z)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'r', linestyle='None', fmt='.')
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(SK_SigmaGas__z), mask = ~maskRadiusOk__z)
+            ax.scatter(xm, ym, c = 'g', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(SK_SigmaGas_Ha__z), mask = ~maskRadiusOk__z)
+            ax.scatter(xm, ym, c = 'black', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(RR_SigmaGas__z), mask = ~maskRadiusOk__z)
+            ax.scatter(xm, ym, c = 'y', **sc_kwargs)
+            ax.xaxis.set_major_locator(MaxNLocator(6))
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            ax.set_xlabel(labels[i])
+            ax.set_ylim(0.4, 2)
+            if col == 0:
+                ax.set_ylabel(r'$\log\ \Sigma_{gas}$ [M${}_\odot$ pc${}^{-2}$]')
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)       
+ 
+        ##########################
+        ######### PAGE 8 #########
+        ##########################
+        NRows = 3
+        NCols = 3
+        f = plt.figure()
+        f.suptitle(r'$\log\ \Sigma_{gas}\ \times$ properties by zones with runstats')
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        row, col = 0, 0
+        N = len(xaxis__z)
+        for i, x in enumerate(xaxis__z):
+            if i < N - 3:
+                x = np.ma.log10(x)
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            sc_kwargs['s'] = 5
+            sc_kwargs['alpha'] = 0.3
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(BR_SigmaGas_ols__z), mask = ~maskRadiusOk__z)
+            rs_BR_SigmaGas_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_BR_SigmaGas_ols.xS, rs_BR_SigmaGas_ols.yS, '.-', c = 'b')
+            ax.scatter(rs_BR_SigmaGas_ols.x, rs_BR_SigmaGas_ols.y, c = 'b', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(BR_SigmaGas_Ha_ols__z), mask = ~maskRadiusOk__z)
+            rs_BR_SigmaGas_Ha_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_BR_SigmaGas_Ha_ols.xS, rs_BR_SigmaGas_Ha_ols.yS, '.-', c = 'r')
+            ax.scatter(rs_BR_SigmaGas_Ha_ols.x, rs_BR_SigmaGas_Ha_ols.y, c = 'r', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(SK_SigmaGas__z), mask = ~maskRadiusOk__z)
+            rs_SK_SigmaGas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_SK_SigmaGas.xS, rs_SK_SigmaGas.yS, '.-', c = 'g')
+            ax.scatter(rs_SK_SigmaGas.x, rs_SK_SigmaGas.y, c = 'g', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(SK_SigmaGas_Ha__z), mask = ~maskRadiusOk__z)
+            rs_SK_SigmaGas_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_SK_SigmaGas_Ha.xS, rs_SK_SigmaGas_Ha.yS, '.-', c = 'k')
+            ax.scatter(rs_SK_SigmaGas_Ha.x, rs_SK_SigmaGas_Ha.y, c = 'k', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = np.ma.log10(RR_SigmaGas__z), mask = ~maskRadiusOk__z)
+            rs_RR_SigmaGas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_RR_SigmaGas.xS, rs_RR_SigmaGas.yS, '.-', c = 'y')
+            ax.scatter(rs_RR_SigmaGas.x, rs_RR_SigmaGas.y, c = 'y', **sc_kwargs)
+            ax.xaxis.set_major_locator(MaxNLocator(6))
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            ax.set_xlabel(labels[i])
+            ax.set_ylim(0.4, 2)
+            if col == 0:
+                ax.set_ylabel(r'$\log\ \Sigma_{gas}$ [M${}_\odot$ pc${}^{-2}$]')
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)    
+
+        #########################
+        ######## PAGE 9 #########
+        #########################
+        NRows = 3
+        NCols = 3
+        f = plt.figure()
+        f.suptitle(r'$f_{gas}\ \times$ properties by radius')
+        #f, axArr = plt.subplots(NRows, NCols)
+        #f.set_size_inches((NCols * 3, NRows * 1.5))
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        row, col = 0, 0
+        for i, x in enumerate(xaxis__r):
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            sc_kwargs['s'] = 10
+            sc_kwargs['alpha'] = 0.9
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            xm, ym = C.ma_mask_xyz(x = x, y = BR_f_gas_ols__r, mask = ~maskRadiusOk__r)
+            xm, yup = C.ma_mask_xyz(x = x, y = BR_f_gas_up_ols__r, mask = ~maskRadiusOk__r)
+            xm, ydown = C.ma_mask_xyz(x = x, y = BR_f_gas_down_ols__r, mask = ~maskRadiusOk__r)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'b', linestyle='None', fmt='.')
+            xm, ym = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_ols__r, mask = ~maskRadiusOk__r)
+            xm, yup = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_up_ols__r, mask = ~maskRadiusOk__r)
+            xm, ydown = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_down_ols__r, mask = ~maskRadiusOk__r)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'r', linestyle='None', fmt='.')
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_f_gas__r, mask = ~maskRadiusOk__r)
+            ax.scatter(xm, ym, c = 'g', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_f_gas_Ha__r, mask = ~maskRadiusOk__r)
+            ax.scatter(xm, ym, c = 'black', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = RR_f_gas__r, mask = ~maskRadiusOk__r)
+            ax.scatter(xm, ym, c = 'y', **sc_kwargs)
+            ax.xaxis.set_major_locator(MaxNLocator(6))
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            ax.set_xlabel(labels[i])
+            ax.set_ylim(0, 0.4)
+            #ax.set_ylim(0,15e-3)
+            if col == 0:
+                ax.set_ylabel(r'f${}_{gas}$')
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)
+
+        ##########################
+        ######### PAGE 10 ########
+        ##########################
+        NRows = 3
+        NCols = 3
+        f = plt.figure()
+        f.suptitle(r'$f_{gas}\ \times$ properties by zones')
+        #f, axArr = plt.subplots(NRows, NCols)
+        #f.set_size_inches((NCols * 3, NRows * 1.5))
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        row, col = 0, 0
+        N = len(xaxis__z)
+        for i, x in enumerate(xaxis__z):
+            if i < N - 3:
+                x = np.ma.log10(x)
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            sc_kwargs['s'] = 5
+            sc_kwargs['alpha'] = 0.4
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            xm, ym = C.ma_mask_xyz(x = x, y = BR_f_gas_ols__z, mask = ~maskRadiusOk__z)
+            xm, yup = C.ma_mask_xyz(x = x, y = BR_f_gas_up_ols__z, mask = ~maskRadiusOk__z)
+            xm, ydown = C.ma_mask_xyz(x = x, y = BR_f_gas_down_ols__z, mask = ~maskRadiusOk__z)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'b', linestyle='None', fmt='.')
+            xm, ym = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_ols__z, mask = ~maskRadiusOk__z)
+            xm, yup = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_up_ols__z, mask = ~maskRadiusOk__z)
+            xm, ydown = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_down_ols__z, mask = ~maskRadiusOk__z)
+            ax.errorbar(xm, ym, yerr = [ ym - ydown, yup - ym ], c = 'r', linestyle='None', fmt='.')
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_f_gas__z, mask = ~maskRadiusOk__z)
+            ax.scatter(xm, ym, c = 'g', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_f_gas_Ha__z, mask = ~maskRadiusOk__z)
+            ax.scatter(xm, ym, c = 'black', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = RR_f_gas__z, mask = ~maskRadiusOk__z)
+            ax.scatter(xm, ym, c = 'y', **sc_kwargs)
+            ax.xaxis.set_major_locator(MaxNLocator(6))
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            ax.set_xlabel(labels[i])
+            ax.set_ylim(0, 0.4)
+            if col == 0:
+                ax.set_ylabel(r'$f_{gas}$')
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)       
+ 
+        ##########################
+        ######### PAGE 11 ########
+        ##########################
+        NRows = 3
+        NCols = 3
+        f = plt.figure()
+        f.suptitle(r'$f_{gas}\ \times$ properties by zones with runstats')
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        row, col = 0, 0
+        N = len(xaxis__z)
+        for i, x in enumerate(xaxis__z):
+            if i < N - 3:
+                x = np.ma.log10(x)
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            sc_kwargs['s'] = 5
+            sc_kwargs['alpha'] = 0.3
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            xm, ym = C.ma_mask_xyz(x = x, y = BR_f_gas_ols__z, mask = ~maskRadiusOk__z)
+            rs_BR_f_gas_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_BR_f_gas_ols.xS, rs_BR_f_gas_ols.yS, '.-', c = 'b')
+            ax.scatter(rs_BR_f_gas_ols.x, rs_BR_f_gas_ols.y, c = 'b', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_ols__z, mask = ~maskRadiusOk__z)
+            rs_BR_f_gas_Ha_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_BR_f_gas_Ha_ols.xS, rs_BR_f_gas_Ha_ols.yS, '.-', c = 'r')
+            ax.scatter(rs_BR_f_gas_Ha_ols.x, rs_BR_f_gas_Ha_ols.y, c = 'r', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_f_gas__z, mask = ~maskRadiusOk__z)
+            rs_SK_f_gas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_SK_f_gas.xS, rs_SK_f_gas.yS, '.-', c = 'g')
+            ax.scatter(rs_SK_f_gas.x, rs_SK_f_gas.y, c = 'g', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = SK_f_gas_Ha__z, mask = ~maskRadiusOk__z)
+            rs_SK_f_gas_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_SK_f_gas_Ha.xS, rs_SK_f_gas_Ha.yS, '.-', c = 'k')
+            ax.scatter(rs_SK_f_gas_Ha.x, rs_SK_f_gas_Ha.y, c = 'k', **sc_kwargs)
+            xm, ym = C.ma_mask_xyz(x = x, y = RR_f_gas__z, mask = ~maskRadiusOk__z)
+            rs_RR_f_gas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            ax.plot(rs_RR_f_gas.xS, rs_RR_f_gas.yS, '.-', c = 'y')
+            ax.scatter(rs_RR_f_gas.x, rs_RR_f_gas.y, c = 'y', **sc_kwargs)
+            ax.xaxis.set_major_locator(MaxNLocator(6))
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            ax.set_xlabel(labels[i])
+            ax.set_ylim(0, 0.4)
+            if col == 0:
+                ax.set_ylabel(r'$f_{gas}$')
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)    
+

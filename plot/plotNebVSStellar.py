@@ -39,82 +39,84 @@ if __name__ == '__main__':
     tSF = H.tSF__T[iT]
     tZ = H.tZ__U[iU]
     
-    f = plt.figure()
-    f.set_size_inches(10, 8)
-    f.set_dpi(100)
-    xk, xv = H.get_plot_dict(iT, iU, key = 'alogZmass')
-    yk, yv = H.get_plot_dict(iT, iU, key = 'logO3N2M13')
-    fnamepref = '%s_%s' % (xk, yk)
-    if mask_radius is True:
-        xv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
-        xv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
-        suptitle = r'NGals:%d  R > %.1fHLR  $x_Y$(min):%.0f%% ' % (H.N_gals, RNuc, H.xOkMin * 100.)
-        filename = '%s_maskradius_%.2fGyrs.png' % (fnamepref, tZ / 1e9)
-    else:
-        suptitle = r'NGals:%d  $x_Y$(min):%.0f%% ' % (H.N_gals, H.xOkMin * 100.)
-        filename = '%s_%.2fGyrs.png' % (fnamepref, tZ / 1e9)
-    plot_zbins(
-        f = f, 
-        ax = f.gca(),
-        debug = True,
-        x = xv['v'],
-        y = yv['v'],
-        xlabel = xv['label'],
-        ylabel = yv['label'],
-        xlim = xv['lim'],
-        ylim = yv['lim'],
-        running_stats = True,
-        rs_gaussian_smooth = True,
-        rs_percentiles = True,
-        rs_gs_fwhm = 8,
-        rs_frac_box = 80,
-        kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-        kwargs_scatter = dict(c = 'b', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.6, label = ''),
-        kwargs_legend = dict(loc = 'best'),
-    )
-    f.suptitle(suptitle, fontsize = 12)
-    f.savefig(filename)
-
-    f = plt.figure()
-    f.set_size_inches(10, 8)
-    f.set_dpi(100)
-    xk, xv = H.get_plot_dict(iT, iU, key = 'alogZmassR')
-    yk, yv = H.get_plot_dict(iT, iU, key = 'logO3N2M13R')
-    fnamepref = '%s_%s' % (xk, yk)
-    if mask_radius is True:
-        xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
-        xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
-        suptitle = r'NGals:%d  R > %.1fHLR  $x_Y$(min):%.0f%% ' % (H.N_gals, RNuc, H.xOkMin * 100.)
-        filename = '%s_maskradius_%.2fGyrs.png' % (fnamepref, tZ / 1e9)
-    else:
-        suptitle = r'NGals:%d  $x_Y$(min):%.0f%% ' % (H.N_gals, H.xOkMin * 100.)
-        filename = '%s_%.2fGyrs.png' % (fnamepref, tZ / 1e9)
-    plot_zbins(
-        f = f, 
-        ax = f.gca(),
-        debug = True,
-        x = xv['v'],
-        y = yv['v'],
-        xlabel = xv['label'],
-        ylabel = yv['label'],
-        xlim = xv['lim'],
-        ylim = yv['lim'],
-        z = H.Rtoplot(xv['v'].shape).flatten(),
-        zlabel = r'R (HLR)',
-        zmask = None,
-        zlim = [RNuc, 2],
-        running_stats = True,
-        rs_gaussian_smooth = True,
-        rs_percentiles = True,
-        rs_gs_fwhm = 8,
-        rs_frac_box = 80,
-        kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.6, label = ''),
-        kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
-        kwargs_legend = dict(loc = 'best'),
-        cb = True, 
-    )
-    f.suptitle(suptitle, fontsize = 12)
-    f.savefig(filename)
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+#     f = plt.figure()
+#     f.set_size_inches(10, 8)
+#     f.set_dpi(100)
+#     xk, xv = H.get_plot_dict(iT, iU, key = 'alogZmass')
+#     yk, yv = H.get_plot_dict(iT, iU, key = 'logO3N2M13')
+#     fnamepref = '%s_%s' % (xk, yk)
+#     if mask_radius is True:
+#         xv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
+#         xv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
+#         suptitle = r'NGals:%d  R > %.1fHLR  $x_Y$(min):%.0f%% ' % (H.N_gals, RNuc, H.xOkMin * 100.)
+#         filename = '%s_maskradius_%.2fGyrs.png' % (fnamepref, tZ / 1e9)
+#     else:
+#         suptitle = r'NGals:%d  $x_Y$(min):%.0f%% ' % (H.N_gals, H.xOkMin * 100.)
+#         filename = '%s_%.2fGyrs.png' % (fnamepref, tZ / 1e9)
+#     plot_zbins(
+#         f = f, 
+#         ax = f.gca(),
+#         debug = True,
+#         x = xv['v'],
+#         y = yv['v'],
+#         xlabel = xv['label'],
+#         ylabel = yv['label'],
+#         xlim = xv['lim'],
+#         ylim = yv['lim'],
+#         running_stats = True,
+#         rs_gaussian_smooth = True,
+#         rs_percentiles = True,
+#         rs_gs_fwhm = 8,
+#         rs_frac_box = 80,
+#         kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+#         kwargs_scatter = dict(c = 'b', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.6, label = ''),
+#         kwargs_legend = dict(loc = 'best'),
+#     )
+#     f.suptitle(suptitle, fontsize = 12)
+#     f.savefig(filename)
+# 
+#     f = plt.figure()
+#     f.set_size_inches(10, 8)
+#     f.set_dpi(100)
+#     xk, xv = H.get_plot_dict(iT, iU, key = 'alogZmassR')
+#     yk, yv = H.get_plot_dict(iT, iU, key = 'logO3N2M13R')
+#     fnamepref = '%s_%s' % (xk, yk)
+#     if mask_radius is True:
+#         xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
+#         xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
+#         suptitle = r'NGals:%d  R > %.1fHLR  $x_Y$(min):%.0f%% ' % (H.N_gals, RNuc, H.xOkMin * 100.)
+#         filename = '%s_maskradius_%.2fGyrs.png' % (fnamepref, tZ / 1e9)
+#     else:
+#         suptitle = r'NGals:%d  $x_Y$(min):%.0f%% ' % (H.N_gals, H.xOkMin * 100.)
+#         filename = '%s_%.2fGyrs.png' % (fnamepref, tZ / 1e9)
+#     plot_zbins(
+#         f = f, 
+#         ax = f.gca(),
+#         debug = True,
+#         x = xv['v'],
+#         y = yv['v'],
+#         xlabel = xv['label'],
+#         ylabel = yv['label'],
+#         xlim = xv['lim'],
+#         ylim = yv['lim'],
+#         z = H.Rtoplot(xv['v'].shape).flatten(),
+#         zlabel = r'R (HLR)',
+#         zmask = None,
+#         zlim = [RNuc, 2],
+#         running_stats = True,
+#         rs_gaussian_smooth = True,
+#         rs_percentiles = True,
+#         rs_gs_fwhm = 8,
+#         rs_frac_box = 80,
+#         kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.6, label = ''),
+#         kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+#         kwargs_legend = dict(loc = 'best'),
+#         cb = True, 
+#     )
+#     f.suptitle(suptitle, fontsize = 12)
+#     f.savefig(filename)
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
     f, axArr = plt.subplots(1, 2)
     f.set_size_inches(15, 10)
@@ -155,6 +157,7 @@ if __name__ == '__main__':
         rs_gs_fwhm = 8,
         kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
         legend = False,
+        cb = False,
     )
     ax_kw = kw['ax']
     ax_kw.plot(ax_kw.get_xlim(), (1/0.44) * np.asarray(ax_kw.get_xlim()), c = 'b', ls = '-.', lw = 3, label = r'$\tau_V^\star\ =\ 0.44\ \tau_V^{neb}$')
@@ -164,8 +167,8 @@ if __name__ == '__main__':
     yk, yv = H.get_plot_dict(iT, iU, key = 'tauVRatio')
     fnamepref = '%s_%s' % (xk, yk)
     if mask_radius is True:
-        xv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
-        xv['v'][~(H.zone_dist_HLR__g > RNuc)] = np.ma.masked
+        xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
+        xv['v'][~(H.RbinCenter__r > RNuc)] = np.ma.masked
     plot_zbins(
         f = f, 
         ax = axArr[1],
@@ -237,6 +240,7 @@ if __name__ == '__main__':
         rs_gs_fwhm = 8,
         kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
         legend = False,
+        cb = False,
     )
     ax_kw = kw['ax']
     ax_kw.plot(ax_kw.get_xlim(), (1/0.44) * np.asarray(ax_kw.get_xlim()), c = 'b', ls = '-.', lw = 3, label = r'$\tau_V^\star\ =\ 0.44\ \tau_V^{neb}$')

@@ -35,6 +35,7 @@ def parser_args():
         'output' : None,
         'itSF' : 11,
         'maskradius' : None,
+        'slice_gals' : None, 
     }
     
     parser.add_argument('--debug', '-D',
@@ -44,6 +45,10 @@ def parser_args():
                         action = 'store_true',
                         default = default['debug'])
     parser.add_argument('--hdf5', '-H',
+                        metavar = 'FILE',
+                        type = str,
+                        default = default['hdf5'])
+    parser.add_argument('--slice_gals', '-S',
                         metavar = 'FILE',
                         type = str,
                         default = default['hdf5'])
@@ -75,7 +80,7 @@ if __name__ == '__main__':
     iU = -1
 
     minR = 0
-        
+    
     if args.maskradius is None:
         maskRadiusOk__g = np.ones_like(H.zone_dist_HLR__g, dtype = np.bool)
         maskRadiusOk__rg = np.ones((H.NRbins, H.N_gals_all), dtype = np.bool)
@@ -83,6 +88,14 @@ if __name__ == '__main__':
         minR = args.maskradius
         maskRadiusOk__g = (H.zone_dist_HLR__g >= args.maskradius) & (H.zone_dist_HLR__g <= H.Rbin__r[-1]) 
         maskRadiusOk__rg = (np.ones((H.NRbins, H.N_gals_all), dtype = np.bool).T * (H.RbinCenter__r >= args.maskradius)).T
+        
+    if args.slice_gals is None:
+        N_gals = H.N_gals
+        gals_slice__g = np.ones_like(H.zone_dist_HLR__g, dtype = np.bool)
+        gals_slice__rg = np.ones((H.NRbins, H.N_gals_all), dtype = np.bool)
+    else:
+        gals_slice__g, N_gals = H.get_mask_zones_list(args.slice_gals, return_ngals = True)
+        gals_slice__rg, N_gals = H.get_mask_radius_list(args.slice_gals, return_ngals = True)
     
     dustdim = 0.2 # md / rhod
     
@@ -278,20 +291,20 @@ if __name__ == '__main__':
          
         ax = plt.subplot2grid(grid_shape, loc = (0, 0))
         ax.set_axis_on()
-        
+        tmp_mask = ~(maskRadiusOk__rg & gals_slice__rg)
         rs_kwargs = default_rs_kwargs.copy()
         sc_kwargs = default_sc_kwargs.copy()
         ax.axhline(y = RR_DGR, c = 'y')
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_DGR_ols__rg, mask = ~maskRadiusOk__rg) 
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_DGR_ols__rg, mask = tmp_mask)
         rs_BR_DGR_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        m_aux = ~maskRadiusOk__rg | BR_DGR_up_ols__rg.mask | BR_DGR_up_ols__rg.mask
+        m_aux = tmp_mask| BR_DGR_up_ols__rg.mask | BR_DGR_up_ols__rg.mask
         xm, yup = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_DGR_up_ols__rg, mask = m_aux)
         rs_BR_DGR_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
         xm, ydown = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_DGR_down_ols__rg, mask = m_aux)
         rs_BR_DGR_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = SK_DGR__rg, mask = ~maskRadiusOk__rg) 
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = SK_DGR__rg, mask = tmp_mask) 
         rs_SK_DGR = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = SK_DGR_Ha__rg, mask = ~maskRadiusOk__rg) 
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = SK_DGR_Ha__rg, mask = tmp_mask) 
         rs_SK_DGR_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
         if args.scatter is True:
             ax.scatter(rs_BR_DGR_ols.x, rs_BR_DGR_ols.y, c = 'b', **sc_kwargs)
@@ -300,7 +313,6 @@ if __name__ == '__main__':
         ax.plot(rs_BR_DGR_ols.xS, rs_BR_DGR_ols.yS, '.-', c = 'b')
         ax.plot(rs_SK_DGR.xS, rs_SK_DGR.yS, '.-', c = 'g')
         ax.plot(rs_SK_DGR_Ha.xS, rs_SK_DGR_Ha.yS, '.-', c = 'black')
-        print rs_BR_DGR_up_ols.xS.shape, rs_BR_DGR_up_ols.yS.shape, rs_BR_DGR_down_ols.xS.shape
         ax.fill_between(rs_BR_DGR_up_ols.xS, rs_BR_DGR_up_ols.yS, rs_BR_DGR_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
         ax.set_xlim(minR,  H.RbinFin)
         #ax.set_ylim(0, .5)
@@ -314,16 +326,17 @@ if __name__ == '__main__':
         if args.debug is not True:
             ax = plt.subplot2grid(grid_shape, loc = (0, 1))
             ax.set_axis_on()
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_DGR_ols__g, mask = ~maskRadiusOk__g) 
+            tmp_mask = ~(maskRadiusOk__g & gals_slice__g)
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_DGR_ols__g, mask = tmp_mask) 
             rs_BR_DGR_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            m_aux = ~maskRadiusOk__g | BR_DGR_up_ols__g.mask | BR_DGR_up_ols__g.mask 
+            m_aux = tmp_mask | BR_DGR_up_ols__g.mask | BR_DGR_up_ols__g.mask 
             xm, yup = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_DGR_up_ols__g, mask = m_aux)
             rs_BR_DGR_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
             xm, ydown = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_DGR_down_ols__g, mask = m_aux) 
             rs_BR_DGR_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = SK_DGR__g, mask = ~maskRadiusOk__g) 
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = SK_DGR__g, mask = tmp_mask) 
             rs_SK_DGR = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = SK_DGR_Ha__g, mask = ~maskRadiusOk__g) 
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = SK_DGR_Ha__g, mask = tmp_mask) 
             rs_SK_DGR_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
             if args.scatter is True:
                 ax.scatter(rs_BR_DGR_ols.x, rs_BR_DGR_ols.y, c = 'b', **sc_kwargs)
@@ -344,23 +357,24 @@ if __name__ == '__main__':
          
         ax = plt.subplot2grid(grid_shape, loc = (1, 0))
         ax.set_axis_on()
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_ols__rg), mask = ~maskRadiusOk__rg) 
+        tmp_mask = ~(maskRadiusOk__rg & gals_slice__rg)
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_ols__rg), mask = tmp_mask) 
         rs_BR_SigmaGas_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        xm, yup = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_up_ols__rg), mask = ~maskRadiusOk__rg) 
+        xm, yup = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_up_ols__rg), mask = tmp_mask) 
         rs_BR_SigmaGas_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
         xm, ydown = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_down_ols__rg), mask = yup.mask) 
         rs_BR_SigmaGas_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_Ha_ols__rg), mask = ~maskRadiusOk__rg)
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_Ha_ols__rg), mask = tmp_mask)
         rs_BR_SigmaGas_Ha_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        xm, yup = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_Ha_up_ols__rg), mask = ~maskRadiusOk__rg) 
+        xm, yup = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_Ha_up_ols__rg), mask = tmp_mask) 
         rs_BR_SigmaGas_Ha_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
         xm, ydown = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(BR_SigmaGas_Ha_down_ols__rg), mask = yup.mask) 
         rs_BR_SigmaGas_Ha_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(SK_SigmaGas__rg), mask = ~maskRadiusOk__rg)
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(SK_SigmaGas__rg), mask = tmp_mask)
         rs_SK_SigmaGas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(SK_SigmaGas_Ha__rg), mask = ~maskRadiusOk__rg)
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(SK_SigmaGas_Ha__rg), mask = tmp_mask)
         rs_SK_SigmaGas_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(RR_SigmaGas__rg), mask = ~maskRadiusOk__rg) 
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = np.ma.log10(RR_SigmaGas__rg), mask = tmp_mask) 
         rs_RR_SigmaGas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
         if args.scatter is True:
             ax.scatter(rs_BR_SigmaGas_ols.x, rs_BR_SigmaGas_ols.y, c = 'b', **sc_kwargs)
@@ -386,23 +400,24 @@ if __name__ == '__main__':
         if args.debug is not True:
             ax = plt.subplot2grid(grid_shape, loc = (1, 1))
             ax.set_axis_on()
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_ols__g), mask = ~maskRadiusOk__g) 
+            tmp_mask = ~(maskRadiusOk__g & gals_slice__g)
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_ols__g), mask = tmp_mask) 
             rs_BR_SigmaGas_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            xm, yup = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_up_ols__g), mask = ~maskRadiusOk__g) 
+            xm, yup = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_up_ols__g), mask = tmp_mask) 
             rs_BR_SigmaGas_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
             xm, ydown = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_down_ols__g), mask = yup.mask) 
             rs_BR_SigmaGas_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_Ha_ols__g), mask = ~maskRadiusOk__g)
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_Ha_ols__g), mask = tmp_mask)
             rs_BR_SigmaGas_Ha_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            xm, yup = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_Ha_up_ols__g), mask = ~maskRadiusOk__g) 
+            xm, yup = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_Ha_up_ols__g), mask = tmp_mask) 
             rs_BR_SigmaGas_Ha_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
             xm, ydown = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(BR_SigmaGas_Ha_down_ols__g), mask = yup.mask) 
             rs_BR_SigmaGas_Ha_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(SK_SigmaGas__g), mask = ~maskRadiusOk__g)
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(SK_SigmaGas__g), mask = tmp_mask)
             rs_SK_SigmaGas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(SK_SigmaGas_Ha__g), mask = ~maskRadiusOk__g)
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(SK_SigmaGas_Ha__g), mask = tmp_mask)
             rs_SK_SigmaGas_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(RR_SigmaGas__g), mask = ~maskRadiusOk__g) 
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = np.ma.log10(RR_SigmaGas__g), mask = tmp_mask) 
             rs_RR_SigmaGas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
             if args.scatter is True:
                 ax.scatter(rs_BR_SigmaGas_ols.x, rs_BR_SigmaGas_ols.y, c = 'b', **sc_kwargs)
@@ -427,23 +442,24 @@ if __name__ == '__main__':
          
         ax = plt.subplot2grid(grid_shape, loc = (2, 0))
         ax.set_axis_on()
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_ols__rg, mask = ~maskRadiusOk__rg) 
+        tmp_mask = ~(maskRadiusOk__rg & gals_slice__rg)
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_ols__rg, mask = tmp_mask) 
         rs_BR_f_gas_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        xm, yup = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_up_ols__rg, mask = ~maskRadiusOk__rg) 
+        xm, yup = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_up_ols__rg, mask = tmp_mask) 
         rs_BR_f_gas_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
         xm, ydown = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_down_ols__rg, mask = yup.mask) 
         rs_BR_f_gas_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_Ha_ols__rg, mask = ~maskRadiusOk__rg)
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_Ha_ols__rg, mask = tmp_mask)
         rs_BR_f_gas_Ha_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        xm, yup = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_Ha_up_ols__rg, mask = ~maskRadiusOk__rg) 
+        xm, yup = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_Ha_up_ols__rg, mask = tmp_mask) 
         rs_BR_f_gas_Ha_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
         xm, ydown = C.ma_mask_xyz(x = H.Rtoplot(), y = BR_f_gas_Ha_down_ols__rg, mask = yup.mask) 
         rs_BR_f_gas_Ha_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = SK_f_gas__rg, mask = ~maskRadiusOk__rg)
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = SK_f_gas__rg, mask = tmp_mask)
         rs_SK_f_gas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = SK_f_gas_Ha__rg, mask = ~maskRadiusOk__rg)
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = SK_f_gas_Ha__rg, mask = tmp_mask)
         rs_SK_f_gas_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = RR_f_gas__rg, mask = ~maskRadiusOk__rg) 
+        xm, ym = C.ma_mask_xyz(x = H.Rtoplot(), y = RR_f_gas__rg, mask = tmp_mask) 
         rs_RR_f_gas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
         if args.scatter is True:
             ax.scatter(rs_BR_f_gas_ols.x, rs_BR_f_gas_ols.y, c = 'b', **sc_kwargs)
@@ -459,7 +475,7 @@ if __name__ == '__main__':
         ax.fill_between(rs_BR_f_gas_up_ols.xS, rs_BR_f_gas_up_ols.yS, rs_BR_f_gas_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
         ax.fill_between(rs_BR_f_gas_Ha_up_ols.xS, rs_BR_f_gas_Ha_up_ols.yS, rs_BR_f_gas_Ha_down_ols.yS, edgecolor = 'k', facecolor = 'r', alpha = 0.4)
         ax.set_xlim(minR,  H.RbinFin)
-        ax.set_ylim(0, .2)
+        ax.set_ylim(0, .4)
         ax.set_xlabel(r'R [HLR]')
         ax.set_ylabel(r'f${}_{gas}$')
         ax.yaxis.set_major_locator(MaxNLocator(6))
@@ -469,23 +485,24 @@ if __name__ == '__main__':
         if args.debug is not True:
             ax = plt.subplot2grid(grid_shape, loc = (2, 1))
             ax.set_axis_on()
+            tmp_mask = ~(maskRadiusOk__g & gals_slice__g)
             xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_f_gas_ols__g, mask = ~maskRadiusOk__g) 
             rs_BR_f_gas_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            xm, yup = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_f_gas_up_ols__g, mask = ~maskRadiusOk__g) 
+            xm, yup = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_f_gas_up_ols__g, mask = tmp_mask) 
             rs_BR_f_gas_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
             xm, ydown = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_f_gas_down_ols__g, mask = yup.mask) 
             rs_BR_f_gas_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_f_gas_Ha_ols__g, mask = ~maskRadiusOk__g)
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_f_gas_Ha_ols__g, mask = tmp_mask)
             rs_BR_f_gas_Ha_ols = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            xm, yup = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_f_gas_Ha_up_ols__g, mask = ~maskRadiusOk__g) 
+            xm, yup = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_f_gas_Ha_up_ols__g, mask = tmp_mask) 
             rs_BR_f_gas_Ha_up_ols = runstats(xm.compressed(), yup.compressed(), nBox = 20, **rs_kwargs)
             xm, ydown = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = BR_f_gas_Ha_down_ols__g, mask = yup.mask) 
             rs_BR_f_gas_Ha_down_ols = runstats(xm.compressed(), ydown.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = SK_f_gas__g, mask = ~maskRadiusOk__g)
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = SK_f_gas__g, mask = tmp_mask)
             rs_SK_f_gas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = SK_f_gas_Ha__g, mask = ~maskRadiusOk__g)
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = SK_f_gas_Ha__g, mask = tmp_mask)
             rs_SK_f_gas_Ha = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = RR_f_gas__g, mask = ~maskRadiusOk__g) 
+            xm, ym = C.ma_mask_xyz(x = H.zone_dist_HLR__g, y = RR_f_gas__g, mask = tmp_mask) 
             rs_RR_f_gas = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
             if args.scatter is True:
                 ax.scatter(rs_BR_f_gas_ols.x, rs_BR_f_gas_ols.y, c = 'b', **sc_kwargs)
@@ -501,7 +518,7 @@ if __name__ == '__main__':
             ax.fill_between(rs_BR_f_gas_up_ols.xS, rs_BR_f_gas_up_ols.yS, rs_BR_f_gas_down_ols.yS, edgecolor = 'k', facecolor = 'b', alpha = 0.4)
             ax.fill_between(rs_BR_f_gas_Ha_up_ols.xS, rs_BR_f_gas_Ha_up_ols.yS, rs_BR_f_gas_Ha_down_ols.yS, edgecolor = 'k', facecolor = 'r', alpha = 0.4)
             ax.set_xlim(minR,  H.Rbin__r[-1])
-            ax.set_ylim(0, .2)
+            ax.set_ylim(0, .4)
             ax.tick_params(axis = 'y', which = 'major', pad = 15)
             ax.set_xlabel(r'R [HLR]')
             ax.yaxis.set_major_locator(MaxNLocator(6))
@@ -509,7 +526,7 @@ if __name__ == '__main__':
          
         ax = plt.subplot2grid(grid_shape, loc = (0, NCols - 1), rowspan = NRows)
         ax.set_axis_off()
-        txt = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%' % (H.N_gals, (H.tSF__T[iT] / 1e6), H.xOkMin * 100.)
+        txt = r'NGals:%d  tSF:%.2f Myr  $x_Y$(min):%.0f%%' % (N_gals, (H.tSF__T[iT] / 1e6), H.xOkMin * 100.)
         kw_text = dict(pos_x = -0.2, pos_y = 0.65, fs = 11, va = 'bottom', ha = 'left', c = 'k')
         plot_text_ax(ax, txt, **kw_text)
         txt = r'$\tau_V^\star $(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
@@ -531,12 +548,55 @@ if __name__ == '__main__':
         NRows = 3
         NCols = 3
         f = plt.figure()
+        page_size_inches = (NCols * 3, NRows * 2.5)
+        f.set_size_inches(page_size_inches)
+        grid_shape = (NRows, NCols)
+        yaxis = [ 'alogSFRSDHakpcR', 'alogSFRSDkpcR', 'atfluxR', 'xYR', 'logO3N2M13R', 'alogZmassR', 'logMcorSDR' ]
+        row, col = 0, 0
+        for yk in yaxis:
+            rs_kwargs = default_rs_kwargs.copy()
+            sc_kwargs = default_sc_kwargs.copy()
+            ax = plt.subplot2grid(grid_shape, loc = (row, col))
+            _, ydict = H.get_plot_dict(iT, -1, yk)
+            x = H.Rtoplot()
+            y = ydict['v']
+            tmp_mask = ~(maskRadiusOk__rg & gals_slice__rg)
+            xm, ym = C.ma_mask_xyz(x = x, y = y, mask = tmp_mask)
+            #rs_kwargs['sigma'] = 1.2
+            rs_kwargs['overlap'] = 0.1
+            rs = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs)
+            #if args.scatter is True:
+            ax.scatter(rs.x, rs.y, marker = 'o', c = 'b', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
+            ax.plot(rs.xS, rs.yS, '.-', c = 'k')
+            ax.set_xlim(minR,  H.RbinFin)
+            ax.set_ylim(ydict['lim'])
+            ax.set_xlabel(r'R [HLR]')
+            ax.set_ylabel(ydict['label'])
+            ax.yaxis.set_major_locator(MaxNLocator(6))
+            ax.grid()
+            #plt.setp(ax.get_yticklabels(), visible = False)
+            if col == (NCols - 1):
+                row += 1
+                col = 0
+            else:
+                col += 1
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)
+        
+        ##########################
+        ######### PAGE 3 #########
+        ##########################
+        NRows = 2
+        NCols = 3
+        f = plt.figure()
         #f, axArr = plt.subplots(NRows, NCols)
         #f.set_size_inches((NCols * 3, NRows * 1.5))
         page_size_inches = (NCols * 3, NRows * 2.5)
         f.set_size_inches(page_size_inches)
         grid_shape = (NRows, NCols)
-        xaxis = [ 'atfluxR', 'xYR', 'morfTypeR', 'baR', 'alogZmassR', 'logMcorSDR', 'logWHaWHbR' ]
+        xaxis = [ 'atfluxR', 'xYR', 'morfTypeR', 'baR', 'alogZmassR', 'logMcorSDR' ]
+        #xaxis = [ 'atfluxR', 'xYR', 'baR', 'alogZmassR', 'logMcorSDR' ]
         row, col = 0, 0
         for xk in xaxis:
             rs_kwargs = default_rs_kwargs.copy()
@@ -544,15 +604,16 @@ if __name__ == '__main__':
             ax = plt.subplot2grid(grid_shape, loc = (row, col))
             _, xdict = H.get_plot_dict(iT, -1, xk)
             x = xdict['v']
-            xm, ym_BR_DGR_ols = C.ma_mask_xyz(x = x, y = BR_DGR_ols__rg, mask = ~maskRadiusOk__rg)
+            tmp_mask = ~(maskRadiusOk__rg & gals_slice__rg)
+            xm, ym_BR_DGR_ols = C.ma_mask_xyz(x = x, y = BR_DGR_ols__rg, mask = tmp_mask)
             rs_BR_DGR_ols = runstats(xm.compressed(), ym_BR_DGR_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_DGR_up_ols = C.ma_mask_xyz(x = x, y = BR_DGR_up_ols__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_BR_DGR_up_ols = C.ma_mask_xyz(x = x, y = BR_DGR_up_ols__rg, mask = tmp_mask)
             rs_BR_DGR_up_ols = runstats(xm.compressed(), ym_BR_DGR_up_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_DGR_down_ols = C.ma_mask_xyz(x = x, y = BR_DGR_down_ols__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_BR_DGR_down_ols = C.ma_mask_xyz(x = x, y = BR_DGR_down_ols__rg, mask = tmp_mask)
             rs_BR_DGR_down_ols = runstats(xm.compressed(), ym_BR_DGR_down_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_SK_DGR = C.ma_mask_xyz(x = x, y = SK_DGR__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_SK_DGR = C.ma_mask_xyz(x = x, y = SK_DGR__rg, mask = tmp_mask)
             rs_SK_DGR = runstats(xm.compressed(), ym_SK_DGR.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_SK_DGR_Ha = C.ma_mask_xyz(x = x, y = SK_DGR_Ha__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_SK_DGR_Ha = C.ma_mask_xyz(x = x, y = SK_DGR_Ha__rg, mask = tmp_mask)
             rs_SK_DGR_Ha = runstats(xm.compressed(), ym_SK_DGR_Ha.compressed(), nBox = 20, **rs_kwargs)
             if args.scatter is True:
                 ax.scatter(rs_BR_DGR_ols.x, rs_BR_DGR_ols.y, marker = 'o', c = 'b', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
@@ -579,9 +640,9 @@ if __name__ == '__main__':
         plt.close(f)
 
         ##########################
-        ######### PAGE 3 #########
+        ######### PAGE 4 #########
         ##########################
-        NRows = 3
+        NRows = 2
         NCols = 3
         f = plt.figure()
         #f, axArr = plt.subplots(NRows, NCols)
@@ -589,7 +650,8 @@ if __name__ == '__main__':
         page_size_inches = (NCols * 3, NRows * 2.5)
         f.set_size_inches(page_size_inches)
         grid_shape = (NRows, NCols)
-        xaxis = [ 'atfluxR', 'xYR', 'morfTypeR', 'baR', 'alogZmassR', 'logMcorSDR', 'logWHaWHbR' ]
+        xaxis = [ 'atfluxR', 'xYR', 'morfTypeR', 'baR', 'alogZmassR', 'logMcorSDR', ]
+        #xaxis = [ 'atfluxR', 'xYR', 'baR', 'alogZmassR', 'logMcorSDR', ]
         row, col = 0, 0
         for xk in xaxis:
             rs_kwargs = default_rs_kwargs.copy()
@@ -597,23 +659,24 @@ if __name__ == '__main__':
             ax = plt.subplot2grid(grid_shape, loc = (row, col))
             _, xdict = H.get_plot_dict(iT, -1, xk)
             x = xdict['v']
-            xm, ym_BR_SigmaGas_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_ols__rg), mask = ~maskRadiusOk__rg)
+            tmp_mask = ~(maskRadiusOk__rg & gals_slice__rg)
+            xm, ym_BR_SigmaGas_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_ols__rg), mask = tmp_mask)
             rs_BR_SigmaGas_ols = runstats(xm.compressed(), ym_BR_SigmaGas_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_SigmaGas_up_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_up_ols__rg), mask = ~maskRadiusOk__rg)
+            xm, ym_BR_SigmaGas_up_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_up_ols__rg), mask = tmp_mask)
             rs_BR_SigmaGas_up_ols = runstats(xm.compressed(), ym_BR_SigmaGas_up_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_SigmaGas_down_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_down_ols__rg), mask = ~maskRadiusOk__rg)
+            xm, ym_BR_SigmaGas_down_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_down_ols__rg), mask = tmp_mask)
             rs_BR_SigmaGas_down_ols = runstats(xm.compressed(), ym_BR_SigmaGas_down_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_SigmaGas_Ha_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_ols__rg), mask = ~maskRadiusOk__rg)
+            xm, ym_BR_SigmaGas_Ha_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_ols__rg), mask = tmp_mask)
             rs_BR_SigmaGas_Ha_ols = runstats(xm.compressed(), ym_BR_SigmaGas_Ha_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_SigmaGas_Ha_up_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_up_ols__rg), mask = ~maskRadiusOk__rg)
+            xm, ym_BR_SigmaGas_Ha_up_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_up_ols__rg), mask = tmp_mask)
             rs_BR_SigmaGas_Ha_up_ols = runstats(xm.compressed(), ym_BR_SigmaGas_Ha_up_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_SigmaGas_Ha_down_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_down_ols__rg), mask = ~maskRadiusOk__rg)
+            xm, ym_BR_SigmaGas_Ha_down_ols = C.ma_mask_xyz(x = x, y = np.log10(BR_SigmaGas_Ha_down_ols__rg), mask = tmp_mask)
             rs_BR_SigmaGas_Ha_down_ols = runstats(xm.compressed(), ym_BR_SigmaGas_Ha_down_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_SK_SigmaGas = C.ma_mask_xyz(x = x, y = np.log10(SK_SigmaGas__rg), mask = ~maskRadiusOk__rg)
+            xm, ym_SK_SigmaGas = C.ma_mask_xyz(x = x, y = np.log10(SK_SigmaGas__rg), mask = tmp_mask)
             rs_SK_SigmaGas = runstats(xm.compressed(), ym_SK_SigmaGas.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_SK_SigmaGas_Ha = C.ma_mask_xyz(x = x, y = np.log10(SK_SigmaGas_Ha__rg), mask = ~maskRadiusOk__rg)
+            xm, ym_SK_SigmaGas_Ha = C.ma_mask_xyz(x = x, y = np.log10(SK_SigmaGas_Ha__rg), mask = tmp_mask)
             rs_SK_SigmaGas_Ha = runstats(xm.compressed(), ym_SK_SigmaGas_Ha.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_RR_SigmaGas = C.ma_mask_xyz(x = x, y = np.log10(RR_SigmaGas__rg), mask = ~maskRadiusOk__rg)
+            xm, ym_RR_SigmaGas = C.ma_mask_xyz(x = x, y = np.log10(RR_SigmaGas__rg), mask = tmp_mask)
             rs_RR_SigmaGas = runstats(xm.compressed(), ym_RR_SigmaGas.compressed(), nBox = 20, **rs_kwargs)
             if args.scatter is True:
                 ax.scatter(rs_BR_SigmaGas_ols.x, rs_BR_SigmaGas_ols.y, marker = 'o', c = 'b', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
@@ -646,9 +709,9 @@ if __name__ == '__main__':
         plt.close(f)
 
         ##########################
-        ######### PAGE 4 #########
+        ######### PAGE 5 #########
         ##########################
-        NRows = 3
+        NRows = 2
         NCols = 3
         f = plt.figure()
         #f, axArr = plt.subplots(NRows, NCols)
@@ -656,7 +719,8 @@ if __name__ == '__main__':
         page_size_inches = (NCols * 3, NRows * 2.5)
         f.set_size_inches(page_size_inches)
         grid_shape = (NRows, NCols)
-        xaxis = [ 'atfluxR', 'xYR', 'morfTypeR', 'baR', 'alogZmassR', 'logMcorSDR', 'logWHaWHbR' ]
+        xaxis = [ 'atfluxR', 'xYR', 'morfTypeR', 'baR', 'alogZmassR', 'logMcorSDR' ]
+        #xaxis = [ 'atfluxR', 'xYR', 'baR', 'alogZmassR', 'logMcorSDR' ]
         row, col = 0, 0
         for xk in xaxis:
             rs_kwargs = default_rs_kwargs.copy()
@@ -664,23 +728,24 @@ if __name__ == '__main__':
             ax = plt.subplot2grid(grid_shape, loc = (row, col))
             _, xdict = H.get_plot_dict(iT, -1, xk)
             x = xdict['v']
-            xm, ym_BR_f_gas_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_ols__rg, mask = ~maskRadiusOk__rg)
+            tmp_mask = ~(maskRadiusOk__rg & gals_slice__rg)
+            xm, ym_BR_f_gas_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_ols__rg, mask = tmp_mask)
             rs_BR_f_gas_ols = runstats(xm.compressed(), ym_BR_f_gas_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_f_gas_up_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_up_ols__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_BR_f_gas_up_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_up_ols__rg, mask = tmp_mask)
             rs_BR_f_gas_up_ols = runstats(xm.compressed(), ym_BR_f_gas_up_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_f_gas_down_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_down_ols__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_BR_f_gas_down_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_down_ols__rg, mask = tmp_mask)
             rs_BR_f_gas_down_ols = runstats(xm.compressed(), ym_BR_f_gas_down_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_f_gas_Ha_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_ols__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_BR_f_gas_Ha_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_ols__rg, mask = tmp_mask)
             rs_BR_f_gas_Ha_ols = runstats(xm.compressed(), ym_BR_f_gas_Ha_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_f_gas_Ha_up_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_up_ols__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_BR_f_gas_Ha_up_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_up_ols__rg, mask = tmp_mask)
             rs_BR_f_gas_Ha_up_ols = runstats(xm.compressed(), ym_BR_f_gas_Ha_up_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_BR_f_gas_Ha_down_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_down_ols__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_BR_f_gas_Ha_down_ols = C.ma_mask_xyz(x = x, y = BR_f_gas_Ha_down_ols__rg, mask = tmp_mask)
             rs_BR_f_gas_Ha_down_ols = runstats(xm.compressed(), ym_BR_f_gas_Ha_down_ols.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_SK_f_gas = C.ma_mask_xyz(x = x, y = SK_f_gas__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_SK_f_gas = C.ma_mask_xyz(x = x, y = SK_f_gas__rg, mask = tmp_mask)
             rs_SK_f_gas = runstats(xm.compressed(), ym_SK_f_gas.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_SK_f_gas_Ha = C.ma_mask_xyz(x = x, y = SK_f_gas_Ha__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_SK_f_gas_Ha = C.ma_mask_xyz(x = x, y = SK_f_gas_Ha__rg, mask = tmp_mask)
             rs_SK_f_gas_Ha = runstats(xm.compressed(), ym_SK_f_gas_Ha.compressed(), nBox = 20, **rs_kwargs)
-            xm, ym_RR_f_gas = C.ma_mask_xyz(x = x, y = RR_f_gas__rg, mask = ~maskRadiusOk__rg)
+            xm, ym_RR_f_gas = C.ma_mask_xyz(x = x, y = RR_f_gas__rg, mask = tmp_mask)
             rs_RR_f_gas = runstats(xm.compressed(), ym_RR_f_gas.compressed(), nBox = 20, **rs_kwargs)
             if args.scatter is True:
                 ax.scatter(rs_BR_f_gas_ols.x, rs_BR_f_gas_ols.y, marker = 'o', c = 'b', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
@@ -699,7 +764,7 @@ if __name__ == '__main__':
             ax.yaxis.set_major_locator(MaxNLocator(6))
             ax.grid()
             ax.set_xlabel(xdict['label'])
-            ax.set_ylim(0, 1)
+            ax.set_ylim(0, 0.4)
             #ax.set_ylim(0,15e-3)
             if col == 0:
                 ax.set_ylabel(r'f${}_{gas}$')

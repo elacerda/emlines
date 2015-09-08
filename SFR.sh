@@ -4,11 +4,13 @@ dryrun=false
 #for file in /Users/lacerda/CALIFA/listOf298GalPrefixes.txt
 #for file in debug.txt
 for file in /Users/lacerda/CALIFA/listv20_q050.d15a.txt
+#for file in /Users/lacerda/CALIFA/list_S[abcd]*.txt
 do
     bname=$(basename $file)
     name=${bname%.txt}
     
     minpopx=-1
+
     mintauv=0.01
     mintauvneb=0.01
     maxtauvneberr=0.25
@@ -28,7 +30,6 @@ do
         time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
     fi
 
-    minpopx=-1
     mintauv=0.05
     mintauvneb=0.05
     maxtauvneberr=0.25
@@ -43,7 +44,6 @@ do
         time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
     fi
     
-    minpopx=-1
     mintauv=0.01
     mintauvneb=0.01
     maxtauvneberr=999.0
@@ -63,6 +63,7 @@ do
     #################################################################################################################
 
     minpopx=0.01
+    
     mintauv=0.01
     mintauvneb=0.01
     maxtauvneberr=0.25
@@ -82,7 +83,6 @@ do
         time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
     fi
 
-    minpopx=0.01
     mintauv=0.05
     mintauvneb=0.05
     maxtauvneberr=0.25
@@ -97,7 +97,6 @@ do
         time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
     fi
     
-    minpopx=0.01
     mintauv=0.01
     mintauvneb=0.01
     maxtauvneberr=999.0
@@ -117,6 +116,7 @@ do
     #################################################################################################################
 
     minpopx=0.05
+    
     mintauv=0.01
     mintauvneb=0.01
     maxtauvneberr=0.25
@@ -136,7 +136,6 @@ do
         time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
     fi
 
-    minpopx=0.05
     mintauv=0.05
     mintauvneb=0.05
     maxtauvneberr=0.25
@@ -151,7 +150,6 @@ do
         time ./SFR.py $OPTS --maxtauvneberr $maxtauvneberr --rbinfin 5.0 -H ${output}_5HLR.h5 &> ${output}_5HLR.log
     fi
     
-    minpopx=0.05
     mintauv=0.01
     mintauvneb=0.01
     maxtauvneberr=999.0

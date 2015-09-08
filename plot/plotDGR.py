@@ -75,42 +75,100 @@ if __name__ == '__main__':
         
     H = C.H5SFRData(h5file)
     iU = -1
-
-    #################################################################################
-    # SKzero = np.log10(1.6e-4)
-    # SKslope = 1.4
-    # logSigmaGas = (np.log10(SFRSD_Ha__g * 1e6) - SKzero) / SKslope
-    # c = np.log10(0.2)
-    # logDGR = c + np.log10(tau_V_neb__g) - logSigmaGas
-    # logO_H = logZ_neb_S06__g + np.log10(4.9e-4)
-    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-
-    #DGR(SigmaGas - KS)
-    SKzero = 1.6e-4
-    SKslope = 1.4
-    dustdim = 0.2
-    DGR__g = dustdim * H.tau_V__Tg[iT] / (H.SFRSD__Tg[iT]/SKzero) ** (1./SKslope)
-    DGR_Ha__g = dustdim * H.tau_V_neb__g / (H.SFRSD_Ha__g/SKzero) ** (1./SKslope)
-    DGR__rg = dustdim * H.tau_V_neb__rg / (H.aSFRSD_Ha__rg/1.6e-4) ** (1./SKslope)
-    ########################
     
-    DGR = 10. ** (-2.21)
-    #DGR__rg = 10. ** (-2.21 + 1./(H.O_O3N2_M13__rg ** 2.))
-    #DGR__rg = 10. ** (-0.21)
-    k = dustdim / DGR
-    k__g = dustdim / DGR__g
-    k__rg = dustdim / DGR__rg
-    #SigmaGas__g = k * H.tau_V_neb__g
-    SigmaGas__g = k * H.tau_V__Tg[iT]
-    #SigmaGas__g = k__g * H.tau_V_neb__g
-    #SigmaGas__g = k__g * H.tau_V__Tg[iT]
-    #SigmaGas__rg = k * H.tau_V_neb__rg
-    SigmaGas__rg = k * H.tau_V__Trg[iT]
-    #SigmaGas__rg = k__rg * H.tau_V_neb__rg
-    #SigmaGas__rg = k__rg * H.tau_V__Trg[iT]
-    f_gas__g = 1. / (1. + (H.McorSD__Tg[iT] / SigmaGas__g))
-    f_gas__rg = 1. / (1. + (H.McorSD__Trg[iT] / SigmaGas__rg))
-    RbinCenter__rg = ((np.ones_like(f_gas__rg).T * H.RbinCenter__r).T).flatten()
+    ######################
+    #SK
+    ######################
+    SK_zero = 1.6e-4
+    SK_slope = 1.4
+    aux = 1e6 ** (1./SK_slope)
+    SK_SigmaGas__g = aux * (H.SFRSD__Tg[iT]/SK_zero) ** (1./SK_slope)
+    SK_SigmaGas_Ha__g = aux * (H.SFRSD_Ha__g/SK_zero) ** (1./SK_slope)
+    SK_SigmaGas__rg = aux * (H.aSFRSD__Trg[iT]/SK_zero) ** (1./SK_slope)
+    SK_SigmaGas_Ha__rg = aux * (H.aSFRSD_Ha__rg/SK_zero) ** (1./SK_slope)
+    SK_integrated_SigmaGas = aux * (H.integrated_SFRSD__Tg[iT]/SK_zero) ** (1./SK_slope)
+    SK_integrated_SigmaGas_Ha = aux * (H.integrated_SFRSD__Tg[iT]/SK_zero) ** (1./SK_slope) 
+    #SK Dust to gas ratio
+    dustdim = 0.2 # md / rhod
+    SK_DGR__g = dustdim * H.tau_V__Tg[iT] / SK_SigmaGas__g
+    SK_DGR_Ha__g = dustdim * H.tau_V_neb__g / SK_SigmaGas_Ha__g
+    SK_DGR__rg = dustdim * H.tau_V__Trg[iT] / SK_SigmaGas__rg
+    SK_DGR_Ha__rg = dustdim * H.tau_V_neb__rg / SK_SigmaGas_Ha__rg
+    #SK Gas to Stars ratio
+    SK_GSR__g = SK_SigmaGas__g / H.McorSD__Tg[iT]
+    SK_GSR_Ha__g = SK_SigmaGas_Ha__g / H.McorSD__Tg[iT]
+    SK_GSR__rg = SK_SigmaGas__rg / H.McorSD__Trg[iT]
+    SK_GSR_Ha__rg = SK_SigmaGas_Ha__rg / H.McorSD__Trg[iT]
+    #SK gas fraction
+    SK_f_gas__g = 1. / (1. + (H.McorSD__Tg[iT] / SK_SigmaGas__g))
+    SK_f_gas_Ha__g = 1. / (1. + (H.McorSD__Tg[iT] / SK_SigmaGas_Ha__g))
+    SK_f_gas__rg = 1. / (1. + (H.McorSD__Trg[iT] / SK_SigmaGas__rg))
+    SK_f_gas_Ha__rg = 1. / (1. + (H.McorSD__Trg[iT] / SK_SigmaGas_Ha__rg))
+    ######################
+    
+    ######################
+    # Remy-Ruyer
+    ######################
+    # logDGR = c + np.log10(tau_V_neb__g) - logSigmaGas
+    RR_DGR = 10. ** (-2.21)
+    ######################
+    
+    ######################
+    #Brinchmann
+    ######################
+    p_ols =  np.array([1.87, -6.98])
+    p_cubic = np.array([-4.91783872, 122.48149162, -1014.51941088, 2803.24285985])
+    OHBrinch_ols__g = np.ma.masked_all((H.O_O3N2_M13__g.shape))
+    OHBrinch_ols__g[~H.O_O3N2_M13__g.mask] = np.polyval(p_ols, H.O_O3N2_M13__g.compressed()) 
+    OHBrinch_cubic__g = np.ma.masked_all((H.O_O3N2_M13__g.shape))
+    OHBrinch_cubic__g[~H.O_O3N2_M13__g.mask] = np.polyval(p_cubic, H.O_O3N2_M13__g.compressed()) 
+    OHBrinch_ols__rg = np.ma.masked_all((H.O_O3N2_M13__rg.shape))
+    OHBrinch_ols__rg[~H.O_O3N2_M13__rg.mask] = np.polyval(p_ols, H.O_O3N2_M13__rg.flatten().compressed()) 
+    OHBrinch_cubic__rg = np.ma.masked_all((H.O_O3N2_M13__rg.shape))
+    OHBrinch_cubic__rg[~H.O_O3N2_M13__rg.mask] = np.polyval(p_cubic, H.O_O3N2_M13__rg.flatten().compressed()) 
+    OHSunBrinch_inv = 1/8.82
+    DGR_conv_lim_sup = 1.1e-2
+    DGR_conv_lim_inf = 5.3e-3
+    DGR_interval = np.array([DGR_conv_lim_inf, DGR_conv_lim_sup])
+    DGR_cte = DGR_interval.mean()
+    DGR_ols__g = DGR_cte * (OHBrinch_ols__g * OHSunBrinch_inv)
+    DGR_ols__rg = DGR_cte * (OHBrinch_ols__rg * OHSunBrinch_inv)
+    DGR_cubic__g = DGR_cte * (OHBrinch_cubic__g * OHSunBrinch_inv)
+    DGR_cubic__rg = DGR_cte * (OHBrinch_cubic__rg * OHSunBrinch_inv)
+    SigmaGas_ols__g = dustdim * H.tau_V__Tg[iT] / DGR_ols__g
+    SigmaGas_ols__rg = dustdim * H.tau_V__Trg[iT] / DGR_ols__rg
+    SigmaGas_cubic__g = dustdim * H.tau_V__Tg[iT] / DGR_cubic__g
+    SigmaGas_cubic__rg = dustdim * H.tau_V__Trg[iT] / DGR_cubic__rg
+    SigmaGas_Ha_ols__g = dustdim * H.tau_V_neb__g / DGR_ols__g
+    SigmaGas_Ha_ols__rg = dustdim * H.tau_V_neb__rg / DGR_ols__rg
+    SigmaGas_Ha_cubic__g = dustdim * H.tau_V_neb__g / DGR_cubic__g
+    SigmaGas_Ha_cubic__rg = dustdim * H.tau_V_neb__rg / DGR_cubic__rg
+    f_gas_ols__g = 1. / (1. + (H.McorSD__Tg[iT] / SigmaGas_ols__g))
+    f_gas_ols__rg = 1. / (1. + (H.McorSD__Trg[iT] / SigmaGas_ols__rg))
+    f_gas_cubic__g = 1. / (1. + (H.McorSD__Tg[iT] / SigmaGas_cubic__g))
+    f_gas_cubic__rg = 1. / (1. + (H.McorSD__Trg[iT] / SigmaGas_cubic__rg))
+    f_gas_Ha_ols__g = 1. / (1. + (H.McorSD__Tg[iT] / SigmaGas_Ha_ols__g))
+    f_gas_Ha_ols__rg = 1. / (1. + (H.McorSD__Trg[iT] / SigmaGas_Ha_ols__rg))
+    f_gas_Ha_cubic__g = 1. / (1. + (H.McorSD__Tg[iT] / SigmaGas_Ha_cubic__g))
+    f_gas_Ha_cubic__rg = 1. / (1. + (H.McorSD__Trg[iT] / SigmaGas_Ha_cubic__rg))
+    ######################
+    # logOHSun_Grazyna = np.log10(4.9e-4)
+
+    plt.clf()
+    plt.scatter(H.Rtoplot().flatten(), np.ma.log10(SK_GSR__rg.flatten()), c = 'r', alpha = 0.1, s = 10, edgecolor = 'none')
+    plt.plot(H.RbinCenter__r, np.median(np.ma.log10(SK_GSR__rg), axis = 1), '*r', label = r'$\Sigma_{gas}$ from SK with $\Sigma_{SFR}^\star$', ms = 15)
+    plt.scatter(H.Rtoplot().flatten(), np.ma.log10(SK_GSR_Ha__rg.flatten()), c = 'b', alpha = 0.1, s = 10, edgecolor = 'none')
+    plt.plot(H.RbinCenter__r, np.ma.median(np.ma.log10(SK_GSR_Ha__rg), axis = 1), '*b', label = r'$\Sigma_{gas}$ from SK with $\Sigma_{SFR}^{H\alpha}$', ms = 15)
+    plt.scatter(H.Rtoplot().flatten(), np.ma.log10((f_gas__rg.flatten()/(1. - f_gas__rg.flatten()))), c = 'g', alpha = 0.1, s = 10, edgecolor = 'none')
+    plt.plot(H.RbinCenter__r, np.ma.median(np.ma.log10(f_gas__rg/(1. - f_gas__rg)), axis = 1), '*g', label = r'$\Sigma_{gas}$ from $\tau_V$', ms = 15)
+    #plt.scatter(H.Rtoplot().flatten(), np.ma.log10((f_gas_Ha__rg.flatten()/(1. - f_gas_Ha__rg.flatten()))), c = 'c', alpha = 0.1, s = 10, edgecolor = 'none')
+    #plt.plot(H.RbinCenter__r, np.ma.median(np.ma.log10(f_gas_Ha__rg/(1. - f_gas_Ha__rg)), axis = 1), '*c', label = r'$\Sigma_{gas}$ from $\tau_V^{neb}$', ms = 15)
+    plt.legend(fontsize = 14)
+    plt.ylim(-8, 2)
+    plt.xlim(0, 2)
+    plt.ylabel(r'$\log\ \frac{\Sigma_{gas}}{\Sigma_\star}$')
+    plt.xlabel(r'radius [HLR]')
+
 
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
     # xaxis = {
@@ -190,17 +248,41 @@ if __name__ == '__main__':
     #             )
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+# xk, xv = H.get_plot_dict(iT, -1, key = 'alogZmassR')
+# yk, yv = H.get_plot_dict(iT, -1, key = 'alogSFRSDR')
+# #yk, yv = H.get_plot_dict(iT, -1, key = 'logSFRSDHa')
+# zk, zv = H.get_plot_dict(iT, -1, key = 'morfTypeR')
+# plot_zbins(
+#     debug = True,
+#     x = xv['v'],
+#     xlabel = xv['label'],
+#     y = yv['v'],
+#     ylabel = yv['label'],
+#     xlim = xv['lim'],
+# #    ylim = yv['lim'],
+#     kwargs_figure = dict(figsize=(10,8), dpi = 100),
+#     kwargs_scatter = dict(c = 'b', marker = 'o', s = 10, edgecolor = 'none', alpha = 0.5, label = ''),
+#     running_stats = True,
+#     rs_gaussian_smooth = True,
+#     rs_percentiles = True,
+#     rs_gs_fwhm = 16,
+#     rs_frac_box = 80,
+#     kwargs_plot_rs = dict(c = 'k', lw = 2, label = 'Median (run. stats)'),
+#     rs_errorbar = False,
+#     kwargs_suptitle = dict(fontsize = 12),
+#     filename = '%s_%s_%.2fMyr.png' % (xk, yk, tSF / 1e6),
+#     x_major_locator = xv['majloc'],
+#     x_minor_locator = xv['minloc'],
+# #    y_major_locator = yv['majloc'],
+# #    y_minor_locator = yv['minloc'],
+#     kwargs_legend = dict(fontsize = 12),
+# )
+#EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+
+
     xaxis = {
-        'logfgasR' : dict(
-                        v = np.ma.log10(f_gas__rg),
-                        label = r'$\log\ f_{gas}$',
-                        lim = [-4, 0],
-                        majloc = 0.5,
-                        minloc = 0.1,
-                        limprc = [0, 100],
-                    ),
-    }
-    yaxis = {
         'alogZmassR' : dict(
                         v = H.alogZ_mass__Urg[-1], 
                         label = r'$\langle \log\ Z_\star \rangle_M$ (R, t < %.2f Gyr)' % (H.tZ__U[-1] / 1e9),
@@ -209,16 +291,14 @@ if __name__ == '__main__':
                         minloc = 0.05,
                         limprc = [0, 100],
                       ),
-        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-        # 'logO3N2M13R' : dict(
-        #                 v = H.O_O3N2_M13__rg, 
-        #                 label = r'12 + $\log\ O/H$ (R, logO3N2, Marino, 2013)',
-        #                 lim = [8., 9.0],
-        #                 majloc = 0.2,
-        #                 minloc = 0.05,
-        #                 limprc = [0, 100],
-        #                ),
-        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        'logO3N2M13R' : dict(
+                        v = H.O_O3N2_M13__rg, 
+                        label = r'12 + $\log\ O/H$ (R, logO3N2, Marino, 2013)',
+                        lim = [8., 9.0],
+                        majloc = 0.2,
+                        minloc = 0.05,
+                        limprc = [0, 100],
+                       ),
         'atfluxR' : dict(
                         v = H.at_flux__rg, 
                         label = r'$\langle \log\ t \rangle_L (R)$ [yr]', 
@@ -226,7 +306,36 @@ if __name__ == '__main__':
                         majloc = 0.5, 
                         minloc = 0.1,
                         limprc = [0, 100],
-                    ),             
+                    ),
+        'logMcorSDR' : dict(
+                        #v = np.ma.log10(H.McorSD__Trg[iT]),
+                        v = np.ma.log10(H.McorSD__Trg[iT] * 1e6), 
+                        #label = r'$\log\ \mu_\star (R)$ [$M_\odot \ pc^{-2}$]', 
+                        label = r'$\log\ \mu_\star (R)$ [$M_\odot \ kpc^{-2}$]',
+                        lim = [5.5, 10.3], 
+                        majloc = 1., 
+                        minloc = 0.1,                            
+                        limprc = [0, 100],
+                    ),
+    }
+    
+    yaxis = {
+        'fgasR' : dict(
+                        #v = np.ma.log10(f_gas__rg),
+                        v = np.ma.log10(f_gas__rg),
+                        #label = r'$\log\ f_{gas}$',
+                        label = r'$f_{gas}$',
+                        lim = [-4, 0],
+                        majloc = 0.5,
+                        minloc = 0.1,
+                        limprc = [0, 100],
+                        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+                        # lim = [0, 1],
+                        # majloc = 0.2,
+                        # minloc = 0.05,
+                        # limprc = [0, 100],
+                        #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+                    ),
     }
     #zk, zv = H.get_plot_dict(iT, -1, key = 'atfluxR')
     #zk, zv = H.get_plot_dict(iT, -1, key = 'alogSFRSDR')
@@ -250,22 +359,28 @@ if __name__ == '__main__':
                     if mask_radius is True:
                         x[~(H.RbinCenter__r > Rn)] = np.ma.masked
                         y[~(H.RbinCenter__r > Rn)] = np.ma.masked
-                    xm, ym, zm = CALIFAUtils.ma_mask_xyz(x = x, y = y, z = H.reply_arr_by_radius(H.morfType_GAL__g))
-                    zticks_mask = [(zm > 8.9) & (zm <= 9.5), (zm == 10), (zm == 10.5), (zm >= 11.) & (zm <= 11.5)]
+                    xm, ym, zm = CALIFAUtils.ma_mask_xyz(x = x.flatten(), y = y.flatten(), z = H.reply_arr_by_radius(H.morfType_GAL__g).flatten())
+                    zticks_mask = [
+                        np.ma.bitwise_or(np.ma.equal(zm, 9.), np.ma.equal(zm, 9.5)), 
+                        np.ma.equal(zm, 10), 
+                        np.ma.equal(zm, 10.5), 
+                        np.ma.bitwise_or(np.ma.equal(zm, 11.), np.ma.equal(zm, 11.5)),
+                    ]
                     #zticks_mask = [(zm == 9), (zm == 9.5), (zm == 10), (zm == 10.5), (zm == 11.), (zm == 11.5)]
                     zticks = [9., 9.5, 10, 10.5, 11., 11.5]
                     zticklabels = ['Sa', 'Sab', 'Sb', 'Sbc', 'Sc', 'Scd']
                     zbins_colors = ['r', 'g', 'y', 'b']
                     #zbins_labels = ['Sa + Sab: %d' % len(xm[zticks_mask[0]]), 'Sb: %d' % len(xm[zticks_mask[1]]), 'Sbc: %d' % len(xm[zticks_mask[2]]), 'Sc + Scd: %d' % len(xm[zticks_mask[3]])]
                     zbins_labels = ['Sa + Sab', 'Sb', 'Sbc', 'Sc + Scd']
+                    #zbins_labels = ['Sa', 'Sab', 'Sb', 'Sbc', 'Sc', 'Scd']
                     kw = plot_zbins(
                         return_kwargs = True,
                         f = f,
                         ax = axArr[i],
                         debug = debug,
-                        x = x,
-                        y = y,
-                        z = zv['v'],
+                        x = x.flatten(),
+                        y = y.flatten(),
+                        z = zv['v'].flatten(),
                         zmask = False, 
                         xlabel = xv['label'],
                         ylabel = yv['label'],
@@ -290,6 +405,7 @@ if __name__ == '__main__':
                         y_minor_locator = yv['minloc'],
                         legend = True,
                         cmap = cm.RdYlBu,
+                        #cmap = cm.hot,
                         cb = cbarr[i],
                         #running_stats = True,
                         #rs_gaussian_smooth = True,
@@ -307,9 +423,9 @@ if __name__ == '__main__':
                     init_pos_x, final_pos_y, pos_y_step = 0.02, 0.02, 0.04
                     fs = 14
                     for j in xrange(len(zticks_mask)):
-                        c = zbins_colors[j]
+                        c = kw['zbins_colors'][j]
                         pos_y = final_pos_y + pos_y_step * (len(zticks_mask) - j - 1)
-                        txt = str(len(zm[zticks_mask[j]])) 
+                        txt = str(len(zm[zticks_mask[j]].compressed())) 
                         kw_text = dict(pos_x = init_pos_x, pos_y = pos_y, fs = fs, va = 'bottom', ha = 'left', c = c)
                         plot_text_ax(ax, txt, **kw_text)
                     del x

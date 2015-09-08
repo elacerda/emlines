@@ -122,20 +122,22 @@ if __name__ == '__main__':
     ########################
     # logO_H = logZ_neb_S06__g + np.log10(4.9e-4)
 
-    plt.clf()
-    plt.scatter(H.Rtoplot().flatten(), np.ma.log10(SK_GSR__rg.flatten()), c = 'r', alpha = 0.1, s = 10, edgecolor = 'none')
-    plt.plot(H.RbinCenter__r, np.median(np.ma.log10(SK_GSR__rg), axis = 1), '*r', label = r'$\Sigma_{gas}$ from SK with $\Sigma_{SFR}^\star$', ms = 15)
-    plt.scatter(H.Rtoplot().flatten(), np.ma.log10(SK_GSR_Ha__rg.flatten()), c = 'b', alpha = 0.1, s = 10, edgecolor = 'none')
-    plt.plot(H.RbinCenter__r, np.ma.median(np.ma.log10(SK_GSR_Ha__rg), axis = 1), '*b', label = r'$\Sigma_{gas}$ from SK with $\Sigma_{SFR}^{H\alpha}$', ms = 15)
-    plt.scatter(H.Rtoplot().flatten(), np.ma.log10((f_gas__rg.flatten()/(1. - f_gas__rg.flatten()))), c = 'g', alpha = 0.1, s = 10, edgecolor = 'none')
-    plt.plot(H.RbinCenter__r, np.ma.median(np.ma.log10(f_gas__rg/(1. - f_gas__rg)), axis = 1), '*g', label = r'$\Sigma_{gas}$ from $\tau_V$', ms = 15)
-    plt.scatter(H.Rtoplot().flatten(), np.ma.log10((f_gas_Ha__rg.flatten()/(1. - f_gas_Ha__rg.flatten()))), c = 'c', alpha = 0.1, s = 10, edgecolor = 'none')
-    plt.plot(H.RbinCenter__r, np.ma.median(np.ma.log10(f_gas_Ha__rg/(1. - f_gas_Ha__rg)), axis = 1), '*c', label = r'$\Sigma_{gas}$ from $\tau_V^{neb}$', ms = 15)
-    plt.ylim(-4, 1)
-    plt.xlim(0, 2)
-    plt.ylabel(r'$\log$ gas-to-stars')
-    plt.xlabel(r'radius [HLR]')
-    plt.legend(fontsize=10)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # plt.clf()
+    # plt.scatter(H.Rtoplot().flatten(), np.ma.log10(SK_GSR__rg.flatten()), c = 'r', alpha = 0.1, s = 10, edgecolor = 'none')
+    # plt.plot(H.RbinCenter__r, np.median(np.ma.log10(SK_GSR__rg), axis = 1), '*r', label = r'$\Sigma_{gas}$ from SK with $\Sigma_{SFR}^\star$', ms = 15)
+    # plt.scatter(H.Rtoplot().flatten(), np.ma.log10(SK_GSR_Ha__rg.flatten()), c = 'b', alpha = 0.1, s = 10, edgecolor = 'none')
+    # plt.plot(H.RbinCenter__r, np.ma.median(np.ma.log10(SK_GSR_Ha__rg), axis = 1), '*b', label = r'$\Sigma_{gas}$ from SK with $\Sigma_{SFR}^{H\alpha}$', ms = 15)
+    # plt.scatter(H.Rtoplot().flatten(), np.ma.log10((f_gas__rg.flatten()/(1. - f_gas__rg.flatten()))), c = 'g', alpha = 0.1, s = 10, edgecolor = 'none')
+    # plt.plot(H.RbinCenter__r, np.ma.median(np.ma.log10(f_gas__rg/(1. - f_gas__rg)), axis = 1), '*g', label = r'$\Sigma_{gas}$ from $\tau_V$', ms = 15)
+    # plt.scatter(H.Rtoplot().flatten(), np.ma.log10((f_gas_Ha__rg.flatten()/(1. - f_gas_Ha__rg.flatten()))), c = 'c', alpha = 0.1, s = 10, edgecolor = 'none')
+    # plt.plot(H.RbinCenter__r, np.ma.median(np.ma.log10(f_gas_Ha__rg/(1. - f_gas_Ha__rg)), axis = 1), '*c', label = r'$\Sigma_{gas}$ from $\tau_V^{neb}$', ms = 15)
+    # plt.ylim(-4, 1)
+    # plt.xlim(0, 2)
+    # plt.ylabel(r'$\log$ gas-to-stars')
+    # plt.xlabel(r'radius [HLR]')
+    # plt.legend(fontsize=10)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
     # plt.clf()
