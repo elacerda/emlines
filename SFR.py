@@ -438,7 +438,10 @@ if __name__ == '__main__':
         if args.rgbcuts is True:
             for l in lines_central_wl:
                 if args.gasprop is True:
-                    pos, sigma, snr =  K.GP._dlcons[l]['pos'], K.GP._dlcons[l]['sigma'], K.GP._dlcons[l]['SN']
+                    pos = K.GP._dlcons[l]['pos']
+                    sigma = K.GP._dlcons[l]['sigma']
+                    snr = K.GP._dlcons[l]['SN']
+                    if snr < 3.0: snr = 3.0
                 else:
                     pos, sigma, snr = 3.0, 3.0, 3.0
                 C.debug_var(args.debug, pref = l, pos = pos, sigma = sigma, snr = snr)
