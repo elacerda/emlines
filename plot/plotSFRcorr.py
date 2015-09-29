@@ -22,6 +22,8 @@ mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
+Rnuc = 0.5
+
 def corr_xy_SFR(H, v, tSF__T, iT, mask_radius = False):
     C.debug_var(debug, corr = v)
     C.debug_var(debug, iT = iT)
@@ -32,7 +34,7 @@ def corr_xy_SFR(H, v, tSF__T, iT, mask_radius = False):
         dim = 'g'
     x = H.get_data_h5('%s__T%s' % (v, dim))[iT]
     y = H.get_data_h5('%s_Ha__%s' % (v, dim))
-    xm, ym = C.ma_mask_xy(x, y)
+    xm, ym = C.ma_mask_xyz(x, y)
     if mask_radius is True:
         m = (H.zone_dist_HLR__g > 0.5) 
         xm[~m] = np.ma.masked
@@ -83,7 +85,7 @@ if __name__ == '__main__':
         aSFRSD_Ha_norm__rg = H.aSFRSD__Trg[iT] / SFRSD_norm_GAL__g
         C.debug_var(debug, iT = iT)
         C.debug_var(debug, tSF = tSF__T[iT])
-        xm, ym = C.ma_mask_xy(aSFRSD_norm__rg, aSFRSD_Ha_norm__rg)
+        xm, ym = C.ma_mask_xyz(aSFRSD_norm__rg, aSFRSD_Ha_norm__rg)
         if mask_radius is True:
             m = (H.zone_dist_HLR__g > 0.5) 
             xm[~m] = np.ma.masked

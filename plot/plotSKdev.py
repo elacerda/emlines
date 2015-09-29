@@ -57,7 +57,7 @@ if __name__ == '__main__':
         yk, yv = H.get_plot_dict(iT = iT, iU = -1, key = 'alogSFRSDR')
         xname = H.get_plot_dict(iT = iT, iU = -1)[xk[:-1]]['legendname']
         yname = H.get_plot_dict(iT = iT, iU = -1)[yk[1:-1]]['legendname']
-        xm, ym = C.ma_mask_xy(xv['v'], yv['v'])
+        xm, ym = C.ma_mask_xyz(xv['v'], yv['v'])
         a, b, sig_a, sig_b = OLS_bisector(xm, ym)
         R = ym - (a * xm + b)
         Yrms = R.std()
@@ -122,7 +122,7 @@ if __name__ == '__main__':
         yk, yv = H.get_plot_dict(iT = iT, iU = -1, key = 'alogSFRSDR')
         xname = H.get_plot_dict(iT = iT, iU = -1)[xk[:-1]]['legendname']
         yname = H.get_plot_dict(iT = iT, iU = -1)[yk[1:-1]]['legendname']
-        xm, ym = C.ma_mask_xy(xv['v'], yv['v'])
+        xm, ym = C.ma_mask_xyz(xv['v'], yv['v'])
         nBox = len(xm.compressed()) / 20.
         dxBox = (xm.max() - xm.min()) / (nBox - 1.)
         kwargs_rs = dict(dxBox = dxBox, xbinIni = xm.min(), xbinFin = xm.max(), xbinStep = dxBox)
@@ -192,7 +192,7 @@ if __name__ == '__main__':
         yk, yv = H.get_plot_dict(iT = iT, iU = -1, key = 'logSFRSD')
         xname = xv['legendname']
         yname = yv['legendname']
-        xm, ym = C.ma_mask_xy(xv['v'], yv['v'])
+        xm, ym = C.ma_mask_xyz(xv['v'], yv['v'])
         a, b, sig_a, sig_b = OLS_bisector(xm, ym)
         R = ym - (a * xm + b)
         Yrms = R.std()
@@ -248,7 +248,7 @@ if __name__ == '__main__':
         yk, yv = H.get_plot_dict(iT = iT, iU = -1, key = 'logSFRSD')
         xname = xv['legendname']
         yname = yv['legendname']
-        xm, ym = C.ma_mask_xy(xv['v'], yv['v'])
+        xm, ym = C.ma_mask_xyz(xv['v'], yv['v'])
         nBox = len(xm.compressed()) / 20.
         dxBox = (xm.max() - xm.min()) / (nBox - 1.)
         kwargs_rs = dict(dxBox = dxBox, xbinIni = xm.min(), xbinFin = xm.max(), xbinStep = dxBox)
