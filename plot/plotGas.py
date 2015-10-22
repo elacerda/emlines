@@ -18,11 +18,11 @@ import sys
 
 RNuc = 0.5
 
-mpl.rcParams['font.size'] = 14
-mpl.rcParams['axes.labelsize'] = 12
-mpl.rcParams['axes.titlesize'] = 16
-mpl.rcParams['xtick.labelsize'] = 10
-mpl.rcParams['ytick.labelsize'] = 10 
+mpl.rcParams['font.size'] = 20
+mpl.rcParams['axes.labelsize'] = 20
+mpl.rcParams['axes.titlesize'] = 20
+mpl.rcParams['xtick.labelsize'] = 20
+mpl.rcParams['ytick.labelsize'] = 20 
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.serif'] = 'Times New Roman'
 
@@ -294,7 +294,8 @@ if __name__ == '__main__':
     map_miguel = {}
     for i, g in enumerate(read_miguel['califaID']):
         map_miguel[g] = i
-    gals_miguel_intersect = sorted(np.intersect1d(map_miguel.keys(), H.califaIDs).tolist())
+    aux = set(H.califaIDs.tolist())
+    gals_miguel_intersect = sorted([g for g in map_miguel.keys() if g in aux])
     gals_miguel_slice = np.zeros(H.califaIDs_all.shape, dtype = np.bool)
     integrated_M_HI_miguel__g = np.ma.masked_all(H.califaIDs_all.shape, dtype = np.float_)
     for g in gals_miguel_intersect:
@@ -385,6 +386,9 @@ if __name__ == '__main__':
     SK_f_gas_Ha_at_oneHLR__g = SK_f_gas_Ha__rg[9, :] + SK_f_gas_Ha__rg[10, :]
     SK_f_gas_Ha_at_oneHLR__g /= 2.
 
+    if args.dryrun is True:
+        sys.exit('dryrun')
+
  #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
  #    if args.debug is True:
  #        import pandas as pd
@@ -435,9 +439,106 @@ if __name__ == '__main__':
  #        sys.exit()
  #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
     
-    if args.dryrun is True:
-        sys.exit('dryrun')
+    
+    #x = np.ma.log(BR_f_gas_Ha_ols__rg)
+    x = BR_f_gas_Ha_ols__rg
+    #x = Area_GAL__g[np.newaxis, :] * (H.McorSD__Trg[0] + BR_SigmaGas_Ha_ols__rg)
+    #y = -1. * (H.O_O3N2_M13__rg - 8.69) / np.ma.log(BR_f_gas_Ha_ols__rg)
+    #z = np.ma.log10(H.aSFRSD__Trg[0])
+    #x = 1. - np.ma.exp(-1 * H.McorSD__Trg[0] / BR_SigmaGas_Ha_ols__rg)
+    #x = np.ma.log10(H.McorSD__Trg[0] / BR_SigmaGas_Ha_ols__rg)
+    #y = H.O_O3N2_M13__rg - 8.69
+    y = H.O_O3N2_M13__rg
+    z = H.Rtoplot()
+    #x = 1. - np.ma.exp(-1 * H.Mcor_GAL__g / integrated_M_HI_miguel__g)
+    #x = np.ma.log10(H.Mcor_GAL__g / integrated_M_HI_miguel__g)
+    #y = H.integrated_O_O3N2_M13__g - 8.69
+    #z = np.ma.log10(H.integrated_SFRSD__Tg[0]) 
+    #sc_kwargs = dict(cmap = plt.cm.get_cmap('jet_r', 6), marker = 'o', s = 10, alpha = 0.9, edgecolor = 'none')
+    sc_kwargs = dict(marker = 'o', s = 10, alpha = 0.9, edgecolor = 'none', cmap = 'Spectral')
+    #z = H.reply_arr_by_radius(H.morfType_GAL__g), 
+    #zticks = [9., 9.5, 10, 10.5, 11., 11.5], 
+    #zticklabels = ['Sa', 'Sab', 'Sb', 'Sbc', 'Sc', 'Scd'], 
+     
+    plt.clf()
+    f = plt.gcf()
+    ax = f.gca()
+    r_kw = plot_zbins(return_kwargs = True, 
+                      debug = True, 
+                      f = f, 
+                      ax = ax, 
+                      x = x, 
+                      y = y,
+                      xlim = (0, 1),
+                      ylim = (8.2, 8.8),
+                      z = z, 
+                      #z = H.reply_arr_by_radius(H.morfType_GAL__g), 
+                      #zticks = [9., 9.5, 10, 10.5, 11., 11.5], 
+                      #zticklabels = ['Sa', 'Sab', 'Sb', 'Sbc', 'Sc', 'Scd'], 
+                      #kwargs_scatter = dict(cmap = plt.cm.get_cmap('jet_r', 6), marker = 'o', s = 10, alpha = 0.9, edgecolor = 'none'),
+                      kwargs_scatter = sc_kwargs, 
+                      #add_mask = ~maskRadiusOk__rg,
+                      #xlabel = r'1 - $e^{- \Sigma_{\star} / \Sigma_{gas}}',
+                      #ylabel = r'$12 + \log(O/H) [Z_\odot]$', 
+                       
+                      #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+                      # x_major_locator = .5, 
+                      # x_minor_locator = .125, 
+                      # y_major_locator = 1, 
+                      # y_minor_locator = .25,
+                      # xlim = (0, 2),
+                      # ylim = (-3, 0), 
+                      # xlabel = r'$\log \Sigma_{gas}\ [M_\odot\ pc^{-2}]$', 
+                      # ylabel = r'$\log \Sigma_{SFR}\ [M_\odot\ kpc^{-2}\ yr^{-1}]$ ', 
+                      #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+                       
+                      #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+                      # xlabel = r'$\ln\ f_{gas}$ ', 
+                      # ylabel = r'$\log[\frac{(O/H)}{(O/H)_\odot}]$',
+                      # zlabel = r'$\log \Sigma_{SFR}(R, t_\star = 32Myrs)\ [M_\odot\ kpc^{-2}\ yr^{-1}]$', 
+                      # xlim = (-7, 0), 
+                      # ylim = (-0.5, 0), 
+                      # x_major_locator = 2, 
+                      # x_minor_locator = .4, 
+                      # y_major_locator = .1, 
+                      # y_minor_locator = .05,
+                      #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
+                      xlabel = r'$f_{gas}$ ',
+                      ylabel = r'$12 + \log(O/H)$',
+                      zlabel = r'R [HLR]', 
+                      x_major_locator = .2, 
+                      x_minor_locator = .05, 
+                      y_major_locator = .2, 
+                      y_minor_locator = .05,
+                       
+                      #ols = True, 
+                      #kwargs_ols = dict(fs = 20, c = 'b'), 
+                      #kwargs_ols_plot = dict(c = 'b', label = '')
+                      )
+    ax = r_kw['ax']
+    ax.xaxis.labelpad = 20
+    xm = r_kw['xm']
+    ym = r_kw['ym']
+    ax.set_title('N = %d elliptical bins' % len(xm.compressed()))
+    #p = np.polyfit(xm.compressed(), ym.compressed(), 1)
+    #ax.plot(ax.get_xlim(), p[0] * np.asarray(ax.get_xlim()) + p[1], '--k', lw = 2., label = '1d fit')
+    #r = ym - (p[0] * xm + p[1])
+    #plot_text_ax(ax, r'Z = %.2f $\ln f_{gas}$ - %.2f (rms: %.3f)' % (p[0], -1 * p[1], r.std()), fs = 20, pos_y = 0.05)    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if args.output is None:
         if args.maskradius is not None:
             output = 'gas_maskRadius%.1f.pdf' % args.maskradius

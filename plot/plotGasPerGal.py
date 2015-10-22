@@ -505,7 +505,7 @@ if __name__ == '__main__':
           
     default_sc_kwargs = dict(marker = 'o', s = 1, edgecolor = 'none', alpha = 0.8, label = '')
     default_rs_kwargs = dict(smooth = True, sigma = 1.2, overlap = 0.4)
-    default_im_kwargs = dict(interpolation = 'nearest', origin = 'lower', aspect = 'auto', cmap = mpl.cm.spectral)
+    default_im_kwargs = dict(interpolation = 'nearest', origin = 'lower', aspect = 'auto', cmap = 'soectral')
     
     phys__z = [
         tau_V__Tz[iT], 
