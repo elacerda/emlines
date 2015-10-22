@@ -51,7 +51,7 @@ if __name__ == '__main__':
         base        = StarlightBase(baseFile, b, hdf5 = True)
         
         max_yr      = base.ageBase[-1]
-        max_yr      = 1e8
+        max_yr      = 1e7
         mask        = base.l_ssp <= 912         # Angstrom
         
         f_ssp   = base.f_ssp[:,:,mask]
@@ -140,6 +140,6 @@ if __name__ == '__main__':
             ax3.set_xlabel(r'$\log\ t\ [yr]$')
             ax3.set_ylabel(r'$\log\ q_H [s^{-1} M_\odot{}^{-1}]$')
                 
-            f.tight_layout()
+            #f.tight_layout()
             f.savefig('Nh_logt_metBase_%s.%s' % (b.replace('.', '_'), outputImgSuffix))
             plt.close(f)

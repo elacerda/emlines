@@ -2,17 +2,18 @@
 #
 # Lacerda@Saco - 23/Jun/2014
 #
-import time
 import sys
-import argparse as ap
+import time
 import numpy as np
-from pystarlight.util.constants import L_sun
-from pystarlight.util.base import StarlightBase
+import argparse as ap
 import CALIFAUtils as C
 from CALIFAUtils.lines import Lines
 from CALIFAUtils.objects import ALLGals
-from CALIFAUtils.scripts import calc_SFR
 from CALIFAUtils.scripts import calc_xY
+from CALIFAUtils.scripts import calc_SFR
+from pystarlight.util import redenninglaws
+from pystarlight.util.constants import L_sun
+from pystarlight.util.base import StarlightBase
 from CALIFAUtils.scripts import calc_alogZ_Stuff
 from CALIFAUtils.scripts import radialProfileWeighted
 
@@ -556,6 +557,7 @@ if __name__ == '__main__':
         ##########################
 
         #### intrinsic Ha Lum ####
+        q = redenninglaws.Cardelli_RedLaw([4861, 5007, 6563, 6583])
         F_obs_Ha__z = np.ma.masked_array(K.EL.flux[i_Ha, :], mask = ~(maskOkLine[Ha_central_wl]))
         L_obs__Lz = K.EL._F_to_L(K.EL.flux) / L_sun
         L_obs_err__Lz = K.EL._F_to_L(K.EL.eflux) / L_sun        
@@ -565,17 +567,17 @@ if __name__ == '__main__':
         L_obs_Hb_err__z = np.ma.masked_array(L_obs_err__Lz[i_Hb, :], mask = ~(maskOkLine[Hb_central_wl]))
         L_obs_HaHb__z = L_obs_Ha__z / L_obs_Hb__z
         # L_int_Ha__Lz intrinsic Ha luminosity 
-        eHa = np.ma.exp(K.EL._qCCM['6563'] * tau_V_neb__z)
+        eHa = np.ma.exp(q[2] * tau_V_neb__z)
         # For the zones where I don't have values for tau_V_neb I don't correct the Lum_Ha
         L_int_Ha__z = np.where(maskOkTauVNeb__z, L_obs_Ha__z * eHa, L_obs_Ha__z)
         L_int_Ha__z = np.ma.masked_array(L_int_Ha__z, mask = ~maskOkTauVNeb__z)
-        integrated_eHa = np.ma.exp(K.EL._qCCM['6563'] * K.EL.integrated_tau_V_neb)
+        integrated_eHa = np.ma.exp(q[2] * K.EL.integrated_tau_V_neb)
         integrated_L_obs__L = K.EL._F_to_L(K.EL.integrated_flux) / L_sun
         integrated_L_int_Ha = integrated_L_obs__L[i_Ha] * integrated_eHa
         # L_int_Ha_err__Lz intrinsic Ha luminosity propagated error
-        q = K.EL._qCCM['6563'] / (K.EL._qCCM['4861'] - K.EL._qCCM['6563'])
+        qq = q[2] / (q[0] - q[2])
         a = L_obs_Ha_err__z
-        b = q * L_obs_HaHb__z * L_obs_Hb_err__z
+        b = qq * L_obs_HaHb__z * L_obs_Hb_err__z
         L_int_Ha_err__z = np.where(maskOkTauVNeb__z == True, L_obs_Ha_err__z, eHa * np.sqrt(a ** 2.0 + b ** 2.0))
         L_int_Ha_err__z = np.ma.masked_array(L_int_Ha_err__z, mask = ~maskOkTauVNeb__z)
         
@@ -590,6 +592,67 @@ if __name__ == '__main__':
         ALL._L_int_Ha_err__g.append(L_int_Ha_err__z.data)
         ALL.integrated_L_obs_Ha__g[iGal] = integrated_L_obs__L[i_Ha]
         ALL.integrated_L_int_Ha__g[iGal] = integrated_L_int_Ha
+        ##########################
+        
+        ###### OTH BPT LINES #####
+        F_obs_Hb__z = np.ma.masked_array(K.EL.flux[i_Hb, :], mask = ~(maskOkLine[Hb_central_wl]))
+        F_obs_O3__z = np.ma.masked_array(K.EL.flux[i_O3, :], mask = ~(maskOkLine[O3_central_wl]))
+        F_obs_N2__z = np.ma.masked_array(K.EL.flux[i_N2, :], mask = ~(maskOkLine[N2_central_wl]))
+        eHb = np.ma.exp(q[0] * tau_V_neb__z)
+        eO3 = np.ma.exp(q[1] * tau_V_neb__z)
+        eN2 = np.ma.exp(q[3] * tau_V_neb__z)
+        F_int_Ha__z = np.where(maskOkTauVNeb__z, F_obs_Ha__z * eHa, F_obs_Ha__z)
+        F_int_Hb__z = np.where(maskOkTauVNeb__z, F_obs_Hb__z * eHb, F_obs_Hb__z)
+        F_int_O3__z = np.where(maskOkTauVNeb__z, F_obs_O3__z * eO3, F_obs_O3__z)
+        F_int_N2__z = np.where(maskOkTauVNeb__z, F_obs_N2__z * eN2, F_obs_N2__z)
+        integrated_F_obs_Ha = K.EL.integrated_flux[i_Ha]
+        integrated_F_obs_Hb = K.EL.integrated_flux[i_Hb]
+        integrated_F_obs_O3 = K.EL.integrated_flux[i_O3]
+        integrated_F_obs_N2 = K.EL.integrated_flux[i_N2]
+        integrated_eHb = np.ma.exp(q[0] * K.EL.integrated_tau_V_neb)
+        integrated_eO3 = np.ma.exp(q[1] * K.EL.integrated_tau_V_neb)
+        integrated_eN2 = np.ma.exp(q[3] * K.EL.integrated_tau_V_neb)
+        integrated_F_int_Ha = integrated_F_obs_Ha * integrated_eHa
+        integrated_F_int_Hb = integrated_F_obs_Hb * integrated_eHb
+        integrated_F_int_O3 = integrated_F_obs_O3 * integrated_eO3
+        integrated_F_int_N2 = integrated_F_obs_N2 * integrated_eN2
+        F_obs_Ha__r = K.zoneToRad(F_obs_Ha__z, Rbin__r, rad_scale=K.HLR_pix, extensive=False, surface_density=False)
+        F_obs_Hb__r = K.zoneToRad(F_obs_Hb__z, Rbin__r, rad_scale=K.HLR_pix, extensive=False, surface_density=False)
+        F_obs_O3__r = K.zoneToRad(F_obs_O3__z, Rbin__r, rad_scale=K.HLR_pix, extensive=False, surface_density=False)
+        F_obs_N2__r = K.zoneToRad(F_obs_N2__z, Rbin__r, rad_scale=K.HLR_pix, extensive=False, surface_density=False)
+        F_int_Ha__r = K.zoneToRad(F_int_Ha__z, Rbin__r, rad_scale=K.HLR_pix, extensive=False, surface_density=False)
+        F_int_Hb__r = K.zoneToRad(F_int_Hb__z, Rbin__r, rad_scale=K.HLR_pix, extensive=False, surface_density=False)
+        F_int_O3__r = K.zoneToRad(F_int_O3__z, Rbin__r, rad_scale=K.HLR_pix, extensive=False, surface_density=False)
+        F_int_N2__r = K.zoneToRad(F_int_N2__z, Rbin__r, rad_scale=K.HLR_pix, extensive=False, surface_density=False)
+        
+        # Saving for later :D
+        ALL._F_obs_Hb__g.append(F_obs_Hb__z.data)
+        ALL._F_obs_Hb_mask__g.append(F_obs_Hb__z.mask)
+        ALL._F_obs_O3__g.append(F_obs_O3__z.data)
+        ALL._F_obs_O3_mask__g.append(F_obs_O3__z.mask)
+        ALL._F_obs_N2__g.append(F_obs_N2__z.data)
+        ALL._F_obs_N2_mask__g.append(F_obs_N2__z.mask)
+        ALL._F_int_Ha__g.append(F_int_Ha__z)
+        ALL._F_int_Hb__g.append(F_int_Hb__z)
+        ALL._F_int_O3__g.append(F_int_O3__z)
+        ALL._F_int_N2__g.append(F_int_N2__z)
+        ALL.F_obs_Ha__rg[:, iGal] = F_obs_Ha__r
+        ALL.F_obs_Hb__rg[:, iGal] = F_obs_Hb__r
+        ALL.F_obs_O3__rg[:, iGal] = F_obs_O3__r
+        ALL.F_obs_N2__rg[:, iGal] = F_obs_N2__r
+        ALL.F_int_Ha__rg[:, iGal] = F_int_Ha__r
+        ALL.F_int_Hb__rg[:, iGal] = F_int_Hb__r
+        ALL.F_int_O3__rg[:, iGal] = F_int_O3__r
+        ALL.F_int_N2__rg[:, iGal] = F_int_N2__r
+        ALL.integrated_F_obs_Ha__g[iGal] = integrated_F_obs_Ha
+        ALL.integrated_F_obs_Hb__g[iGal] = integrated_F_obs_Hb
+        ALL.integrated_F_obs_O3__g[iGal] = integrated_F_obs_O3
+        ALL.integrated_F_obs_N2__g[iGal] = integrated_F_obs_N2
+        print integrated_F_int_Ha
+        ALL.integrated_F_int_Ha__g[iGal] = integrated_F_int_Ha
+        ALL.integrated_F_int_Hb__g[iGal] = integrated_F_int_Hb
+        ALL.integrated_F_int_O3__g[iGal] = integrated_F_int_O3
+        ALL.integrated_F_int_N2__g[iGal] = integrated_F_int_N2
         ##########################
 
         #### SFR and SigmaSFR ####
@@ -624,15 +687,19 @@ if __name__ == '__main__':
             # ALL.stiack_zones_data() with mask = np.isnan(vect)
             chb_in__z = K.GP.REDDENING.chb_in
             c_Ha_Hb__z = K.GP.REDDENING.c_Ha_Hb
+            O3N2__z = K.GP.LINERATIOS.O3N2
             # O_HIICHIM may have zeros.
             O_HIICHIM__z = np.where(K.GP.EMPAB.O_HIICHIM == 0., np.nan, K.GP.EMPAB.O_HIICHIM)
             O_O3N2_M13__z = K.GP.EMPAB.O_O3N2_M13
             O_O3N2_PP04__z = K.GP.EMPAB.O_O3N2_PP04
             O_direct_O_23__z = K.GP.ELEMAB.O_direct_O_23
+            _O3N2__z = np.ma.masked_array(O3N2__z, mask = np.isnan(O3N2__z))
             _O_HIICHIM__z = np.ma.masked_array(O_HIICHIM__z, mask = np.isnan(O_HIICHIM__z)) 
             _O_O3N2_M13__z = np.ma.masked_array(O_O3N2_M13__z, mask = np.isnan(O_O3N2_M13__z))
             _O_O3N2_PP04__z = np.ma.masked_array(O_O3N2_PP04__z, mask = np.isnan(O_O3N2_PP04__z))
             _O_direct_O_23__z = np.ma.masked_array(O_direct_O_23__z, mask = np.isnan(O_direct_O_23__z))
+            O3N2__yx = K.zoneToYX(_O3N2__z, extensive = False)
+            O3N2__r = K.radialProfile(O3N2__yx, Rbin__r, rad_scale = K.HLR_pix)
             O_HIICHIM__yx = K.zoneToYX(_O_HIICHIM__z, extensive = False)
             O_HIICHIM__r = K.radialProfile(O_HIICHIM__yx, Rbin__r, rad_scale = K.HLR_pix)
             O_O3N2_M13__yx = K.zoneToYX(_O_O3N2_M13__z, extensive = False)
@@ -641,6 +708,7 @@ if __name__ == '__main__':
             O_O3N2_PP04__r = K.radialProfile(O_O3N2_PP04__yx, Rbin__r, rad_scale = K.HLR_pix)
             O_direct_O_23__yx = K.zoneToYX(_O_direct_O_23__z, extensive = False)
             O_direct_O_23__r = K.radialProfile(O_direct_O_23__yx, Rbin__r, rad_scale = K.HLR_pix)
+            integrated_O3N2 = K.GP.LINERATIOS.integrated_O3N2
             integrated_chb_in = K.GP.REDDENING.integrated_chb_in
             integrated_c_Ha_Hb = K.GP.REDDENING.integrated_c_Ha_Hb
             integrated_O_HIICHIM = K.GP.EMPAB.integrated_O_HIICHIM
@@ -649,18 +717,21 @@ if __name__ == '__main__':
             integrated_O_direct_O_23 = K.GP.ELEMAB.integrated_O_direct_O_23
             
             # Saving for later :D
+            ALL._O3N2__g.append(O3N2__z)
             ALL._chb_in__g.append(chb_in__z)
             ALL._c_Ha_Hb__g.append(c_Ha_Hb__z)
             ALL._O_HIICHIM__g.append(O_HIICHIM__z)
             ALL._O_O3N2_M13__g.append(O_O3N2_M13__z)
             ALL._O_O3N2_PP04__g.append(O_O3N2_PP04__z)
             ALL._O_direct_O_23__g.append(O_direct_O_23__z)
+            ALL.integrated_O3N2__g[iGal] = integrated_O3N2
             ALL.integrated_chb_in__g[iGal] = integrated_chb_in
             ALL.integrated_c_Ha_Hb__g[iGal] = integrated_c_Ha_Hb
             ALL.integrated_O_HIICHIM__g[iGal] = integrated_O_HIICHIM
             ALL.integrated_O_O3N2_M13__g[iGal] = integrated_O_O3N2_M13
             ALL.integrated_O_O3N2_PP04__g[iGal] = integrated_O_O3N2_PP04
             ALL.integrated_O_direct_O_23__g[iGal] = integrated_O_direct_O_23
+            ALL.O3N2__rg[:, iGal] = O3N2__r
             ALL.O_HIICHIM__rg[:, iGal] = O_HIICHIM__r
             ALL.O_O3N2_M13__rg[:, iGal] = O_O3N2_M13__r
             ALL.O_O3N2_PP04__rg[:, iGal] = O_O3N2_PP04__r 
