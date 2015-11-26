@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/opt/local/bin/python
 #
 # Lacerda@Granada - 13/Oct/2014
 #
@@ -7,19 +7,23 @@ import numpy as np
 import CALIFAUtils as C
 import matplotlib as mpl
 from os.path import basename
+from CALIFAUtils.lines import Lines
 from matplotlib import pyplot as plt
-from CALIFAUtils.objects import runstats 
 from matplotlib.pyplot import MultipleLocator
 from matplotlib.backends.backend_pdf import PdfPages
 from CALIFAUtils.plots import plotOLSbisectorAxis, plot_text_ax
 
-#mask_radius = False
+#all = True
+all = False
 RNuc = 0.7
 maskradius = RNuc
 #maskradius = None
+if all:
+    maskradius = None
 if maskradius is None: RNuc = 0 
 #zlim = [RNuc, 3]
-A4Size_inches = [ 8.267, 11.692 ]
+A4Size_inches = [ 8.3, 8.3 ]
+#A4Size_inches = [ 8.267, 11.692 ]
 LetterSize_inches = [ 8.5, 11 ]
 
 def iTGen(tSF__T, iT_values = [ 11, 17 ]):
@@ -45,6 +49,9 @@ tSF__T = H.tSF__T
 #iT_values = [ 2, 3 ]
 iT_values = [ 2 ]
 zlim = [RNuc, H.Rbin__r[-1]]
+# fix integrated_tau_V_neb mask
+aux = np.less(H.integrated_tau_V_neb__g, 0)
+H.integrated_tau_V_neb__g[aux] = np.ma.masked
 
 if maskradius is None:
     namepref = ''
@@ -84,33 +91,217 @@ default_kwargs_zbins = dict(
 kwargs_ols_plot = dict(c = 'r', ls = '--', lw = 2, label = 'OLS')
 kwargs_ols = dict(c = 'k', pos_x = 0.98, pos_y = 0.01, fs = 6, rms = True, text = True, kwargs_plot = kwargs_ols_plot)
 
-
 for iT, tSF in iTGen(H.tSF__T, iT_values):
     ba_max = 0
+    #ba_max = 0.7
     #mask_GAL__g = np.bitwise_or(np.less(H.integrated_EW_Ha__g, 3.), np.less(H.ba_GAL__g, ba_max))
-    #mask_GAL__g = np.bitwise_or(np.zeros_like(H.integrated_EW_Ha__g, dtype = np.bool), np.less(H.ba_GAL__g, ba_max))
-    mask_GAL__g = np.bitwise_or(np.less(H.integrated_EW_Ha__g, 3.), np.zeros_like(H.ba_GAL__g, dtype = np.bool))
+    mask_GAL__g = np.bitwise_or(np.zeros_like(H.integrated_EW_Ha__g, dtype = np.bool), np.less(H.ba_GAL__g, ba_max))
+    #mask_GAL__g = np.bitwise_or(np.less(H.integrated_EW_Ha__g, 3.), np.zeros_like(H.ba_GAL__g, dtype = np.bool))
     #mask_GAL__g = np.zeros_like(H.integrated_EW_Ha__g, dtype = np.bool)
     
     mask__g = np.bitwise_or(np.ma.log10(H.SFRSD__Tg[iT] * 1e6).mask, np.ma.log10(H.tau_V__Tg[iT]).mask)
     mask__g = np.bitwise_or(mask__g, np.ma.log10(H.SFRSD_Ha__g * 1e6).mask)
     mask__g = np.bitwise_or(mask__g, np.ma.log10(H.tau_V_neb__g).mask)
     mask__g = np.bitwise_or(mask__g, H.O_O3N2_M13__g.mask)
-    mask__g = np.bitwise_or(mask__g, np.less(H.EW_Ha__g, 3.))
-    #mask__g = np.bitwise_or(mask__g, np.less(H.reply_arr_by_zones(H.ba_GAL__g), ba_max))
+    #mask__g = np.bitwise_or(mask__g, np.less(H.EW_Ha__g, 3.))
+    mask__g = np.bitwise_or(mask__g, np.less(H.reply_arr_by_zones(H.ba_GAL__g), ba_max))
     mask__g = np.bitwise_or(mask__g, ~maskRadiusOk__g)
+    #mask__g = np.bitwise_or(mask__g, ~gals_slice__g)
+
     #mask__g = ~maskRadiusOk__g
     
     mask__rg = np.bitwise_or(np.ma.log10(H.aSFRSD__Trg[iT] * 1e6).mask, np.ma.log10(H.tau_V__Trg[iT]).mask)
     mask__rg = np.bitwise_or(mask__rg, np.ma.log10(H.aSFRSD_Ha__rg * 1e6).mask)
     mask__rg = np.bitwise_or(mask__rg, np.ma.log10(H.tau_V_neb__rg).mask)
     mask__rg = np.bitwise_or(mask__rg, H.O_O3N2_M13__rg.mask)
-    mask__rg = np.bitwise_or(mask__rg, np.less(H.EW_Ha__rg, 3.))
-    #mask__rg = np.bitwise_or(mask__rg, np.less(H.reply_arr_by_radius(H.ba_GAL__g), ba_max))
+    #mask__rg = np.bitwise_or(mask__rg, np.less(H.EW_Ha__rg, 3.))
+    mask__rg = np.bitwise_or(mask__rg, np.less(H.reply_arr_by_radius(H.ba_GAL__g), ba_max))
     mask__rg = np.bitwise_or(mask__rg, ~maskRadiusOk__rg)
+    #mask__rg = np.bitwise_or(mask__rg, ~gals_slice__rg)
     #mask__rg = ~maskRadiusOk__rg
+    
+    NgalsOkZones = len(np.unique(H.reply_arr_by_zones(H.califaIDs)[~mask__g]))  
+    NgalsOkRbins = len(np.unique(H.reply_arr_by_radius(H.califaIDs_all)[~mask__rg]))
             
     with PdfPages('SK_%.2fMyr%s_%s.pdf' % ((tSF/1e6), namepref, basename(h5file).replace('SFR_', '').replace('.h5', ''))) as pdf:
+        ############## BPT ##############
+        ############## BPT ##############
+        ############## BPT ##############
+        
+        NRows = 2
+        NCols = 2
+        f = plt.figure()
+        page_size_inches = np.asarray(A4Size_inches)
+        #page_size_inches[1] /= 2.
+        f.set_size_inches(page_size_inches.tolist())
+        grid_shape = (NRows, NCols)
+
+        if maskradius is None:
+            suptitle = r'NGals:%d  Nzones:%d  NRbins:%d  $t_{SF}$:%.2fMyr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (~mask__g).sum(), (~mask__rg).sum(), (tSF/1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
+        else:
+            suptitle = r'NGals:%d  Nzones:%d  NRbins:%d  R > %.1fHLR  $t_{SF}$:%.2fMyr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (~mask__g).sum(), (~mask__rg).sum(), RNuc, (tSF/1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
+    
+        f.suptitle(suptitle, fontsize = 9)
+        
+        EW_Ha__g = H.EW_Ha__g
+        EW_Ha__rg = H.EW_Ha__rg
+        Ha__g = H.F_int_Ha__g
+        Ha__rg = H.F_int_Ha__rg
+        Hb__g = H.F_int_Hb__g
+        Hb__rg = H.F_int_Hb__rg
+        O3__g = H.F_int_O3__g
+        O3__rg = H.F_int_O3__rg
+        N2__g = H.F_int_N2__g
+        N2__rg = H.F_int_N2__rg
+        
+        logWHa__g = np.ma.masked_array(np.ma.log10(EW_Ha__g), mask = mask__g)
+        logWHa__rg = np.ma.masked_array(np.ma.log10(EW_Ha__rg), mask = mask__rg)
+        logO3Hb__g = np.ma.masked_array(np.ma.log10(O3__g) - np.ma.log10(Hb__g), mask = mask__g)
+        logO3Hb__rg = np.ma.masked_array(np.ma.log10(O3__rg) - np.ma.log10(Hb__rg), mask = mask__rg)
+        logN2Ha__g = np.ma.masked_array(np.ma.log10(N2__g) - np.ma.log10(Ha__g), mask = mask__g)
+        logN2Ha__rg = np.ma.masked_array(np.ma.log10(N2__rg) - np.ma.log10(Ha__rg), mask = mask__rg)
+
+        l = Lines()
+        
+        ax = plt.subplot2grid(grid_shape, loc = (0, 0))
+        ax.set_axis_on()
+        for line in l.linesbpt:
+            ax.plot(l.x[line], l.y[line], label = line)
+        ax.text(-0.7, -0.5, 'SF')
+        ax.text(-0.3, 0.6, 'Seyfert')
+        ax.text(0.15, -0.5, 'LINER')
+        C.plot_zbins(
+            debug = True,
+            cb = False,
+            write_N = True,
+            zmask = None,
+            f = f,
+            ax = ax,
+            x = logN2Ha__g, 
+            y = logO3Hb__g, 
+            z = H.zone_dist_HLR__g, 
+            zlim = zlim,
+            xlim = (-1.5, 0.5),
+            ylim = (-1.5, 1.0),
+            x_major_locator = 1.,
+            x_minor_locator = 0.2,
+            y_major_locator = 1.,
+            y_minor_locator = 0.2,
+            kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.45, label = ''),
+            xlabel = r'$\log [NII]/H\alpha$',
+            ylabel = r'$\log [OIII]/H\beta$',
+            zlabel = r'R (HLR)',
+        )
+
+        ax = plt.subplot2grid(grid_shape, loc = (0, 1))
+        ax.set_axis_on()
+        for line in l.linesbpt:
+            ax.plot(l.x[line], l.y[line], label = line)
+        ax.text(-0.7, -0.5, 'SF')
+        ax.text(-0.3, 0.6, 'Seyfert')
+        ax.text(0.15, -0.5, 'LINER')
+        C.plot_zbins(
+            debug = True,
+            cb = True,
+            write_N = True,
+            zmask = None,
+            f = f,
+            ax = ax,
+            x = logN2Ha__rg, 
+            y = logO3Hb__rg, 
+            z = H.Rtoplot(), 
+            zlim = zlim,
+            xlim = (-1.5, 0.5),
+            ylim = (-1.5, 1.0),
+            x_major_locator = 1.,
+            x_minor_locator = 0.2,
+            y_major_locator = 1.,
+            y_minor_locator = 0.2,
+            kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.45, label = ''),
+            xlabel = r'$\log [NII]/H\alpha(R)$',
+            ylabel = r'$\log [OIII]/H\beta(R)$',
+            zlabel = r'R (HLR)',
+        )
+
+        ax = plt.subplot2grid(grid_shape, loc = (1, 0))
+        ax.set_axis_on()
+        ax.plot((-0.4, -0.4), (np.log10(3), 3), 'k-')
+        ax.plot((-0.4, 0.5), np.ma.log10([6, 6]), 'k-')
+        ax.axhline(y = np.log10(3), c = 'k')
+        p = [np.log10(0.5/5.0), np.log10(0.5)]
+        xini = (np.log10(3.) - p[1]) / p[0]
+        ax.plot((xini, 0.), np.polyval(p, [xini, 0.]), 'k:')
+        ax.plot((0, 0.5), np.log10([0.5, 0.5]), 'k:')
+        ax.text(-1.4, 0.75, 'SF')
+        ax.text(0.17, 0.9, 'sAGN')
+        ax.text(0.15, 0.55, 'wAGN')
+        ax.text(0.3, 0.0, 'RG')
+        ax.text(-0.8, 0, 'PG')        
+        C.plot_zbins(
+            debug = True,
+            cb = False,
+            write_N = True,
+            zmask = None,
+            f = f,
+            ax = ax,
+            x = logN2Ha__g, 
+            y = logWHa__g, 
+            z = H.zone_dist_HLR__g, 
+            xlim = (-1.5, 0.5),
+            ylim = (-0.5, 3),
+            zlim = zlim,
+            x_major_locator = 1.,
+            x_minor_locator = 0.2,
+            kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.45, label = ''),
+            xlabel = r'$\log [NII]/H\alpha$',
+            ylabel = r'$\log WH\alpha$',
+            zlabel = r'R (HLR)',
+        )
+
+        ax = plt.subplot2grid(grid_shape, loc = (1, 1))
+        ax.set_axis_on()
+        ax.plot((-0.4, -0.4), (np.log10(3.), 3.), 'k-')
+        ax.plot((-0.4, 0.5),  np.ma.log10([6., 6.]), 'k-')
+        ax.axhline(np.log10(3), c = 'k')
+        p = [np.log10(0.5/5.0), np.log10(0.5)]
+        xini = (np.log10(3.) - p[1]) / p[0]
+        ax.plot((xini, 0.), np.polyval(p, [xini, 0.]), 'k:')
+        ax.plot((0, 0.5), np.log10([0.5, 0.5]), 'k:')
+        ax.text(-1.4, 0.75, 'SF')
+        ax.text(0.13, 0.9, 'sAGN')
+        ax.text(0.11, 0.55, 'wAGN')
+        ax.text(0.25, 0.0, 'RG')
+        ax.text(-0.8, 0, 'PG')        
+        kw = C.plot_zbins(
+            debug = True,
+            cb = True,
+            return_kwargs = True, 
+            write_N = True,
+            zmask = None,
+            f = f,
+            ax = ax,
+            x = logN2Ha__rg, 
+            y = logWHa__rg, 
+            z = H.Rtoplot(), 
+            xlim = (-1.5, 0.5),
+            ylim = (-0.5, 3),
+            zlim = zlim,
+            x_major_locator = 1.,
+            x_minor_locator = 0.2,
+            kwargs_scatter = dict(marker = 'o', s = 10, edgecolor = 'none', alpha = 0.45, label = ''),
+            xlabel = r'$\log [NII]/H\alpha(R)$',
+            ylabel = r'$\log WH\alpha(R)$',
+            zlabel = r'R (HLR)',
+        )
+
+        f.subplots_adjust(hspace = 0.4, wspace = 0.4)
+        pdf.savefig(f)
+        plt.close(f)
+
+        ############## Syn ##############
+        ############## Syn ##############
+        ############## Syn ##############
+
         NRows = 3
         NCols = 4
         f = plt.figure()
@@ -122,31 +313,19 @@ for iT, tSF in iTGen(H.tSF__T, iT_values):
         f.set_size_inches(page_size_inches)
         grid_shape = (NRows, NCols)
 
-        if maskradius is None:
-            suptitle = r'NGals:%d  Nzones:%d  NRbins:%d  $t_{SF}$:%.2fMyr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (~mask__g).sum(), (~mask__rg).sum(), (tSF/1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
-        else:
-            suptitle = r'NGals:%d  Nzones:%d  NRbins:%d  R > %.1fHLR  $t_{SF}$:%.2fMyr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (H.N_gals, (~mask__g).sum(), (~mask__rg).sum(), RNuc, (tSF/1e6), H.xOkMin * 100., H.tauVOkMin, H.tauVNebOkMin, H.tauVNebErrMax)
-    
-        f.suptitle(suptitle, fontsize = 9)
         #f, axArr = plt.subplots(1, 3)
         #f.set_dpi(100)
         #f.set_size_inches(15, 8)
+        f.suptitle(suptitle, fontsize = 9)
          
-        tau_V_norm_GAL__g = (H.tau_V__Trg[iT][9:11, :]).mean(axis = 0)
-        tau_V_norm__rg = H.tau_V__Trg[iT] / tau_V_norm_GAL__g
-        SFRSD_norm_GAL__g = (H.aSFRSD__Trg[iT][9:11, :]).mean(axis = 0)
-        aSFRSD_norm__rg = H.aSFRSD__Trg[iT] / SFRSD_norm_GAL__g
+        tau_V_norm__rg = H.tau_V__Trg[iT] / H.tau_V_oneHLR__Tg[iT]
+        aSFRSD_norm__rg = H.aSFRSD__Trg[iT] / H.aSFRSD_oneHLR__Tg[iT]
 
-        x1 = np.ma.masked_array(np.ma.log10(H.tau_V__Tg[iT]), mask = mask__g)
-        y1 = np.ma.masked_array(np.ma.log10(H.SFRSD__Tg[iT] * 1e6), mask = mask__g)
-        x2 = np.ma.masked_array(np.ma.log10(H.tau_V__Trg[iT]), mask = mask__rg)
-        y2 = np.ma.masked_array(np.ma.log10(H.aSFRSD__Trg[iT] * 1e6), mask = mask__rg) 
-        x3 = np.ma.masked_array(np.ma.log10(tau_V_norm__rg), mask = mask__rg)
-        y3 = np.ma.masked_array(np.ma.log10(aSFRSD_norm__rg), mask = mask__rg) 
-        x4 = np.ma.masked_array(np.ma.log10(tau_V_norm_GAL__g), mask = mask_GAL__g) 
-        y4 = np.ma.masked_array(np.ma.log10(SFRSD_norm_GAL__g * 1e6), mask = mask_GAL__g)
-        x5 = np.ma.masked_array(np.ma.log10(H.integrated_tau_V__g), mask = mask_GAL__g) 
-        y5 = np.ma.masked_array(np.ma.log10(H.integrated_SFRSD__Tg[iT] * 1e6), mask = mask_GAL__g)
+        x1, y1 = C.ma_mask_xyz(np.ma.log10(H.tau_V__Tg[iT]), np.ma.log10(H.SFRSD__Tg[iT] * 1e6), mask = mask__g)
+        x2, y2 = C.ma_mask_xyz(np.ma.log10(H.tau_V__Trg[iT]), np.ma.log10(H.aSFRSD__Trg[iT] * 1e6), mask = mask__rg) 
+        x3, y3 = C.ma_mask_xyz(np.ma.log10(tau_V_norm__rg), np.ma.log10(aSFRSD_norm__rg), mask = mask__rg) 
+        x4, y4 = C.ma_mask_xyz(np.ma.log10(H.tau_V_oneHLR__Tg[iT]), np.ma.log10(H.aSFRSD_oneHLR__Tg[iT] * 1e6), mask = mask_GAL__g)
+        x5, y5 = C.ma_mask_xyz(np.ma.log10(H.integrated_tau_V__g), np.ma.log10(H.integrated_SFRSD__Tg[iT] * 1e6), mask = mask_GAL__g)
         
         x1label = r'$\log\ \tau_V^{\star}$'
         y1label = r'$\log\ \Sigma_{SFR}^\star(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$'
@@ -164,6 +343,7 @@ for iT, tSF in iTGen(H.tSF__T, iT_values):
         kwargs_zbins.update(ax = ax)
         kwargs_zbins.update(xlim = [-1.5, 0.5])
         kwargs_zbins.update(ylim = [-3.5, 1])
+        #kwargs_zbins.update(ylim = [-6.05, 2.05])
         kwargs_zbins.update(cb = False)
         C.plot_zbins(x = x1, y = y1, xlabel = x1label, ylabel = y1label, z = H.zone_dist_HLR__g, **kwargs_zbins)
         
@@ -290,21 +470,14 @@ for iT, tSF in iTGen(H.tSF__T, iT_values):
     
         f.suptitle(suptitle, fontsize = 9)
 
-        tau_V_neb_norm_GAL__g = (H.tau_V_neb__rg[9:11, :]).mean(axis = 0)
-        tau_V_neb_norm__rg = H.tau_V_neb__rg / tau_V_neb_norm_GAL__g
-        SFRSD_Ha_norm_GAL__g = (H.aSFRSD_Ha__rg[9:11, :]).mean(axis = 0)
-        aSFRSD_Ha_norm__rg = H.aSFRSD_Ha__rg / SFRSD_Ha_norm_GAL__g
+        tau_V_neb_norm__rg = H.tau_V_neb__rg / H.tau_V_neb_oneHLR__g
+        aSFRSD_Ha_norm__rg = H.aSFRSD_Ha__rg / H.aSFRSD_Ha_oneHLR__g
      
-        x1 = np.ma.masked_array(np.ma.log10(H.tau_V_neb__g), mask = mask__g)
-        y1 = np.ma.masked_array(np.ma.log10(H.SFRSD_Ha__g * 1e6), mask = mask__g) 
-        x2 = np.ma.masked_array(np.ma.log10(H.tau_V_neb__rg), mask = mask__rg)
-        y2 = np.ma.masked_array(np.ma.log10(H.aSFRSD_Ha__rg * 1e6), mask = mask__rg) 
-        x3 = np.ma.masked_array(np.ma.log10(tau_V_neb_norm__rg), mask = mask__rg)
-        y3 = np.ma.masked_array(np.ma.log10(aSFRSD_Ha_norm__rg), mask = mask__rg) 
-        x4 = np.ma.masked_array(np.ma.log10(tau_V_neb_norm_GAL__g), mask = mask_GAL__g) 
-        y4 = np.ma.masked_array(np.ma.log10(SFRSD_Ha_norm_GAL__g * 1e6), mask = mask_GAL__g)
-        x5 = np.ma.masked_array(np.ma.log10(H.integrated_tau_V_neb__g), mask = mask_GAL__g)
-        y5 = np.ma.masked_array(np.ma.log10(H.integrated_SFRSD_Ha__g * 1e6), mask = mask_GAL__g)
+        x1, y1 = C.ma_mask_xyz(np.ma.log10(H.tau_V_neb__g), np.ma.log10(H.SFRSD_Ha__g * 1e6), mask = mask__g) 
+        x2, y2 = C.ma_mask_xyz(np.ma.log10(H.tau_V_neb__rg), np.ma.log10(H.aSFRSD_Ha__rg * 1e6), mask = mask__rg) 
+        x3, y3 = C.ma_mask_xyz(np.ma.log10(tau_V_neb_norm__rg), np.ma.log10(aSFRSD_Ha_norm__rg), mask = mask__rg) 
+        x4, y4 = C.ma_mask_xyz(np.ma.log10(H.tau_V_neb_oneHLR__g), np.ma.log10(H.aSFRSD_Ha_oneHLR__g * 1e6), mask = mask_GAL__g)
+        x5, y5 = C.ma_mask_xyz(np.ma.log10(H.integrated_tau_V_neb__g), np.ma.log10(H.integrated_SFRSD_Ha__g * 1e6), mask = mask_GAL__g)
       
         x1label = r'$\log\ \tau_V^{neb}$'
         y1label = r'$\log\ \Sigma_{SFR}^{H\alpha}\ [M_\odot yr^{-1} kpc^{-2}]$'
@@ -450,21 +623,14 @@ for iT, tSF in iTGen(H.tSF__T, iT_values):
 
         f.suptitle(suptitle, fontsize = 9)
            
-        tau_V_neb_norm_GAL__g = (H.tau_V_neb__rg[9:11, :]).mean(axis = 0)
-        tau_V_neb_norm__rg = H.tau_V_neb__rg / tau_V_neb_norm_GAL__g
-        SFRSD_norm_GAL__g = (H.aSFRSD__Trg[iT][9:11, :]).mean(axis = 0)
-        aSFRSD_norm__rg = H.aSFRSD__Trg[iT] / SFRSD_norm_GAL__g
+        tau_V_neb_norm__rg = H.tau_V_neb__rg / H.tau_V_neb_oneHLR__g
+        aSFRSD_norm__rg = H.aSFRSD__Trg[iT] / H.aSFRSD_oneHLR__Tg[iT]
        
-        x1 = np.ma.masked_array(np.ma.log10(H.tau_V_neb__g), mask = mask__g)
-        y1 = np.ma.masked_array(np.ma.log10(H.SFRSD__Tg[iT] * 1e6), mask = mask__g) 
-        x2 = np.ma.masked_array(np.ma.log10(H.tau_V_neb__rg), mask = mask__rg)
-        y2 = np.ma.masked_array(np.ma.log10(H.aSFRSD__Trg[iT] * 1e6), mask = mask__rg) 
-        x3 = np.ma.masked_array(np.ma.log10(tau_V_neb_norm__rg), mask = mask__rg)
-        y3 = np.ma.masked_array(np.ma.log10(aSFRSD_norm__rg), mask = mask__rg) 
-        x4 = np.ma.masked_array(np.ma.log10(tau_V_neb_norm_GAL__g), mask = mask_GAL__g) 
-        y4 = np.ma.masked_array(np.ma.log10(SFRSD_norm_GAL__g * 1e6), mask = mask_GAL__g)
-        x5 = np.ma.masked_array(np.ma.log10(H.integrated_tau_V_neb__g), mask = mask_GAL__g) 
-        y5 = np.ma.masked_array(np.ma.log10(H.integrated_SFRSD__Tg[iT] * 1e6), mask = mask_GAL__g)
+        x1, y1 = C.ma_mask_xyz(np.ma.log10(H.tau_V_neb__g), np.ma.log10(H.SFRSD__Tg[iT] * 1e6), mask = mask__g) 
+        x2, y2 = C.ma_mask_xyz(np.ma.log10(H.tau_V_neb__rg), np.ma.log10(H.aSFRSD__Trg[iT] * 1e6), mask = mask__rg) 
+        x3, y3 = C.ma_mask_xyz(np.ma.log10(tau_V_neb_norm__rg), np.ma.log10(aSFRSD_norm__rg), mask = mask__rg) 
+        x4, y4 = C.ma_mask_xyz(np.ma.log10(H.tau_V_neb_oneHLR__g), np.ma.log10(H.aSFRSD_oneHLR__Tg[iT] * 1e6), mask = mask_GAL__g)
+        x5, y5 = C.ma_mask_xyz(np.ma.log10(H.integrated_tau_V_neb__g), np.ma.log10(H.integrated_SFRSD__Tg[iT] * 1e6), mask = mask_GAL__g)
  
         x1label = r'$\log\ \tau_V^{neb}$'
         y1label = r'$\log\ \Sigma_{SFR}^\star(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$'
@@ -610,21 +776,14 @@ for iT, tSF in iTGen(H.tSF__T, iT_values):
         
         f.suptitle(suptitle, fontsize = 9)
 
-        tau_V_norm_GAL__g = (H.tau_V__Trg[iT][9:11, :]).mean(axis = 0)
-        tau_V_norm__rg = H.tau_V__Trg[iT] / tau_V_norm_GAL__g
-        SFRSD_Ha_norm_GAL__g = (H.aSFRSD_Ha__rg[9:11, :]).mean(axis = 0)
-        aSFRSD_Ha_norm__rg = H.aSFRSD_Ha__rg / SFRSD_Ha_norm_GAL__g
+        tau_V_norm__rg = H.tau_V__Trg[iT] / H.tau_V_oneHLR__Tg[iT]
+        aSFRSD_Ha_norm__rg = H.aSFRSD_Ha__rg / H.aSFRSD_Ha_oneHLR__g
        
-        x1 = np.ma.masked_array(np.ma.log10(H.tau_V__Tg[iT]), mask = mask__g)
-        y1 = np.ma.masked_array(np.ma.log10(H.SFRSD_Ha__g * 1e6), mask = mask__g) 
-        x2 = np.ma.masked_array(np.ma.log10(H.tau_V__Trg[iT]), mask = mask__rg)
-        y2 = np.ma.masked_array(np.ma.log10(H.aSFRSD_Ha__rg * 1e6), mask = mask__rg) 
-        x3 = np.ma.masked_array(np.ma.log10(tau_V_norm__rg), mask = mask__rg)
-        y3 = np.ma.masked_array(np.ma.log10(aSFRSD_Ha_norm__rg), mask = mask__rg) 
-        x4 = np.ma.masked_array(np.ma.log10(tau_V_norm_GAL__g), mask = mask_GAL__g) 
-        y4 = np.ma.masked_array(np.ma.log10(SFRSD_Ha_norm_GAL__g * 1e6), mask = mask_GAL__g)
-        x5 = np.ma.masked_array(np.ma.log10(H.integrated_tau_V__g), mask = mask_GAL__g) 
-        y5 = np.ma.masked_array(np.ma.log10(H.integrated_SFRSD_Ha__g * 1e6), mask = mask_GAL__g)
+        x1, y1 = C.ma_mask_xyz(np.ma.log10(H.tau_V__Tg[iT]), np.ma.log10(H.SFRSD_Ha__g * 1e6), mask = mask__g) 
+        x2, y2 = C.ma_mask_xyz(np.ma.log10(H.tau_V__Trg[iT]), np.ma.log10(H.aSFRSD_Ha__rg * 1e6), mask = mask__rg) 
+        x3, y3 = C.ma_mask_xyz(np.ma.log10(tau_V_norm__rg), np.ma.log10(aSFRSD_Ha_norm__rg), mask = mask__rg) 
+        x4, y4 = C.ma_mask_xyz(np.ma.log10(H.tau_V_oneHLR__Tg[iT]), np.ma.log10(H.aSFRSD_Ha_oneHLR__g * 1e6), mask = mask_GAL__g)
+        x5, y5 = C.ma_mask_xyz(np.ma.log10(H.integrated_tau_V__g), np.ma.log10(H.integrated_SFRSD_Ha__g * 1e6), mask = mask_GAL__g)
       
         x1label = r'$\log\ \tau_V^{\star}$'
         y1label = r'$\log\ \Sigma_{SFR}^{H\alpha}\ [M_\odot yr^{-1} kpc^{-2}]$'
