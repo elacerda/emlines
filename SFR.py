@@ -227,13 +227,13 @@ if __name__ == '__main__':
         my_type = C.my_morf(tipos)
         
         # Only spiral
-        if args.spiral and my_type >= 0:  # between Sa ... Sd
+        if args.spiral and my_type < 0:  # between Sa ... Sd
             ALL.mask_gal(iGal)
             if args.gasprop is True:
                 K.GP.close()
             K.EL.close()
             K.close()
-            print '<<< %s galaxy: is not a spiral (type: %f)' % (califaID, tipo) 
+            print '<<< %s galaxy: is not a spiral (type: %f (%s))' % (califaID, my_type, tipos) 
             continue
 
         N_zone = K.N_zone
@@ -531,12 +531,7 @@ if __name__ == '__main__':
         Ha_central_wl = '6563'
         N2_central_wl = '6583'
         
-        lines_central_wl = [ 
-            Hb_central_wl,
-            O3_central_wl,
-            Ha_central_wl,
-            N2_central_wl,
-        ]
+        lines_central_wl = [ Hb_central_wl, O3_central_wl, Ha_central_wl, N2_central_wl ]
          
         i_Hb = K.EL.lines.index(Hb_central_wl)
         i_O3 = K.EL.lines.index(O3_central_wl)
