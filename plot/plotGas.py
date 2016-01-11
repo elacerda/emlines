@@ -122,7 +122,7 @@ if __name__ == '__main__':
     SK_SigmaGas__rg = aux * (H.aSFRSD__Trg[iT] / SK_zero) ** (1. / SK_slope)
     SK_SigmaGas_Ha__rg = aux * (H.aSFRSD_Ha__rg / SK_zero) ** (1. / SK_slope)
     SK_SigmaGas_oneHLR__g = aux * (H.aSFRSD_oneHLR__Tg[iT] / SK_zero) ** (1. / SK_slope)
-    SK_SigmaGas_Ha_oneHLR__g = aux * (H.aSFRSD_oneHLR_Ha__g / SK_zero) ** (1. / SK_slope)
+    SK_SigmaGas_Ha_oneHLR__g = aux * (H.aSFRSD_Ha_oneHLR__g / SK_zero) ** (1. / SK_slope)
     SK_integrated_SigmaGas = aux * (H.integrated_SFRSD__Tg[iT] / SK_zero) ** (1. / SK_slope)
     SK_integrated_SigmaGas_Ha = aux * (H.integrated_SFRSD_Ha__g / SK_zero) ** (1. / SK_slope) 
     SK_DGR__g = dustdim * H.tau_V__Tg[iT] / SK_SigmaGas__g

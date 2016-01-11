@@ -23,7 +23,7 @@
 \usepackage{natbib}
 
 % Fix comma spacing in math mode.
-\usepackage{setspace}                % Produzir espaçamento entre linhas
+\usepackage{setspace}                % Produzir espa��amento entre linhas
 \usepackage{latexsym}
 \usepackage[utf8x]{inputenc}        % Para poder digitar os acentos da maneira usual:
 \usepackage{calc}
@@ -57,7 +57,7 @@
 
 \section{Emission lines files reader in \pycasso}
 
-Since Rubén G. B. release the measurements of emission lines fluxes using the residual data (one of the products of the \starlight analysis of the CALIFA datacubes) we start to do some trial calculations and this motivate myself to build a default reader to this kind of data file in order to facilitate our usage of the data. I built this reader (and parser) directly in \pycasso (you can find the code \href{https://bitbucket.org/astro_ufsc/pycasso/src/38741376583e216a040b266958e673d2b4b628d5/src/pycasso/fitsdatacube.py?at=default}{here},  after the line 207.). I call the object \texttt{EmLinesDataCube}() and it can be used importing directly inside a python script, or directly using a \pycasso datacube. An usage example can be found \href{https://bitbucket.org/astro_ufsc/pycasso/src/38741376583e216a040b266958e673d2b4b628d5/contrib/emLinesExample.py?at=default}{here}. If you want some help just send me an \href{mailto:lacerda@iaa.es}{e-mail} and I help you. Soon a help document will [NEED TO] be created.
+Since Rub��n G. B. release the measurements of emission lines fluxes using the residual data (one of the products of the \starlight analysis of the CALIFA datacubes) we start to do some trial calculations and this motivate myself to build a default reader to this kind of data file in order to facilitate our usage of the data. I built this reader (and parser) directly in \pycasso (you can find the code \href{https://bitbucket.org/astro_ufsc/pycasso/src/38741376583e216a040b266958e673d2b4b628d5/src/pycasso/fitsdatacube.py?at=default}{here},  after the line 207.). I call the object \texttt{EmLinesDataCube}() and it can be used importing directly inside a python script, or directly using a \pycasso datacube. An usage example can be found \href{https://bitbucket.org/astro_ufsc/pycasso/src/38741376583e216a040b266958e673d2b4b628d5/contrib/emLinesExample.py?at=default}{here}. If you want some help just send me an \href{mailto:lacerda@iaa.es}{e-mail} and I help you. Soon a help document will [NEED TO] be created.
 
 Today the code is usable but stills in alpha version.
 
@@ -65,7 +65,7 @@ Today the code is usable but stills in alpha version.
 
 %Rub\'en words:
 %\begin{quotation}
-%"Tal y como están hechos los ajustes ahora, todo los resultados se guardan. Pero seguro que hay resultados que no son buenos. Un primer check sería ver si "pos", la longitud de onda central, está cerca del valor esperado (en reposo). Hay algunas veces que no hay linea, por ejemplo de [OII], pero cerca hay algún glitch o cualquier otra cosa y el programa lo mide. Poniendo una tolerancia de, digamos 2 o 3 Angtroms, eliminaría las líneas que se desvian de la posición central "teórica" fuera de esa tolerancia. Otro método de limpieza quizás serían FHWM absurdamente grandes, o EW. Pero creo que uno muy fiable a priori es el de la posición central de la línea"
+%"Tal y como est��n hechos los ajustes ahora, todo los resultados se guardan. Pero seguro que hay resultados que no son buenos. Un primer check ser��a ver si "pos", la longitud de onda central, est�� cerca del valor esperado (en reposo). Hay algunas veces que no hay linea, por ejemplo de [OII], pero cerca hay alg��n glitch o cualquier otra cosa y el programa lo mide. Poniendo una tolerancia de, digamos 2 o 3 Angtroms, eliminar��a las l��neas que se desvian de la posici��n central "te��rica" fuera de esa tolerancia. Otro m��todo de limpieza quiz��s ser��an FHWM absurdamente grandes, o EW. Pero creo que uno muy fiable a priori es el de la posici��n central de la l��nea"
 %\end{quotation}
 %This kind of filter was not applied to this results. Maybe this has to be the next thing to tackle and it not appears to be a heavy thing to code, given a central lambda table. 
 % UPDATE 23/04/2015 - This was updated, now we have all the masks.
@@ -78,7 +78,7 @@ To those following results I used minimum S/N ratio of 3. The wavelength displac
 %The morphologic types used are evaluated using \texttt{get\_morfologia()} by ES.Enrique:
 %
 %\begin{verbatim}
-%[‘E0','E1','E2','E3','E4','E5','E6','E7','S0','S0a','Sa','Sab','Sb',
+%[���E0','E1','E2','E3','E4','E5','E6','E7','S0','S0a','Sa','Sab','Sb',
 %[   0,   1,   2,   3,   4,   5,   6,   7,   8,  8.5,   9,  9.5,  10,  
 %'Sbc','Sc','Scd','Sd','Sdm','Sm','Ir']
 % 10.5,  11, 11.5,  12, 12.5,  13,  14]
@@ -157,18 +157,24 @@ The nebular metalicity used here is calibrated by \citep{Stasinska.2006a} as:
 
 \section{Some results using the emission lines files}
 
-I began the nebular studies looking for a star formation rate (SFR) calibration for our data. I did that in the same way as \citet[sec. 5.1]{Asari.etal.2007a} but instead using \citet{BC03a} with \citet{Salpeter.1955a} IMF and Padova 2000 isochrones \citep{Girardi.etal.2000a}. The recipe is simple, but kinda tricky. I'll explain here as follows.
+I began the nebular studies looking for a star formation rate (SFR) calibration for our data. I did
+that in the same way as \citet[sec. 5.1]{Asari.etal.2007a} but instead using \citet{BC03a} with
+\citet{Salpeter.1955a} IMF and Padova 2000 isochrones \citep{Girardi.etal.2000a}. The recipe is
+simple, but kinda tricky. I'll explain here as follows.
 
 \subsection{Current SFR calibration using \Halpha luminosity}
 \label{sub:NebularSFR}
-We want to calibrate the \Halpha luminosity ($\mathrm{L}_{\Halpha}$) as an SFR ($\psi$) indicator \citep[e.g., ][]{Kennicutt.1998a} using a linear relation
+We want to calibrate the \Halpha luminosity ($\mathrm{L}_{\Halpha}$) as an SFR ($\psi$) indicator
+\citep[e.g., ][]{Kennicutt.1998a} using a linear relation
 \begin{equation}
 	\psi_{\Halpha} = k \times \mathrm{L}_{\Halpha}.
 	\label{eq:SFRHa}
 \end{equation}
 \noindent Our job is find that $k$.
 
-The total amount of $l$-light\footnote{$l(t)$ can be any function which describes the time-evolution of any generic radiative source \emph{per unit formed mass} (thus IMF-dependent) of an SSP.}, we receive from stars formed $t$ years ago is
+The total amount of $l$-light\footnote{$l(t)$ can be any function which describes the time-evolution
+of any generic radiative source \emph{per unit formed mass} (thus IMF-dependent) of an SSP.}, we
+receive from stars formed $t$ years ago is
 \begin{equation}
 	\mathrm{d}\Lambda = l(t)\ \mathrm{d}\mathrm{M}(t).
 	\label{eq:dLambda}
@@ -227,13 +233,22 @@ For our models configuration we can see the evolution of $\mathcal{N}_H$ in time
 
 \subsection{SFR from the stellar synthesis}
 \label{sub:StellarSFR}
-The process explained at the Sec. \ref{sub:NebularSFR}, which culminates in equation \eqref{eq:SFRNeb}, show us a recent SFR.  The SFR from spectral synthesis should be more representative of the true SFR due to the contribution of all stars to visible light. Using the fact that we have age and mass of each stellar population as one of the products of the spectral synthesis, we can sum over this factor and obtain the total mass converted into stars within the last $\tau$ years, i.e., a mean stellar SFR in the last $\tau$ years.
+The process explained at the Sec. \ref{sub:NebularSFR}, which culminates in equation
+\eqref{eq:SFRNeb}, show us a recent SFR.  The SFR from spectral synthesis should be more
+representative of the true SFR due to the contribution of all stars to visible light. Using the fact
+that we have age and mass of each stellar population as one of the products of the spectral
+synthesis, we can sum over this factor and obtain the total mass converted into stars within the
+last $\tau$ years, i.e., a mean stellar SFR in the last $\tau$ years.
 \begin{equation}
 	\label{eq:MeanStellarSFR}
 	\overline{\mathrm{SFR}_\star}(\tau) = \mathrm{M}_\star^c \frac{1 - \eta_\star^c(\tau)}{\tau}
 \end{equation}
 
-Using all the years presented in our base (spanning since 1 Myr till 14.1 Gyr) we can compare this $\overline{\mathrm{SFR}_\star}(\tau)$ with the $\mathrm{SFR}_{\Halpha}$. The Figs. \ref{fig:SFRCompare}, \ref{fig:SFRSDCompare}, \ref{fig:SFRCompareBS06} and \ref{fig:SFRSDCompareBS06} shows us the this comparison for 11 ages and in the last panel the correlations between both for all ages. 
+Using all the years presented in our base (spanning since 1 Myr till 14.1 Gyr) we can compare this
+$\overline{\mathrm{SFR}_\star}(\tau)$ with the $\mathrm{SFR}_{\Halpha}$. The Figs.
+\ref{fig:SFRCompare}, \ref{fig:SFRSDCompare}, \ref{fig:SFRCompareBS06} and
+\ref{fig:SFRSDCompareBS06} shows us the this comparison for 11 ages and in the last panel the
+correlations between both for all ages.
 
 %Using \STARLIGHT we are able to analyze de SFR in function of time (SFR($t_\star$)) using the cumulative fraction of mass ($\mu_\star^c$) as follows:
 %\begin{equation}

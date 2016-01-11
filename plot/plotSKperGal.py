@@ -54,6 +54,8 @@ def parser_args():
         'califaID' : 'K0073',
         'itSF' : 11,
         'vrunstr' : 'v20_q050.d15a',
+        'rmin' : None,
+        'slice_gals' : None,
     }
     
     parser.add_argument('--debug', '-D',
@@ -72,10 +74,19 @@ def parser_args():
                         metavar = '',
                         type = int,
                         default = default['itSF'])
+    parser.add_argument('--rmin', '-R',
+                        help = 'min R (HLR)',
+                        metavar = 'HLR',
+                        type = float,
+                        default = default['rmin'])
     parser.add_argument('--vrunstr',
                         metavar = 'RUNCODE',
                         type = str,
                         default = default['vrunstr'])
+    parser.add_argument('--slice_gals', '-S',
+                        metavar = 'FILE',
+                        type = str,
+                        default = default['slice_gals'])
 
     return parser.parse_args()
 
@@ -107,6 +118,70 @@ if __name__ == '__main__':
     if (len(np.where(H.califaIDs == galName)[0]) == 0):
         exit('<<< plot: %s: no data.' % galName)
     
+    maskradius = args.rmin
+    fnamesuffix = '.pdf'
+    
+    if maskradius is None:
+        namepref = ''
+        maskRadiusOk__g = np.ones_like(H.zone_dist_HLR__g, dtype = np.bool)
+        maskRadiusOk__rg = np.ones((H.NRbins, H.N_gals_all), dtype = np.bool)
+    else:
+        minR = maskradius
+        namepref = '_R%.1f' % args.rmin
+        maskRadiusOk__g = (H.zone_dist_HLR__g >= maskradius) & (H.zone_dist_HLR__g <= H.Rbin__r[-1]) 
+        maskRadiusOk__rg = (np.ones((H.NRbins, H.N_gals_all), dtype = np.bool).T * (H.RbinCenter__r >= maskradius)).T
+
+    if args.slice_gals is None:
+        N_gals = H.N_gals
+        gals_slice__g = np.ones_like(H.zone_dist_HLR__g, dtype = np.bool)
+        gals_slice__rg = np.ones((H.NRbins, H.N_gals_all), dtype = np.bool)
+        gals_slice__integr = np.ones(H.califaIDs_all.shape, dtype = np.bool)
+        gals_txt = ''
+    else:
+        gals_slice__g, N_gals = H.get_mask_zones_list(args.slice_gals, return_ngals = True)
+        gals_slice__rg, N_gals = H.get_mask_radius_list(args.slice_gals, return_ngals = True)
+        gals_txt = (args.slice_gals).split('/')[-1]
+        fnamesuffix = '_%s%s' % (gals_txt, fnamesuffix)
+        #integrated
+        l_gals, _ = C.sort_gals(args.slice_gals)
+        l_gals = sorted(l_gals)
+        gals_slice__integr = np.zeros(H.califaIDs_all.shape, dtype = np.bool)
+        for g in l_gals:
+            i = H.califaIDs_all.tolist().index(g)
+            gals_slice__integr[i] = True
+
+    ba_max = 0
+    #ba_max = 0.7
+    #mask_GAL__g = np.bitwise_or(np.less(H.integrated_EW_Ha__g, 3.), np.less(H.ba_GAL__g, ba_max))
+    mask_GAL__g = np.bitwise_or(np.zeros_like(H.integrated_EW_Ha__g, dtype = np.bool), np.less(H.ba_GAL__g, ba_max))
+    #mask_GAL__g = np.bitwise_or(np.less(H.integrated_EW_Ha__g, 3.), np.zeros_like(H.ba_GAL__g, dtype = np.bool))
+    #mask_GAL__g = np.zeros_like(H.integrated_EW_Ha__g, dtype = np.bool)
+    
+    mask__g = np.bitwise_or(np.ma.log10(H.SFRSD__Tg[iT] * 1e6).mask, np.ma.log10(H.tau_V__Tg[iT]).mask)
+    mask__g = np.bitwise_or(mask__g, np.ma.log10(H.SFRSD_Ha__g * 1e6).mask)
+    mask__g = np.bitwise_or(mask__g, np.ma.log10(H.tau_V_neb__g).mask)
+    mask__g = np.bitwise_or(mask__g, H.O_O3N2_M13__g.mask)
+    #mask__g = np.bitwise_or(mask__g, np.less(H.EW_Ha__g, 3.))
+    mask__g = np.bitwise_or(mask__g, np.less(H.reply_arr_by_zones(H.ba_GAL__g), ba_max))
+    mask__g = np.bitwise_or(mask__g, ~maskRadiusOk__g)
+    mask__g = np.bitwise_or(mask__g, ~gals_slice__g)
+
+    #mask__g = ~maskRadiusOk__g
+    mask__rg = np.bitwise_or(np.ma.log10(H.aSFRSD__Trg[iT] * 1e6).mask, np.ma.log10(H.tau_V__Trg[iT]).mask)
+    mask__rg = np.bitwise_or(mask__rg, np.ma.log10(H.aSFRSD_Ha__rg * 1e6).mask)
+    mask__rg = np.bitwise_or(mask__rg, np.ma.log10(H.tau_V_neb__rg).mask)
+    mask__rg = np.bitwise_or(mask__rg, H.O_O3N2_M13__rg.mask)
+    #mask__rg = np.bitwise_or(mask__rg, np.less(H.EW_Ha__rg, 3.))
+    mask__rg = np.bitwise_or(mask__rg, np.less(H.reply_arr_by_radius(H.ba_GAL__g), ba_max))
+    mask__rg = np.bitwise_or(mask__rg, ~maskRadiusOk__rg)
+    mask__rg = np.bitwise_or(mask__rg, ~gals_slice__rg)
+    #mask__rg = ~maskRadiusOk__rg
+    
+    NgalsOkZones = len(np.unique(H.reply_arr_by_zones(H.califaIDs)[~mask__g]))  
+    NgalsOkRbins = len(np.unique(H.reply_arr_by_radius(H.califaIDs_all)[~mask__rg]))
+    
+    print NgalsOkZones, NgalsOkRbins
+
     # global
     xOkMin = H.xOkMin
     tauVOkMin = H.tauVOkMin
@@ -115,27 +190,44 @@ if __name__ == '__main__':
     RbinCenter__r = H.RbinCenter__r
     # ALL gal
     ##stellar
-    x_Y__g = H.x_Y__Tg[iT]
-    aSFRSD__rg = H.aSFRSD__Trg[iT]
-    tau_V__rg = H.tau_V__Trg[iT]
+    x_Y__g = np.ma.masked_array(H.x_Y__Tg[iT], mask = mask__g)
+    aSFRSD__rg = np.ma.masked_array(H.aSFRSD__Trg[iT], mask = mask__rg)
+    tau_V__rg = np.ma.masked_array(H.tau_V__Trg[iT], mask = mask__rg)
     ##nebular
-    aSFRSD_Ha__rg = H.aSFRSD_Ha__rg
-    tau_V_neb__rg = H.tau_V_neb__rg
+    aSFRSD_Ha__rg = np.ma.masked_array(H.aSFRSD_Ha__rg, mask = mask__rg)
+    tau_V_neb__rg = np.ma.masked_array(H.tau_V_neb__rg, mask = mask__rg)
     # one gal
     ##stellar
-    tau_V__z = getattr(H, '%s_tau_V__Tg' % galName)[iT]
-    atau_V__r = getattr(H, '%s_tau_V__Trg' % galName)[iT]
-    SFRSD__z = getattr(H, '%s_SFRSD__Tg' % galName)[iT]
-    aSFRSD__r = getattr(H, '%s_aSFRSD__Trg' % galName)[iT]
-    x_Y__z = getattr(H, '%s_x_Y__Tg' % galName)[iT]
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # tau_V__z = getattr(H, '%s_tau_V__Tg' % galName)[iT]
+    # atau_V__r = getattr(H, '%s_tau_V__Trg' % galName)[iT]
+    # SFRSD__z = getattr(H, '%s_SFRSD__Tg' % galName)[iT]
+    # aSFRSD__r = getattr(H, '%s_aSFRSD__Trg' % galName)[iT]
+    # x_Y__z = getattr(H, '%s_x_Y__Tg' % galName)[iT]
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    tau_V__z = H.get_prop_gal(np.ma.masked_array(H.tau_V__Tg[iT], mask = mask__g), galName)
+    atau_V__r = H.get_prop_gal(tau_V__rg, galName)
+    SFRSD__z = H.get_prop_gal(np.ma.masked_array(H.SFRSD__Tg[iT], mask = mask__g), galName)
+    aSFRSD__r = H.get_prop_gal(aSFRSD__rg, galName)
+    x_Y__z = H.get_prop_gal(np.ma.masked_array(H.x_Y__Tg[iT], mask = mask__g), galName)
     ##nebular
-    EW_Ha__z = getattr(H, '%s_EW_Ha__g' % galName)
-    EW_Hb__z = getattr(H, '%s_EW_Hb__g' % galName)
-    tau_V_neb__z = getattr(H, '%s_tau_V_neb__g' % galName)
-    atau_V_neb__r = getattr(H, '%s_tau_V_neb__rg' % galName)
-    tau_V_neb_err__z = getattr(H, '%s_tau_V_neb_err__g' % galName)
-    SFRSD_Ha__z = getattr(H, '%s_SFRSD_Ha__g' % galName)
-    aSFRSD_Ha__r = getattr(H, '%s_aSFRSD_Ha__rg' % galName)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    # EW_Ha__z = getattr(H, '%s_EW_Ha__g' % galName)
+    # EW_Hb__z = getattr(H, '%s_EW_Hb__g' % galName)
+    # tau_V_neb__z = getattr(H, '%s_tau_V_neb__g' % galName)
+    # atau_V_neb__r = getattr(H, '%s_tau_V_neb__rg' % galName)
+    # tau_V_neb_err__z = getattr(H, '%s_tau_V_neb_err__g' % galName)
+    # SFRSD_Ha__z = getattr(H, '%s_SFRSD_Ha__g' % galName)
+    # aSFRSD_Ha__r = getattr(H, '%s_aSFRSD_Ha__rg' % galName)
+    #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+    EW_Ha__z = H.get_prop_gal(np.ma.masked_array(H.EW_Ha__g, mask = mask__g), galName)
+    EW_Hb__z = H.get_prop_gal(np.ma.masked_array(H.EW_Hb__g, mask = mask__g), galName)
+    tau_V_neb__z = H.get_prop_gal(np.ma.masked_array(H.tau_V_neb__g, mask = mask__g), galName)
+    atau_V_neb__r = H.get_prop_gal(tau_V_neb__rg, galName)
+    tau_V_neb_err__z = H.get_prop_gal(np.ma.masked_array(H.tau_V__Tg[iT], mask = mask__g), galName)
+    SFRSD_Ha__z = H.get_prop_gal(np.ma.masked_array(H.tau_V__Tg[iT], mask = mask__g), galName)
+    aSFRSD_Ha__r = H.get_prop_gal(aSFRSD_Ha__rg, galName)
+    F_obs_Ha__z = H.get_prop_gal(np.ma.masked_array(H.F_obs_Ha__g, mask = mask__g), galName)
     
     imgDir = C.paths.califa_work_dir + 'images/'
     K = C.read_one_cube(galName, EL = True, v_run = args.vrunstr)
@@ -156,8 +248,7 @@ if __name__ == '__main__':
     SFRSD_Ha__yx = K.zoneToYX(SFRSD_Ha__z, extensive = False)
     EW_Ha__yx = K.zoneToYX(EW_Ha__z, extensive = False)
     EW_Hb__yx = K.zoneToYX(EW_Hb__z, extensive = False)
-    tau_V_neb_err__yx = K.zoneToYX(tau_V_neb_err__z.data, extensive = False)
-    F_obs_Ha__z = K.EL.flux[K.EL.lines.index('6563'), :]
+    tau_V_neb_err__yx = K.zoneToYX(tau_V_neb_err__z, extensive = False)
     F_obs_Ha__yx = K.zoneToYX(F_obs_Ha__z, extensive = True)
     #mixed
     deltaTau__z = tau_V_neb__z - tau_V__z 
@@ -169,6 +260,8 @@ if __name__ == '__main__':
     NRows = 3
     NCols = 4
     
+    default_kwargs_imshow = dict(origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'viridis')
+    
     f, axArr = plt.subplots(NRows, NCols)
     f.set_size_inches((NCols * 5.34, NRows * 5.))
     
@@ -176,6 +269,9 @@ if __name__ == '__main__':
         ax.set_axis_off()
     
     age = tSF__T[iT]
+    
+    tauvmin, tauvmax = -1.5, 0.5
+    SFRSDmin, SFRSDmax = -3.5, 0 
 
     ax = axArr[0, 0]
     ax.set_axis_on()
@@ -188,7 +284,7 @@ if __name__ == '__main__':
     ax = axArr[0, 1]
     ax.set_axis_on()
     xlabel = r'EW(H$\alpha$) [$\AA$]'
-    im = ax.imshow(EW_Ha__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r', vmax = 20, vmin = 3)
+    im = ax.imshow(EW_Ha__yx, vmax = 20, vmin = 3, **default_kwargs_imshow)
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
     ax.set_title(xlabel, y = -0.15)
     ax.grid()
@@ -200,7 +296,7 @@ if __name__ == '__main__':
     xlabel = r'$F_{obs}(H\alpha)$ [erg cm${}^{-2}$ s${}^{-1}$]'
     vmax = F_obs_Ha__yx.mean() + sigma_dev * F_obs_Ha__yx.std()
     vmin = 0
-    im = ax.imshow(F_obs_Ha__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r', vmax = vmax, vmin = vmin)
+    im = ax.imshow(F_obs_Ha__yx, vmax = vmax, vmin = vmin, **default_kwargs_imshow)
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
     ax.set_title(xlabel, y = -0.15)
     ax.grid()
@@ -209,13 +305,14 @@ if __name__ == '__main__':
     ax = axArr[0, 3]
     ax.set_axis_on()
     xlabel = r'$\epsilon\tau_V^{neb}$'
-    im = ax.imshow(tau_V_neb_err__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r', vmax = 1)
+    kwargs_imshow = default_kwargs_imshow.copy()
+    im = ax.imshow(tau_V_neb_err__yx, vmax = 1, **default_kwargs_imshow)
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
     ax.set_title(xlabel, y = -0.15)
     ax.grid()
     f.colorbar(ax = ax, mappable = im, use_gridspec = True)
 
-    default_rs_kwargs = dict(smooth = True, sigma = 1.2, overlap = 0.4)
+    default_rs_kwargs = dict(smooth = True, sigma = 1.2)
     
     ax = axArr[1, 0]
     ax.set_axis_on()
@@ -224,9 +321,9 @@ if __name__ == '__main__':
     xm, ym = C.ma_mask_xyz(x, y)
     xlabel = r'$\log\ \tau_V^{\star}(R)$'
     ylabel = r'$\log\ \langle \Sigma_{SFR}^\star(t_\star, R)\rangle\ [M_\odot yr^{-1} kpc^{-2}]$'
-    xlim = [-1.5, xm.max()]
-    ylim = [-3.5, 1]
-    sc = ax.scatter(xm, ym, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.4)
+    xlim = [tauvmin, tauvmax]
+    ylim = [SFRSDmin, SFRSDmax]
+    sc = ax.scatter(xm, ym, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.3)
     rs_kwargs = default_rs_kwargs.copy()
     rs = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs) 
     ax.plot(rs.xS, rs.yS, 'k', lw = 2)
@@ -234,9 +331,10 @@ if __name__ == '__main__':
     ax.plot(rs.xPrc[1], rs.yPrc[1], 'k--', lw = 2)
     ax.plot(rs.xPrc[2], rs.yPrc[2], 'k--', lw = 2)
     ax.plot(rs.xPrc[3], rs.yPrc[3], 'k--', lw = 2)
-    txt = '%.2f Myr' % (age / 1e6)
-    plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
     a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.98, pos_y = 0.08, fs = 14)
+    rs.OLS_bisector()
+    plotOLSbisectorAxis(ax, rs.median_OLS_slope, rs.median_OLS_intercept, 
+                        pos_x = 0.98, pos_y = 0.02, fs = 14, c = 'b', OLS = True, x_rms = xm, y_rms = ym)
     ##########################
     x = np.ma.log10(atau_V__r)
     y = np.ma.log10(aSFRSD__r * 1e6)
@@ -247,7 +345,7 @@ if __name__ == '__main__':
     # vmin = xr.mean() - 2. * xr.std()
     # ax.scatter(xm, ym, c = xr, cmap = 'winter_r', marker = 'o', s = 30, edgecolor = 'black', vmax = vmax, vmin = vmin)
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    sc = ax.scatter(xm, ym, c = H.RbinCenter__r, cmap = 'jet_r', marker = 'o', s = 30, edgecolor = 'black', vmax = H.RbinFin, vmin = H.RbinIni)
+    sc = ax.scatter(xm, ym, c = H.RbinCenter__r, cmap = 'viridis', marker = 'o', s = 50, edgecolor = 'black', vmax = 2, vmin = minR)
     cb = f.colorbar(ax = ax, mappable = sc, use_gridspec = True)
     cb.set_label(r'R [HLR]')
     ##########################
@@ -271,13 +369,13 @@ if __name__ == '__main__':
     xm = np.ma.masked_array(x, mask = mask)
     ym = np.ma.masked_array(y, mask = mask)
     xlabel = r'$\log\ \Sigma_{SFR}^\star(t_\star)\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    ylim = [-3.5, 1]
+    ylim = [SFRSDmin, SFRSDmax]
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
     # vmax = y.mean() + sigma_dev * y.std()
     # vmin = y.mean() - sigma_dev * y.std()
     # im = ax.imshow(ym, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r', vmin = vmin, vmax = vmax)
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    im = ax.imshow(y, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r')
+    im = ax.imshow(y, vmin = SFRSDmin, vmax = SFRSDmax, **default_kwargs_imshow)
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
     txt = 'not masked: %d' % (~mask).sum()
     plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
@@ -287,15 +385,8 @@ if __name__ == '__main__':
     
     ax = axArr[1, 2]
     ax.set_axis_on()
-    x = np.ma.log10(tau_V__yx)
-    y = np.ma.log10(SFRSD__yx * 1e6)
-    mask = x.mask | y.mask
-    xm = np.ma.masked_array(x, mask = mask)
-    ym = np.ma.masked_array(y, mask = mask)
     xlabel = r'$\log\ \tau_V^\star$' 
-    ylim = [-3.5, 1]
-    vmin = xm.min()
-    im = ax.imshow(xm, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r', vmin = vmin)
+    im = ax.imshow(xm, vmax = tauvmax, vmin = tauvmin, **default_kwargs_imshow)
     #im = ax.imshow(x, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r')
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
     ax.set_title(xlabel, y = -0.15)
@@ -306,7 +397,7 @@ if __name__ == '__main__':
     ax.set_axis_on()
     xlabel = r'$x_Y [\%]$'
     vmin = xOkMin * 100.
-    im = ax.imshow(100. * x_Y__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r', vmin = vmin)
+    im = ax.imshow(100. * x_Y__yx, vmin = vmin, vmax = 50, **default_kwargs_imshow)
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
     ax.set_title(xlabel, y = -0.15)
     ax.grid()
@@ -319,9 +410,9 @@ if __name__ == '__main__':
     xm, ym = C.ma_mask_xyz(x, y)
     xlabel = r'$\log\ \tau_V^{neb}(R)$'
     ylabel = r'$\log\ \langle \Sigma_{SFR}^{neb}(R)\rangle\ [M_\odot yr^{-1} kpc^{-2}]$' 
-    xlim = [-1.5, xm.max()]
-    ylim = [-3.5, 1]
-    sc = ax.scatter(xm, ym, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.4)
+    xlim = [tauvmin, tauvmax]
+    ylim = [SFRSDmin, SFRSDmax]
+    sc = ax.scatter(xm, ym, c = 'grey', marker = 'o', s = 10., edgecolor = 'none', alpha = 0.3)
     rs_kwargs = default_rs_kwargs.copy()
     rs = runstats(xm.compressed(), ym.compressed(), nBox = 20, **rs_kwargs) 
     ax.plot(rs.xS, rs.yS, 'k', lw = 2)
@@ -329,9 +420,10 @@ if __name__ == '__main__':
     ax.plot(rs.xPrc[1], rs.yPrc[1], 'k--', lw = 2)
     ax.plot(rs.xPrc[2], rs.yPrc[2], 'k--', lw = 2)
     ax.plot(rs.xPrc[3], rs.yPrc[3], 'k--', lw = 2)
-    txt = '%.2f Myr' % (age / 1e6)
-    plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
     a_ols, b_ols, sigma_a_ols, sigma_b_ols = plotOLSbisectorAxis(ax, xm, ym, pos_x = 0.98, pos_y = 0.08, fs = 14)
+    rs.OLS_bisector()
+    plotOLSbisectorAxis(ax, rs.median_OLS_slope, rs.median_OLS_intercept, 
+                        pos_x = 0.98, pos_y = 0.02, fs = 14, c = 'b', OLS = True, x_rms = xm, y_rms = ym)
     ##########################
     x = np.ma.log10(atau_V_neb__r)
     y = np.ma.log10(aSFRSD_Ha__r * 1e6)
@@ -344,7 +436,7 @@ if __name__ == '__main__':
     # vmin = xr.mean() - 2. * xr.std()
     # ax.scatter(xm, ym, c = xr, cmap = 'winter_r', marker = 'o', s = 30, edgecolor = 'black', vmax = vmax, vmin = vmin)
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-    sc = ax.scatter(xm, ym, c = H.RbinCenter__r, cmap = 'jet_r', marker = 'o', s = 30, edgecolor = 'black', vmax = H.RbinFin, vmin = H.RbinIni)
+    sc = ax.scatter(xm, ym, c = H.RbinCenter__r, cmap = 'viridis', marker = 'o', s = 50, edgecolor = 'black', vmax = 2, vmin = minR)
     cb = f.colorbar(ax = ax, mappable = sc, use_gridspec = True)
     cb.set_label(r'R [HLR]')
     ##########################
@@ -366,8 +458,8 @@ if __name__ == '__main__':
     xm = np.ma.masked_array(x, mask = mask)
     ym = np.ma.masked_array(y, mask = mask)
     label = r'$\log\ \Sigma_{SFR}^{neb} [M_\odot yr^{-1} kpc^{-2}]$' 
-    ylim = [-3.5, 1]
-    im = ax.imshow(y, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r')
+    ylim = [SFRSDmin, SFRSDmax]
+    im = ax.imshow(y, vmin = SFRSDmin, vmax = SFRSDmax, **default_kwargs_imshow)
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
     txt = 'not masked: %d' % (~mask).sum()
     plot_text_ax(ax, txt, 0.02, 0.98, 14, 'top', 'left')
@@ -383,8 +475,7 @@ if __name__ == '__main__':
     xm = np.ma.masked_array(x, mask = mask)
     ym = np.ma.masked_array(y, mask = mask)
     label = r'$\log\ \tau_V^{neb}$' 
-    vmin = np.log10(tauVNebOkMin)
-    im = ax.imshow(xm, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r', vmin = vmin)
+    im = ax.imshow(xm, vmin = tauvmin, vmax = tauvmax, **default_kwargs_imshow)
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
     ax.set_title(label, y = -0.15)
     ax.grid()
@@ -393,7 +484,7 @@ if __name__ == '__main__':
     ax = axArr[2, 3]
     ax.set_axis_on()
     label = r'$\delta\ \tau_V$'
-    im = ax.imshow(deltaTau__yx, origin = 'lower', interpolation = 'nearest', aspect = 'auto', cmap = 'winter_r')
+    im = ax.imshow(deltaTau__yx, **default_kwargs_imshow)
     DrawHLRCircle(ax, K, color = 'black', lw = 2.5)
     mask = deltaTau__yx.mask
     txt = 'not masked: %d' % (~mask).sum()
@@ -427,9 +518,9 @@ if __name__ == '__main__':
     # f.colorbar(ax = ax, mappable = im, use_gridspec = True)
     #EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 
-    f.suptitle(r'%s - morph:%s  b/a:%.2f  age:%.2fMyr  $x_Y$(min):%.0f%%  $\tau_V^\star$(min):%.2f  $\tau_V^{neb}$(min):%.2f  $\epsilon\tau_V^{neb}$(max):%.2f' % (galName, tipos, ba, ageMyr, xOkMin * 100., tauVOkMin, tauVNebOkMin, tauVNebErrMax), fontsize = 24)
+    f.suptitle(r'%s - morph:%s  b/a:%.2f  age:%.2fMyr  $x_Y$(min):%.0f%%' % (galName, tipos, ba, ageMyr, xOkMin * 100.), fontsize = 24)
     f.subplots_adjust(left = 0.07, bottom = 0.1, right = 0.99, wspace = 0.1, top = 0.9)
-    f.savefig('%s_mosaic.png' % galName)
+    f.savefig('%s_mosaic%s' % (galName, fnamesuffix))
     plt.close(f)
     t_plot = time.clock()
     print 'plot: elapsed time: %.2f' % (t_plot - t_calc)

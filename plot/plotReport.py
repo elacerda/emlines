@@ -105,7 +105,7 @@ if __name__ == '__main__':
         gals_slice__g, N_gals = H.get_mask_zones_list(args.slice_gals, return_ngals = True)
         gals_slice__rg, N_gals = H.get_mask_radius_list(args.slice_gals, return_ngals = True)
         gals_txt = (args.slice_gals).split('/')[-1]
-        fnamesuffix = '_%s%s' % (gals_txt, fnamesuffix)
+        fnamesuffix = '_%s%s' % ('.'.join(gals_txt.split('.')[:-1]), fnamesuffix)
         #integrated
         l_gals, _ = C.sort_gals(args.slice_gals)
         l_gals = sorted(l_gals)
