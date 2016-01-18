@@ -7,7 +7,6 @@ import time
 import numpy as np
 import argparse as ap
 import CALIFAUtils as C
-from CALIFAUtils.lines import Lines
 from CALIFAUtils.objects import ALLGals
 from CALIFAUtils.scripts import calc_xY
 from CALIFAUtils.scripts import calc_SFR
@@ -15,99 +14,7 @@ from pystarlight.util import redenninglaws
 from pystarlight.util.constants import L_sun
 from pystarlight.util.base import StarlightBase
 from CALIFAUtils.scripts import calc_alogZ_Stuff
-from CALIFAUtils.scripts import radialProfileWeighted
-
-def create_masks(K, tSF__T, args):
-    #######################
-    ### RESID.EML MASKS ###
-    #######################
-    Hb_central_wl = '4861'
-    O3_central_wl = '5007'
-    Ha_central_wl = '6563'
-    N2_central_wl = '6583'
-    lines_central_wl = [Hb_central_wl, O3_central_wl, Ha_central_wl, N2_central_wl]
-    i_Hb = K.EL.lines.index(Hb_central_wl)
-    i_O3 = K.EL.lines.index(O3_central_wl)
-    i_Ha = K.EL.lines.index(Ha_central_wl)
-    i_N2 = K.EL.lines.index(N2_central_wl)
-    minSNR = 3.
-    mask_lines_dict__Lz = {}
-    if args.nolinecuts is True:
-        for l in lines_central_wl:
-            mask_lines_dict__Lz[l] = np.zeros((K.N_zone), dtype = np.bool_)
-    else:
-        for l in lines_central_wl:
-            C.debug_var(args.debug, l = l)
-            mask_lines_dict__Lz[l] = K.EL._setMaskLineFluxNeg(l)
-            mask_lines_dict__Lz[l] |= K.EL._setMaskLineSNR(l, minSNR)
-    if args.rgbcuts is True:
-        for l in lines_central_wl:
-            if args.gasprop is True:
-                pos = K.GP._dlcons[l]['pos']
-                sigma = K.GP._dlcons[l]['sigma']
-                snr = K.GP._dlcons[l]['SN']
-                if snr < minSNR: snr = minSNR
-            else:
-                pos, sigma, snr = 3.0, 3.0, 3.0
-            mask_lines_dict__Lz[l] = K.EL._setMaskLineFluxNeg(l)
-            mask_lines_dict__Lz[l] |= K.EL._setMaskLineDisplacement(l, pos)
-            mask_lines_dict__Lz[l] |= K.EL._setMaskLineSigma(l, sigma)
-            mask_lines_dict__Lz[l] |= K.EL._setMaskLineSNR(l, snr)
-    mask_tau_V_neb__z = np.less(K.EL.tau_V_neb__z, args.mintauvneb)
-    mask_tau_V_neb__z = np.ma.masked_array(mask_tau_V_neb__z, dtype = np.bool_, fill_value = True)
-    mask_tau_V_neb__z = mask_tau_V_neb__z.data
-    mask_tau_V_neb_err__z = np.greater(K.EL.tau_V_neb_err__z, args.maxtauvneberr)
-    mask_tau_V_neb_err__z = np.ma.masked_array(mask_tau_V_neb_err__z, dtype = np.bool_, fill_value = True)
-    mask_tau_V_neb_err__z = mask_tau_V_neb_err__z.data
-    mask_EW_Hb__z = np.less(K.EL.EW[i_Hb], args.minEWHb)
-    mask_EW_Hb__z = np.ma.masked_array(mask_EW_Hb__z, dtype = np.bool_, fill_value = True)
-    mask_EW_Hb__z = mask_EW_Hb__z.data
-    mask_bpt__z = np.zeros((K.N_zone), dtype = np.bool_)
-    if args.underS06:
-        L = Lines()
-        N2Ha = np.ma.log10(K.EL.N2_obs__z / K.EL.Ha_obs__z)
-        O3Hb = np.ma.log10(K.EL.O3_obs__z / K.EL.Hb_obs__z)
-        mask_bpt__z = ~(L.belowlinebpt('S06', N2Ha, O3Hb))
-    mask_whan__z = np.zeros((K.N_zone), dtype = np.bool_)
-    if args.whanSF is not None:
-        #N2Ha = np.ma.log10(K.EL.N2_obs__z / K.EL.Ha_obs__z)
-        WHa = K.EL.EW[i_Ha, :]
-        mask_whan__z = np.bitwise_or(mask_whan__z, np.less(WHa, args.whanSF))
-        #mask_whan__z = np.bitwise_or(np.less(WHa, 3.), np.greater(N2Ha, -0.4))
-    mask_eml__z = np.zeros(K.N_zone, dtype = np.bool_)
-    mask_eml__z = np.bitwise_or(mask_eml__z, mask_lines_dict__Lz[Hb_central_wl])
-    mask_eml__z = np.bitwise_or(mask_eml__z, mask_lines_dict__Lz[O3_central_wl])
-    mask_eml__z = np.bitwise_or(mask_eml__z, mask_lines_dict__Lz[Ha_central_wl])
-    mask_eml__z = np.bitwise_or(mask_eml__z, mask_lines_dict__Lz[N2_central_wl])
-    mask_eml__z = np.bitwise_or(mask_eml__z, mask_EW_Hb__z)
-    mask_eml__z = np.bitwise_or(mask_eml__z, mask_bpt__z)
-    mask_eml__z = np.bitwise_or(mask_eml__z, mask_whan__z)
-    mask_eml__z = np.bitwise_or(mask_eml__z, mask_tau_V_neb__z)
-    mask_eml__z = np.bitwise_or(mask_eml__z, mask_tau_V_neb_err__z)
-    #######################
-    ### STARLIGHT MASKS ###
-    #######################
-    N_T = len(tSF__T)
-    mask__Tz = np.zeros((N_T, K.N_zone), dtype = np.bool_)
-    mask_syn__Tz = np.zeros((N_T, K.N_zone), dtype = np.bool_)
-    mask_popx__Tz = np.zeros((N_T, K.N_zone), dtype = np.bool_)
-    mask_tau_V__z = np.less(K.tau_V__z, args.mintauv) 
-    mask_residual__z = np.zeros(K.N_zone, dtype = np.bool_)
-    if args.filter_residual is True:
-        mask_residual__z = ~(K.filterResidual(w2 = 4600))
-    for iT, tSF in enumerate(tSF__T):
-        mask_popx__Tz[iT] = np.less(calc_xY(K, tSF)[0], args.minpopx)
-        mask_syn__Tz[iT] = np.bitwise_or(np.bitwise_or(mask_tau_V__z, mask_popx__Tz[iT]), mask_residual__z)
-        #######################
-        ### mixing up masks ###
-        #######################
-        mask__Tz[iT] = np.bitwise_or(mask_syn__Tz[iT], mask_eml__z)
-    #######################
-    #######################
-    #######################
-    return mask__Tz, mask_syn__Tz, mask_eml__z, \
-        mask_popx__Tz, mask_tau_V__z, mask_residual__z, \
-        mask_tau_V_neb__z, mask_tau_V_neb_err__z, mask_EW_Hb__z, mask_whan__z, mask_bpt__z, mask_lines_dict__Lz
+from CALIFAUtils.scripts import create_masks_gal 
 
 def parser_args(args_str):
     paths = C.paths
@@ -130,7 +37,9 @@ def parser_args(args_str):
         'minEWHb' : np.finfo(np.float_).min,
         'mintauvneb' : np.finfo(np.float_).min,
         'maxtauvneberr' : np.finfo(np.float_).max,
-        'v_run' :-1,
+        'v_run' : -1,
+        'minSNR' : 3,
+        'minSNRHb' : 3,
         'gals_filename' : paths.califa_work_dir + 'listv20_q050.d15a.txt',
     }
     
@@ -185,6 +94,14 @@ def parser_args(args_str):
                         metavar = 'FRAC',
                         type = float,
                         default = default_args['minEWHb'])    
+    parser.add_argument('--minSNR',
+                        metavar = 'FRAC',
+                        type = float,
+                        default = default_args['minSNR'])    
+    parser.add_argument('--minSNRHb',
+                        metavar = 'FRAC',
+                        type = float,
+                        default = default_args['minSNRHb'])    
     parser.add_argument('--mintauv',
                         metavar = 'FRAC',
                         type = float,
@@ -256,23 +173,25 @@ if __name__ == '__main__':
     Rbin_oneHLR = [1. - args.rbinstep, 1. + args.rbinstep]
     
     # Reading galaxies file,
-    #gals, _ = C.sort_gals(gals = args.gals_filename, order = 1)
+    # gals, _ = C.sort_gals(gals = args.gals_filename, order = 1)
     gals = np.array(['K0195', 'K0201', 'K0272', 'K0136', 'K0197', 'K0017', 'K0708',
-                'K0090', 'K0631', 'K0128', 'K0780', 'K0067', 'K0160', 'K0923',
-                'K0035', 'K0098', 'K0859', 'K0816', 'K0815', 'K0092', 'K0806',
-                'K0602', 'K0018', 'K0210', 'K0782', 'K0051', 'K0279', 'K0903',
-                'K0127', 'K0864', 'K0846', 'K0900', 'K0341', 'K0004', 'K0044',
-                'K0829', 'K0171', 'K0589', 'K0911', 'K0588', 'K0814', 'K0781',
-                'K0835', 'K0881', 'K0112', 'K0387', 'K0845', 'K0076', 'K0612',
-                'K0888', 'K0068', 'K0851', 'K0832', 'K0893', 'K0318', 'K0101',
-                'K0840', 'K0870', 'K0705', 'K0138', 'K0139', 'K0633', 'K0037',
-                'K0391', 'K0046', 'K0121', 'K0744', 'K0162', 'K0080', 'K0339',
-                'K0912', 'K0047', 'K0860', 'K0908', 'K0093', 'K0844', 'K0787',
-                'K0103', 'K0703', 'K0055', 'K0085', 'K0059', 'K0072', 'K0118',
-                'K0173', 'K0134', 'K0916', 'K0919', 'K0050', 'K0281', 'K0917',
-                'K0822', 'K0865', 'K0087', 'K0875', 'K0170', 'K0826', 'K0063',
-                'K0562', 'K0096', 'K0479', 'K0099', 'K0613', 'K0778', 'K0189',
-                'K0874', 'K0607', 'K0119', 'K0883', 'K0858', 'K0592', 'K0673',
+                 'K0090', 'K0631', 'K0128', 'K0780', 'K0067', 'K0160', 'K0923',
+                 'K0035', 'K0098', 'K0859', 'K0816', 'K0815', 'K0092', 'K0806',
+                 'K0602', 'K0018', 'K0210', 'K0782', 'K0051', 'K0279', 'K0903',
+                 'K0127', 'K0864', 'K0846', 'K0900', 'K0341', 'K0004', 'K0044',
+                 'K0829', 'K0171', 'K0589', 'K0911', 'K0588', 'K0814', 'K0781',
+                 'K0835', 'K0881', 'K0112', 'K0387', 'K0845', 'K0076', 'K0612',
+                 'K0888', 'K0068', 'K0851', 'K0832', 'K0893', 'K0318', 'K0101',
+                 'K0840', 'K0870', 'K0705', 'K0138', 'K0139', 'K0633', 'K0037',
+                 'K0391', 'K0046', 'K0121', 'K0744', 'K0162', 'K0080', 'K0339',
+                 'K0912', 'K0047', 'K0860', 'K0908', 'K0093', 'K0844', 'K0787',
+                 'K0103', 'K0703', 'K0055', 'K0085', 'K0059', 'K0072', 'K0118',
+                 'K0173', 'K0134', 'K0916', 'K0919', 'K0050', 'K0281', 'K0917',
+                 'K0822', 'K0865', 'K0087', 'K0875', 'K0170', 'K0826', 'K0063',
+                 'K0562', 'K0096', 'K0479', 'K0099', 'K0613', 'K0778', 'K0189',
+                 'K0874', 'K0607', 'K0119', 'K0883', 'K0858', 'K0592',             
+    #gals = np.array([
+                'K0673',
                 'K0811', 'K0274', 'K0100', 'K0091', 'K0867', 'K0061', 'K0105',
                 'K0024', 'K0502', 'K0653', 'K0077', 'K0818', 'K0131', 'K0872',
                 'K0057', 'K0838', 'K0111', 'K0186', 'K0174', 'K0634', 'K0933',
@@ -317,7 +236,8 @@ if __name__ == '__main__':
                 'K0027', 'K0312', 'K0060', 'K0606', 'K0528', 'K0150', 'K0306',
                 'K0657', 'K0161', 'K0353', 'K0749', 'K0209', 'K0058', 'K0014',
                 'K0179', 'K0475', 'K0937'], 
-                dtype='|S5')    
+                dtype='|S5')  
+      
     N_gals = len(gals)
     maxGals = None
     if args.debug:
@@ -337,6 +257,8 @@ if __name__ == '__main__':
     N_U = len(tZ__U)
 
     ALL = ALLGals(N_gals, NRbins, N_T, N_U)
+    
+    gals_not_masked = 0
 
     # automatically read PyCASSO and EmLines data cubes.
     for iGal, K in C.loop_cubes(gals.tolist(), imax = maxGals, 
@@ -383,7 +305,7 @@ if __name__ == '__main__':
         ALL.N_zones__g[iGal] = N_zone
         ALL.ba_PyCASSO_GAL__g[iGal] = ba
         
-        print '>>> Doing' , iGal , califaID , 'hubtyp=', tipo, '|  Nzones=' , N_zone
+        print '>>> Doing %d %s %s (%d)' % (iGal, califaID, tipos, my_type)
         
         # zone distance in HLR
         #zoneDistHLR = np.sqrt((K.zonePos['x'] - K.x0) ** 2. + (K.zonePos['y'] - K.y0) ** 2.) / K.HLR_pix
@@ -405,7 +327,7 @@ if __name__ == '__main__':
         mask__Tz, mask_syn__Tz, mask_eml__z, mask_popx__Tz, \
         mask_tau_V__z, mask_residual__z, mask_tau_V_neb__z, \
         mask_tau_V_neb_err__z, mask_EW_Hb__z, mask_whan__z, \
-        mask_bpt__z, mask_lines_dict__Lz = create_masks(K, tSF__T, args)
+        mask_bpt__z, mask_lines_dict__Lz = create_masks_gal(K = K, tSF__T = tSF__T, args = args)
         
         ####################################################
         ####### STARLIGHT ##################################
@@ -475,32 +397,6 @@ if __name__ == '__main__':
             at_mass__z[mask_syn__Tz[iT]] = np.ma.masked
             integrated_SFR = SFR__z.sum()
 
-            # Radial Profiles:
-            x_Y__r = K.zoneToRad(x_Y__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            McorSD__r = K.zoneToRad(Mcor__z, Rbin__r, rad_scale = K.HLR_pix)
-            aSFRSD__r = K.zoneToRad(SFRSD__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            tau_V__r = K.zoneToRad(tau_V__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            at_flux__r = K.zoneToRad(at_flux__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            at_mass__r = K.zoneToRad(at_mass__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            at_flux_dezon__r = K.zoneToRad(at_flux__z, Rbin__r, rad_scale = K.HLR_pix)
-            at_mass_dezon__r = K.zoneToRad(at_mass__z, Rbin__r, rad_scale = K.HLR_pix)
-
-            x_Y_oneHLR = K.zoneToRad(x_Y__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            McorSD_oneHLR = K.zoneToRad(Mcor__z, Rbin_oneHLR, rad_scale = K.HLR_pix)
-            aSFRSD_oneHLR = K.zoneToRad(SFRSD__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            tau_V_oneHLR = K.zoneToRad(tau_V__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            at_flux_oneHLR = K.zoneToRad(at_flux__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            at_mass_oneHLR = K.zoneToRad(at_mass__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-            at_flux_dezon_oneHLR = K.zoneToRad(at_flux__z, Rbin_oneHLR, rad_scale = K.HLR_pix)
-            at_mass_dezon_oneHLR = K.zoneToRad(at_mass__z, Rbin_oneHLR, rad_scale = K.HLR_pix)
-
-            Lobn__yx = K.zoneToYX(K.Lobn__z, extensive = False, surface_density = False)
-            at_flux__yx = K.zoneToYX(at_flux__z, extensive = False, surface_density = False)
-            McorSD__yx = K.zoneToYX(Mcor__z)
-            at_mass__yx = K.zoneToYX(at_mass__z, extensive = False, surface_density = False)
-            at_flux_wei__r = radialProfileWeighted(at_flux__yx, Lobn__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
-            at_mass_wei__r = radialProfileWeighted(at_mass__yx, McorSD__yx, r_func = K.radialProfile, bin_r = Rbin__r, rad_scale = K.HLR_pix)
-
             # Saving for later :D                
             ALL._x_Y__Tg[iT].append(x_Y__z)
             ALL._tau_V__Tg[iT].append(tau_V__z.data)
@@ -513,28 +409,10 @@ if __name__ == '__main__':
             ALL._SFRSD_mask__Tg[iT].append(SFRSD__z.mask)
             ALL._at_flux__Tg[iT].append(at_flux__z)
             ALL._at_mass__Tg[iT].append(at_mass__z)
-            ALL.integrated_x_Y__Tg[:, iGal] = integrated_x_Y
+            ALL.integrated_x_Y__Tg[iT, iGal] = integrated_x_Y
             ALL.integrated_SFR__Tg[iT, iGal] = integrated_SFR
             ALL.integrated_SFRSD__Tg[iT, iGal] = integrated_SFR / K.zoneArea_pc2.sum()
-            ALL.x_Y__Trg[iT, :, iGal] = x_Y__r
-            ALL.McorSD__Trg[iT, :, iGal] = McorSD__r
-            ALL.aSFRSD__Trg[iT, :, iGal] = aSFRSD__r
-            ALL.tau_V__Trg[iT, :, iGal] = tau_V__r
-            ALL.at_flux__Trg[iT, :, iGal] = at_flux__r
-            ALL.at_mass__Trg[iT, :, iGal] = at_mass__r
-            ALL.at_flux_dezon__Trg[iT, :, iGal] = at_flux_dezon__r
-            ALL.at_mass_dezon__Trg[iT, :, iGal] = at_mass_dezon__r
-            ALL.at_flux_wei__Trg[iT, :, iGal] = at_flux_wei__r
-            ALL.at_mass_wei__Trg[iT, :, iGal] = at_mass_wei__r
-            ALL.x_Y_oneHLR__Tg[iT, iGal] = x_Y_oneHLR
-            ALL.McorSD_oneHLR__Tg[iT, iGal] = McorSD_oneHLR
-            ALL.aSFRSD_oneHLR__Tg[iT, iGal] = aSFRSD_oneHLR
-            ALL.tau_V_oneHLR__Tg[iT, iGal] = tau_V_oneHLR
-            ALL.at_flux_oneHLR__Tg[iT, iGal] = at_flux_oneHLR
-            ALL.at_mass_oneHLR__Tg[iT, iGal] = at_mass_oneHLR
-            ALL.at_flux_dezon_oneHLR__Tg[iT, iGal] = at_flux_dezon_oneHLR
-            ALL.at_mass_dezon_oneHLR__Tg[iT, iGal] = at_mass_dezon_oneHLR
-            
+                        
         for iU, tZ in enumerate(tZ__U):
             aux = calc_alogZ_Stuff(K, tZ, args.minpopx, Rbin__r)
             alogZ_mass__z = aux[0]
@@ -573,7 +451,6 @@ if __name__ == '__main__':
         O3_central_wl = '5007'
         Ha_central_wl = '6563'
         N2_central_wl = '6583'
-        lines_central_wl = [Hb_central_wl, O3_central_wl, Ha_central_wl, N2_central_wl]
         i_Hb = K.EL.lines.index(Hb_central_wl)
         i_O3 = K.EL.lines.index(O3_central_wl)
         i_Ha = K.EL.lines.index(Ha_central_wl)
@@ -585,67 +462,37 @@ if __name__ == '__main__':
         mask_tau_V_neb_aux__z = np.bitwise_or(mask_tau_V_neb_aux__z, mask_lines_dict__Lz[Hb_central_wl])
         mask_tau_V_neb_aux__z = np.bitwise_or(mask_tau_V_neb_aux__z, mask_tau_V_neb__z)
         mask_tau_V_neb_aux__z = np.bitwise_or(mask_tau_V_neb_aux__z, mask_tau_V_neb_err__z)
-         
+        
+        print '# N_mask_tau_V_neb_aux (Ha+Hb+tauVNeb+tauVNebErr): ', mask_tau_V_neb_aux__z.astype(int).sum()
+
         tau_V_neb__z = np.ma.masked_array(K.EL.tau_V_neb__z, mask = mask_tau_V_neb_aux__z)
         tau_V_neb_err__z = np.ma.masked_array(K.EL.tau_V_neb_err__z, mask = mask_tau_V_neb_aux__z)
-        tau_V_neb__yx = K.zoneToYX(tau_V_neb__z, extensive = False)
-        tau_V_neb_err__yx = K.zoneToYX(tau_V_neb_err__z, extensive = False)
-        tau_V_neb__r = K.radialProfile(tau_V_neb__yx, Rbin__r, rad_scale = K.HLR_pix)
-        tau_V_neb_err__r = K.radialProfile(tau_V_neb_err__yx, Rbin__r, rad_scale = K.HLR_pix)
-        tau_V_neb_oneHLR = K.radialProfile(tau_V_neb__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
 
         # Saving for later :D
         ALL._tau_V_neb__g.append(tau_V_neb__z.data)
         ALL._tau_V_neb_err__g.append(tau_V_neb_err__z.data)
         ALL._tau_V_neb_mask__g.append(tau_V_neb__z.mask)
-        ALL.tau_V_neb__rg[:, iGal] = tau_V_neb__r
-        ALL.tau_V_neb_oneHLR__g[iGal] = tau_V_neb_oneHLR
-        ALL.tau_V_neb_err__rg[:, iGal] = tau_V_neb_err__r
         ALL.integrated_tau_V_neb__g[iGal] = K.EL.integrated_tau_V_neb
         ALL.integrated_tau_V_neb_err__g[iGal] = K.EL.integrated_tau_V_neb_err
-        ##########################
-
-        ######### Z_neb ##########
-        logZ_neb_S06__z = np.ma.masked_array(K.EL.logZ_neb_S06__z, mask = mask_eml__z)
-        logZ_neb_S06_err__z = np.ma.masked_array(K.EL.logZ_neb_S06_err__z, mask = mask_eml__z)
-        logZ_neb_S06__yx = K.zoneToYX(logZ_neb_S06__z, extensive = False)
-        logZ_neb_S06_err__yx = K.zoneToYX(logZ_neb_S06_err__z, extensive = False)
-        logZ_neb_S06__r = K.radialProfile(logZ_neb_S06__yx, Rbin__r, rad_scale = K.HLR_pix)
-        logZ_neb_S06_oneHLR = K.radialProfile(logZ_neb_S06__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
-        logZ_neb_S06_err__r = K.radialProfile(logZ_neb_S06_err__yx, Rbin__r, rad_scale = K.HLR_pix)
-
-        # Saving for later :D
-        ALL._logZ_neb_S06__g.append(logZ_neb_S06__z.data)
-        ALL._logZ_neb_S06_mask__g.append(logZ_neb_S06__z.mask)
-        ALL._logZ_neb_S06_err__g.append(logZ_neb_S06_err__z.data)
-        ALL.logZ_neb_S06__rg[:, iGal] = logZ_neb_S06__r
-        ALL.logZ_neb_S06_oneHLR__g[iGal] = logZ_neb_S06_oneHLR
-        ALL.logZ_neb_S06_err__rg[:, iGal] = logZ_neb_S06_err__r
-        ALL.integrated_logZ_neb_S06__g[iGal] = K.EL.integrated_logZ_neb_S06
-        ALL.integrated_logZ_neb_S06_err__g[iGal] = K.EL.integrated_logZ_neb_S06_err
         ##########################
 
         ########### EW ###########
         EW_Ha__z = np.ma.masked_array(K.EL.EW[i_Ha, :], mask = mask_lines_dict__Lz[Ha_central_wl])
         EW_Hb__z = np.ma.masked_array(K.EL.EW[i_Hb, :], mask = mask_lines_dict__Lz[Hb_central_wl])
-        EW_Ha__yx = K.zoneToYX(EW_Ha__z, extensive = False)
-        EW_Hb__yx = K.zoneToYX(EW_Hb__z, extensive = False)
-        EW_Ha__r = K.radialProfile(EW_Ha__yx, Rbin__r, rad_scale = K.HLR_pix)
-        EW_Hb__r = K.radialProfile(EW_Hb__yx, Rbin__r, rad_scale = K.HLR_pix)
-        EW_Ha_oneHLR = K.radialProfile(EW_Ha__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
-        EW_Hb_oneHLR = K.radialProfile(EW_Hb__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
-        
+        baseline_Hb__z = K.EL.baseline[i_Hb]
+        baseline_Ha__z = K.EL.baseline[i_Ha]
+        integrated_baseline_Ha = np.ma.masked_array(baseline_Ha__z, mask = EW_Ha__z.mask).sum()
+        integrated_baseline_Hb = np.ma.masked_array(baseline_Hb__z, mask = EW_Hb__z.mask).sum()
+
         # Saving for later :D        
         ALL._EW_Ha__g.append(EW_Ha__z.data)
         ALL._EW_Ha_mask__g.append(EW_Ha__z.mask)
         ALL._EW_Hb__g.append(EW_Hb__z.data)
         ALL._EW_Hb_mask__g.append(EW_Hb__z.mask)
-        ALL.EW_Ha__rg[:, iGal] = EW_Ha__r
-        ALL.EW_Hb__rg[:, iGal] = EW_Hb__r
-        ALL.EW_Ha_oneHLR__g[iGal] = EW_Ha_oneHLR
-        ALL.EW_Hb_oneHLR__g[iGal] = EW_Hb_oneHLR
-        ALL.integrated_EW_Ha__g[iGal] = K.EL.integrated_EW[i_Ha]
-        ALL.integrated_EW_Hb__g[iGal] = K.EL.integrated_EW[i_Hb]
+        ALL._baseline_Hb__g.append(K.EL.baseline[i_Hb])
+        ALL._baseline_Ha__g.append(K.EL.baseline[i_Ha])
+        ALL.integrated_baseline_Ha__g[iGal] = integrated_baseline_Ha
+        ALL.integrated_baseline_Hb__g[iGal] = integrated_baseline_Hb
         ##########################
 
         #### intrinsic Ha Lum ####
@@ -693,69 +540,52 @@ if __name__ == '__main__':
         eHb = np.ma.exp(q[0] * tau_V_neb__z)
         eO3 = np.ma.exp(q[1] * tau_V_neb__z)
         eN2 = np.ma.exp(q[3] * tau_V_neb__z)
-        F_int_Ha__z = np.where(~mask_tau_V_neb_aux__z, F_obs_Ha__z * eHa, F_obs_Ha__z)
         F_int_Hb__z = np.where(~mask_tau_V_neb_aux__z, F_obs_Hb__z * eHb, F_obs_Hb__z)
         F_int_O3__z = np.where(~mask_tau_V_neb_aux__z, F_obs_O3__z * eO3, F_obs_O3__z)
+        F_int_Ha__z = np.where(~mask_tau_V_neb_aux__z, F_obs_Ha__z * eHa, F_obs_Ha__z)
         F_int_N2__z = np.where(~mask_tau_V_neb_aux__z, F_obs_N2__z * eN2, F_obs_N2__z)
-        #integrated_F_obs_Ha = K.EL.integrated_flux[i_Ha]
-        #integrated_F_obs_Hb = K.EL.integrated_flux[i_Hb]
-        #integrated_F_obs_O3 = K.EL.integrated_flux[i_O3]
-        #integrated_F_obs_N2 = K.EL.integrated_flux[i_N2]
-        integrated_F_obs_Ha = F_obs_Ha__z.sum()
+        baseline_O3__z = K.EL.baseline[i_O3]
+        baseline_N2__z = K.EL.baseline[i_N2]
+        maskNone = np.zeros((K.N_zone), dtype = np.bool_)
+        eF_obs_Hb__z = np.ma.masked_array(K.EL.eflux[i_Hb], mask = maskNone)
+        eF_obs_O3__z = np.ma.masked_array(K.EL.eflux[i_O3], mask = maskNone)
+        eF_obs_Ha__z = np.ma.masked_array(K.EL.eflux[i_Ha], mask = maskNone)
+        eF_obs_N2__z = np.ma.masked_array(K.EL.eflux[i_N2], mask = maskNone)
         integrated_F_obs_Hb = F_obs_Hb__z.sum()
         integrated_F_obs_O3 = F_obs_O3__z.sum()
+        integrated_F_obs_Ha = F_obs_Ha__z.sum()
         integrated_F_obs_N2 = F_obs_N2__z.sum()
-        integrated_eHb = np.ma.exp(q[0] * K.EL.integrated_tau_V_neb)
-        integrated_eO3 = np.ma.exp(q[1] * K.EL.integrated_tau_V_neb)
-        integrated_eN2 = np.ma.exp(q[3] * K.EL.integrated_tau_V_neb)
+        integrated_F_int_Hb = integrated_F_obs_Hb * np.ma.exp(q[0] * K.EL.integrated_tau_V_neb)
+        integrated_F_int_O3 = integrated_F_obs_O3 * np.ma.exp(q[1] * K.EL.integrated_tau_V_neb)
         integrated_F_int_Ha = integrated_F_obs_Ha * integrated_eHa
-        integrated_F_int_Hb = integrated_F_obs_Hb * integrated_eHb
-        integrated_F_int_O3 = integrated_F_obs_O3 * integrated_eO3
-        integrated_F_int_N2 = integrated_F_obs_N2 * integrated_eN2
-        F_obs_Ha__r = K.zoneToRad(F_obs_Ha__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_obs_Hb__r = K.zoneToRad(F_obs_Hb__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_obs_O3__r = K.zoneToRad(F_obs_O3__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_obs_N2__r = K.zoneToRad(F_obs_N2__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_int_Ha__r = K.zoneToRad(F_int_Ha__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_int_Hb__r = K.zoneToRad(F_int_Hb__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_int_O3__r = K.zoneToRad(F_int_O3__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_int_N2__r = K.zoneToRad(F_int_N2__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_obs_Ha_oneHLR = K.zoneToRad(F_obs_Ha__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_obs_Hb_oneHLR = K.zoneToRad(F_obs_Hb__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_obs_O3_oneHLR = K.zoneToRad(F_obs_O3__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_obs_N2_oneHLR = K.zoneToRad(F_obs_N2__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_int_Ha_oneHLR = K.zoneToRad(F_int_Ha__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_int_Hb_oneHLR = K.zoneToRad(F_int_Hb__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_int_O3_oneHLR = K.zoneToRad(F_int_O3__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
-        F_int_N2_oneHLR = K.zoneToRad(F_int_N2__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False, surface_density = False)
+        integrated_F_int_N2 = integrated_F_obs_N2 * np.ma.exp(q[3] * K.EL.integrated_tau_V_neb)
+        integrated_baseline_O3 = baseline_O3__z.sum()
+        integrated_baseline_N2 = baseline_N2__z.sum()
+        
+        #integrated_tau_V
+        qq = (1./(q[0] - q[2]))
+        integrated_eflux_Ha = np.ma.masked_array(K.EL.eflux[i_Ha], mask = mask_tau_V_neb_aux__z).sum()
+        integrated_eflux_Hb = np.ma.masked_array(K.EL.eflux[i_Hb], mask = mask_tau_V_neb_aux__z).sum()
+        a = integrated_eflux_Ha / integrated_F_obs_Ha
+        b = integrated_eflux_Hb / integrated_F_obs_Hb
         
         # Saving for later :D
         ALL._F_obs_Hb__g.append(F_obs_Hb__z.data)
-        ALL._F_obs_Hb_mask__g.append(F_obs_Hb__z.mask)
         ALL._F_obs_O3__g.append(F_obs_O3__z.data)
-        ALL._F_obs_O3_mask__g.append(F_obs_O3__z.mask)
         ALL._F_obs_N2__g.append(F_obs_N2__z.data)
+        ALL._F_obs_Hb_mask__g.append(F_obs_Hb__z.mask)
+        ALL._F_obs_O3_mask__g.append(F_obs_O3__z.mask)
         ALL._F_obs_N2_mask__g.append(F_obs_N2__z.mask)
+        ALL._eF_obs_Hb__g.append(eF_obs_Hb__z.data)
+        ALL._eF_obs_O3__g.append(eF_obs_O3__z.data)
+        ALL._eF_obs_Ha__g.append(eF_obs_Ha__z.data)
+        ALL._eF_obs_N2__g.append(eF_obs_N2__z.data)
         ALL._F_int_Ha__g.append(F_int_Ha__z)
         ALL._F_int_Hb__g.append(F_int_Hb__z)
         ALL._F_int_O3__g.append(F_int_O3__z)
         ALL._F_int_N2__g.append(F_int_N2__z)
-        ALL.F_obs_Ha__rg[:, iGal] = F_obs_Ha__r
-        ALL.F_obs_Hb__rg[:, iGal] = F_obs_Hb__r
-        ALL.F_obs_O3__rg[:, iGal] = F_obs_O3__r
-        ALL.F_obs_N2__rg[:, iGal] = F_obs_N2__r
-        ALL.F_int_Ha__rg[:, iGal] = F_int_Ha__r
-        ALL.F_int_Hb__rg[:, iGal] = F_int_Hb__r
-        ALL.F_int_O3__rg[:, iGal] = F_int_O3__r
-        ALL.F_int_N2__rg[:, iGal] = F_int_N2__r
-        ALL.F_obs_Ha_oneHLR__g[iGal] = F_obs_Ha_oneHLR
-        ALL.F_obs_Hb_oneHLR__g[iGal] = F_obs_Hb_oneHLR
-        ALL.F_obs_O3_oneHLR__g[iGal] = F_obs_O3_oneHLR
-        ALL.F_obs_N2_oneHLR__g[iGal] = F_obs_N2_oneHLR
-        ALL.F_int_Ha_oneHLR__g[iGal] = F_int_Ha_oneHLR
-        ALL.F_int_Hb_oneHLR__g[iGal] = F_int_Hb_oneHLR
-        ALL.F_int_O3_oneHLR__g[iGal] = F_int_O3_oneHLR
-        ALL.F_int_N2_oneHLR__g[iGal] = F_int_N2_oneHLR
+        ALL._baseline_O3__g.append(K.EL.baseline[i_O3])
+        ALL._baseline_N2__g.append(K.EL.baseline[i_N2])
         ALL.integrated_F_obs_Ha__g[iGal] = integrated_F_obs_Ha
         ALL.integrated_F_obs_Hb__g[iGal] = integrated_F_obs_Hb
         ALL.integrated_F_obs_O3__g[iGal] = integrated_F_obs_O3
@@ -764,6 +594,10 @@ if __name__ == '__main__':
         ALL.integrated_F_int_Hb__g[iGal] = integrated_F_int_Hb
         ALL.integrated_F_int_O3__g[iGal] = integrated_F_int_O3
         ALL.integrated_F_int_N2__g[iGal] = integrated_F_int_N2
+        ALL.integrated_tau_V_neb_resolved__g[iGal] = qq * (np.ma.log(integrated_F_obs_Ha/integrated_F_obs_Hb) - np.log(2.86))
+        ALL.integrated_tau_V_neb_err_resolved__g[iGal] = qq * (a**2. + b**2.)**0.5
+        ALL.integrated_EW_Ha__g[iGal] = F_obs_Ha__z.sum()/baseline_Ha__z.sum()
+        ALL.integrated_EW_Hb__g[iGal] = F_obs_Hb__z.sum()/baseline_Hb__z.sum()
         ##########################
 
         #### SFR and SigmaSFR ####
@@ -772,18 +606,8 @@ if __name__ == '__main__':
         SFRSD_Ha__z = SFR_Ha__z / K.zoneArea_pc2
         integrated_SFR_Ha = 3.13 * integrated_L_int_Ha / (1.e8)
         integrated_SFRSD_Ha = integrated_SFR_Ha / K.zoneArea_pc2.sum()
-        SFRSD_Ha__yx = K.zoneToYX(SFRSD_Ha__z, extensive = False)
-        aSFRSD_Ha__r = K.radialProfile(SFRSD_Ha__yx, Rbin__r, rad_scale = K.HLR_pix)
-        aSFRSD_Ha_oneHLR = K.radialProfile(SFRSD_Ha__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
-        SFRSD_Ha_masked__yx = K.zoneToYX(np.ma.masked_array(SFRSD_Ha__z, mask = mask_tau_V_neb_aux__z), extensive = False)
-        aSFRSD_Ha_masked__r = K.radialProfile(SFRSD_Ha_masked__yx, Rbin__r, rad_scale = K.HLR_pix)
-        aSFRSD_Ha_masked_oneHLR__r = K.radialProfile(SFRSD_Ha_masked__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
 
         # Saving for later :D
-        ALL.aSFRSD_Ha__rg[:, iGal] = aSFRSD_Ha__r
-        ALL.aSFRSD_Ha_masked__rg[:, iGal] = aSFRSD_Ha_masked__r
-        ALL.aSFRSD_Ha_oneHLR__g[iGal] = aSFRSD_Ha_oneHLR
-        ALL.aSFRSD_Ha_masked_oneHLR__g[iGal] = aSFRSD_Ha_masked_oneHLR__r
         ALL.integrated_SFR_Ha__g[iGal] = integrated_SFR_Ha
         ALL.integrated_SFRSD_Ha__g[iGal] = integrated_SFRSD_Ha
         ALL._SFR_Ha__g.append(SFR_Ha__z.data)
@@ -793,79 +617,190 @@ if __name__ == '__main__':
         ####################################################
         ####################################################
         ####################################################
+        
+        # M13 Zneb calib.
+        mask_Zneb_aux__z = np.zeros((K.N_zone), dtype = np.bool_)
+        mask_Zneb_aux__z = np.bitwise_or(mask_Zneb_aux__z, mask_tau_V_neb_aux__z)
+        mask_Zneb_aux__z = np.bitwise_or(mask_Zneb_aux__z, mask_lines_dict__Lz[O3_central_wl])
+        mask_Zneb_aux__z = np.bitwise_or(mask_Zneb_aux__z, mask_lines_dict__Lz[N2_central_wl])
+        print '# N_mask_Zneb_aux__z (Ha+Hb+tauVNeb+tauVNebErr+O3+N2): ', mask_Zneb_aux__z.astype(int).sum()
+        logO3N2__z = K.EL.Zneb_M13__z.copy()
+        logO3N2__z[mask_Zneb_aux__z] = np.ma.masked
+        ALL._logO3N2_M13__g.append(logO3N2__z.data)
+        ALL._logO3N2_M13_mask__g.append(logO3N2__z.mask)
+        O3Hb = integrated_F_int_O3/integrated_F_int_Hb
+        N2Ha = integrated_F_int_N2/integrated_F_int_Ha
+        ALL.integrated_logO3N2_M13__g[iGal] = 8.533 - 0.214 * (np.log10(O3Hb) - np.log10(N2Ha))
+        
+        minzones = 5
 
-        if args.gasprop:
-            ####################################################
-            # GasProp Ruben ####################################
-            ####################################################
-            # Values in GasProp could be NaN. This values will be masked at 
-            # ALL.stiack_zones_data() with mask = np.isnan(vect)
-            chb_in__z = K.GP.REDDENING.chb_in
-            c_Ha_Hb__z = K.GP.REDDENING.c_Ha_Hb
-            O3N2__z = K.GP.LINERATIOS.O3N2
-            # O_HIICHIM may have zeros.
-            O_HIICHIM__z = np.where(K.GP.EMPAB.O_HIICHIM == 0., np.nan, K.GP.EMPAB.O_HIICHIM)
-            O_O3N2_M13__z = K.GP.EMPAB.O_O3N2_M13
-            O_O3N2_PP04__z = K.GP.EMPAB.O_O3N2_PP04
-            O_direct_O_23__z = K.GP.ELEMAB.O_direct_O_23
-            _O3N2__z = np.ma.masked_array(O3N2__z, mask = np.isnan(O3N2__z))
-            _O_HIICHIM__z = np.ma.masked_array(O_HIICHIM__z, mask = np.isnan(O_HIICHIM__z)) 
-            _O_O3N2_M13__z = np.ma.masked_array(O_O3N2_M13__z, mask = np.isnan(O_O3N2_M13__z))
-            _O_O3N2_PP04__z = np.ma.masked_array(O_O3N2_PP04__z, mask = np.isnan(O_O3N2_PP04__z))
-            _O_direct_O_23__z = np.ma.masked_array(O_direct_O_23__z, mask = np.isnan(O_direct_O_23__z))
-            O3N2__yx = K.zoneToYX(_O3N2__z, extensive = False)
-            O3N2__r = K.radialProfile(O3N2__yx, Rbin__r, rad_scale = K.HLR_pix)
-            O3N2_oneHLR = K.radialProfile(O3N2__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
-            O_HIICHIM__yx = K.zoneToYX(_O_HIICHIM__z, extensive = False)
-            O_HIICHIM__r = K.radialProfile(O_HIICHIM__yx, Rbin__r, rad_scale = K.HLR_pix)
-            O_HIICHIM_oneHLR = K.radialProfile(O_HIICHIM__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
-            O_O3N2_M13__yx = K.zoneToYX(_O_O3N2_M13__z, extensive = False)
-            O_O3N2_M13__r = K.radialProfile(O_O3N2_M13__yx, Rbin__r, rad_scale = K.HLR_pix)
-            O_O3N2_M13_oneHLR = K.radialProfile(O_O3N2_M13__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
-            O_O3N2_PP04__yx = K.zoneToYX(_O_O3N2_PP04__z, extensive = False)
-            O_O3N2_PP04__r = K.radialProfile(O_O3N2_PP04__yx, Rbin__r, rad_scale = K.HLR_pix)
-            O_O3N2_PP04_oneHLR = K.radialProfile(O_O3N2_PP04__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
-            O_direct_O_23__yx = K.zoneToYX(_O_direct_O_23__z, extensive = False)
-            O_direct_O_23__r = K.radialProfile(O_direct_O_23__yx, Rbin__r, rad_scale = K.HLR_pix)
-            O_direct_O_23_oneHLR = K.radialProfile(O_direct_O_23__yx, Rbin_oneHLR, rad_scale = K.HLR_pix)
-            integrated_O3N2 = K.GP.LINERATIOS.integrated_O3N2
-            integrated_chb_in = K.GP.REDDENING.integrated_chb_in
-            integrated_c_Ha_Hb = K.GP.REDDENING.integrated_c_Ha_Hb
-            integrated_O_HIICHIM = K.GP.EMPAB.integrated_O_HIICHIM
-            integrated_O_O3N2_M13 = K.GP.EMPAB.integrated_O_O3N2_M13
-            integrated_O_O3N2_PP04 = K.GP.EMPAB.integrated_O_O3N2_PP04
-            integrated_O_direct_O_23 = K.GP.ELEMAB.integrated_O_direct_O_23
-            
-            # Saving for later :D
-            ALL._O3N2__g.append(O3N2__z)
-            ALL._chb_in__g.append(chb_in__z)
-            ALL._c_Ha_Hb__g.append(c_Ha_Hb__z)
-            ALL._O_HIICHIM__g.append(O_HIICHIM__z)
-            ALL._O_O3N2_M13__g.append(O_O3N2_M13__z)
-            
-            ALL._my_O_O3N2_M13__g.append(K.EL.Zneb_M13__z)
-            ALL._my_O_O3N2_M13_mask__g.append(K.EL.Zneb_M13__z.mask)
+        # SYN Radial Profiles:
+        for iT, tSF in enumerate(tSF__T):
+            #iG = gals_not_masked - 1
+            iG = -1
+            ########### Now I have to define the masks
+            mask_radial = mask__Tz[iT]
+            print '# N_mask_radialProfiles (%.3f Myrs): %d' % ((tSF / 1e6), mask_radial.astype(int).sum())
+                        
+            ##########################################
+            if (mask_radial.astype(int).sum() < (K.N_zone - minzones)):
+                C.debug_var(args.debug, 
+                            gal = califaID, 
+                            iT = iT, 
+                            tSF = '%.3f Myr' % (tSF / 1e6), 
+                            radial_profiles = 'computing...',
+                )
+                
+                x_Y__z = np.ma.masked_array(ALL._x_Y__Tg[iT][iG], mask = mask_radial)
+                Mcor__z = np.ma.masked_array(ALL._Mcor__Tg[iT][iG], mask = mask_radial)
+                McorSD__z = np.ma.masked_array(ALL._McorSD__Tg[iT][iG], mask = mask_radial)
+                SFR__z = np.ma.masked_array(ALL._SFR__Tg[iT][iG], mask = mask_radial)
+                SFRSD__z = np.ma.masked_array(ALL._SFRSD__Tg[iT][iG], mask = mask_radial)
+                tau_V__z = np.ma.masked_array(ALL._tau_V__Tg[iT][iG], mask = mask_radial)
+                at_flux__z = np.ma.masked_array(ALL._at_flux__Tg[iT][iG], mask = mask_radial)
+                at_mass__z = np.ma.masked_array(ALL._at_mass__Tg[iT][iG], mask = mask_radial)
+                
+                #Mcor__yx = K.zoneToYX(Mcor__z, extensive = False, surface_density = False)
+                #v__r, npts = K.radialProfile(Mcor__yx, Rbin__r, return_npts = True, rad_scale = K.HLR_pix, mode = 'sum', mask = mask__yx)
+                #McorSD__r = v__r / (npts * K.parsecPerPixel**2.)
+                #SFR__yx = K.zoneToYX(SFR__z, extensive = False, surface_density = False)
+                #v__r, npts = K.radialProfile(SFR__yx, Rbin__r, return_npts = True, rad_scale = K.HLR_pix, mode = 'sum', mask = mask__yx)
+                #aSFRSD__r = v__r / (npts * K.parsecPerPixel**2.)
+                x_Y__r = K.zoneToRad(x_Y__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                McorSD__r = K.zoneToRad(McorSD__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                aSFRSD__r = K.zoneToRad(SFRSD__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                tau_V__r = K.zoneToRad(tau_V__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                at_flux__r = K.zoneToRad(at_flux__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                at_mass__r = K.zoneToRad(at_mass__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                at_flux_dezon__r = K.zoneToRad(at_flux__z, Rbin__r, rad_scale = K.HLR_pix)
+                at_mass_dezon__r = K.zoneToRad(at_mass__z, Rbin__r, rad_scale = K.HLR_pix)
+                
+                x_Y_oneHLR = K.zoneToRad(x_Y__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                McorSD_oneHLR = K.zoneToRad(McorSD__z, Rbin_oneHLR, rad_scale = K.HLR_pix)
+                aSFRSD_oneHLR = K.zoneToRad(SFRSD__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                tau_V_oneHLR = K.zoneToRad(tau_V__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                at_flux_oneHLR = K.zoneToRad(at_flux__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                at_mass_oneHLR = K.zoneToRad(at_mass__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                at_flux_dezon_oneHLR = K.zoneToRad(at_flux__z, Rbin_oneHLR, rad_scale = K.HLR_pix)
+                at_mass_dezon_oneHLR = K.zoneToRad(at_mass__z, Rbin_oneHLR, rad_scale = K.HLR_pix)
+    
+                Lobn__yx = K.zoneToYX(np.ma.masked_array(K.Lobn__z, mask = mask_radial), extensive = False)
+                at_flux__yx = K.zoneToYX(at_flux__z, extensive = False)
+                w__r = K.radialProfile(Lobn__yx, bin_r = Rbin__r, mode = 'sum', rad_scale = K.HLR_pix)
+                v_w__r = K.radialProfile(at_flux__yx * Lobn__yx, bin_r = Rbin__r, mode = 'sum', rad_scale = K.HLR_pix)
+                at_flux_wei__r = v_w__r / w__r
+                
+                Mcor__yx = K.zoneToYX(Mcor__z, extensive = False)
+                at_mass__yx = K.zoneToYX(at_mass__z, extensive = False)
+                w__r = K.radialProfile(Mcor__yx, bin_r = Rbin__r, mode = 'sum', rad_scale = K.HLR_pix)
+                v_w__r = K.radialProfile(at_mass__yx * Mcor__yx, bin_r = Rbin__r, mode = 'sum', rad_scale = K.HLR_pix)
+                at_mass_wei__r = v_w__r / w__r
+        
+                ALL.x_Y__Trg[iT, :, iGal] = x_Y__r
+                ALL.McorSD__Trg[iT, :, iGal] = McorSD__r
+                ALL.aSFRSD__Trg[iT, :, iGal] = aSFRSD__r
+                ALL.tau_V__Trg[iT, :, iGal] = tau_V__r
+                ALL.at_flux__Trg[iT, :, iGal] = at_flux__r
+                ALL.at_mass__Trg[iT, :, iGal] = at_mass__r
+                ALL.at_flux_dezon__Trg[iT, :, iGal] = at_flux_dezon__r
+                ALL.at_mass_dezon__Trg[iT, :, iGal] = at_mass_dezon__r
+                ALL.at_flux_wei__Trg[iT, :, iGal] = at_flux_wei__r
+                ALL.at_mass_wei__Trg[iT, :, iGal] = at_mass_wei__r
+                ALL.x_Y_oneHLR__Tg[iT, iGal] = x_Y_oneHLR
+                ALL.McorSD_oneHLR__Tg[iT, iGal] = McorSD_oneHLR
+                ALL.aSFRSD_oneHLR__Tg[iT, iGal] = aSFRSD_oneHLR
+                ALL.tau_V_oneHLR__Tg[iT, iGal] = tau_V_oneHLR
+                ALL.at_flux_oneHLR__Tg[iT, iGal] = at_flux_oneHLR
+                ALL.at_mass_oneHLR__Tg[iT, iGal] = at_mass_oneHLR
+                ALL.at_flux_dezon_oneHLR__Tg[iT, iGal] = at_flux_dezon_oneHLR
+                ALL.at_mass_dezon_oneHLR__Tg[iT, iGal] = at_mass_dezon_oneHLR
+                
+                #NEB
+                SFRSD_Ha__z = np.ma.masked_array(ALL._SFRSD_Ha__g[iG], mask = mask_radial)
+                tau_V_neb__z = np.ma.masked_array(ALL._tau_V_neb__g[iG], mask = mask_radial)
+                logO3N2_M13__z = np.ma.masked_array(ALL._logO3N2_M13__g[iG], mask = mask_radial)
+                EW_Ha__z = np.ma.masked_array(ALL._EW_Ha__g[iG], mask = mask_radial)
+                EW_Hb__z = np.ma.masked_array(ALL._EW_Hb__g[iG], mask = mask_radial)
+                F_obs_Hb__z = np.ma.masked_array(ALL._F_obs_Hb__g[iG], mask = mask_radial)
+                F_obs_O3__z = np.ma.masked_array(ALL._F_obs_O3__g[iG], mask = mask_radial)
+                F_obs_Ha__z = np.ma.masked_array(ALL._F_obs_Ha__g[iG], mask = mask_radial)
+                F_obs_N2__z = np.ma.masked_array(ALL._F_obs_N2__g[iG], mask = mask_radial)
+                F_int_Hb__z = np.ma.masked_array(ALL._F_int_Hb__g[iG], mask = mask_radial)
+                F_int_O3__z = np.ma.masked_array(ALL._F_int_O3__g[iG], mask = mask_radial)
+                F_int_Ha__z = np.ma.masked_array(ALL._F_int_Ha__g[iG], mask = mask_radial)
+                F_int_N2__z = np.ma.masked_array(ALL._F_int_N2__g[iG], mask = mask_radial)
+                baseline_Ha__z = np.ma.masked_array(ALL._baseline_Ha__g[iG], mask = mask_radial)
+                baseline_Hb__z = np.ma.masked_array(ALL._baseline_Hb__g[iG], mask = mask_radial)
+                
+                tau_V_neb__r = K.zoneToRad(tau_V_neb__z, Rbin__r,  rad_scale = K.HLR_pix, extensive = False)
+                tau_V_neb_oneHLR = K.zoneToRad(tau_V_neb__z, Rbin_oneHLR,  rad_scale = K.HLR_pix, extensive = False)
+                logO3N2_M13__r = K.zoneToRad(logO3N2_M13__z, Rbin__r,  rad_scale = K.HLR_pix, extensive = False)
+                logO3N2_M13_oneHLR = K.zoneToRad(logO3N2_M13__z, Rbin_oneHLR,  rad_scale = K.HLR_pix, extensive = False)
+                aSFRSD_Ha__r = K.zoneToRad(SFRSD_Ha__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                aSFRSD_Ha_oneHLR = K.zoneToRad(SFRSD_Ha__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
 
-            ALL._O_O3N2_PP04__g.append(O_O3N2_PP04__z)
-            ALL._O_direct_O_23__g.append(O_direct_O_23__z)
-            ALL.integrated_O3N2__g[iGal] = integrated_O3N2
-            ALL.integrated_chb_in__g[iGal] = integrated_chb_in
-            ALL.integrated_c_Ha_Hb__g[iGal] = integrated_c_Ha_Hb
-            ALL.integrated_O_HIICHIM__g[iGal] = integrated_O_HIICHIM
-            ALL.integrated_O_O3N2_M13__g[iGal] = integrated_O_O3N2_M13
-            ALL.integrated_O_O3N2_PP04__g[iGal] = integrated_O_O3N2_PP04
-            ALL.integrated_O_direct_O_23__g[iGal] = integrated_O_direct_O_23
-            ALL.O3N2__rg[:, iGal] = O3N2__r
-            ALL.O_HIICHIM__rg[:, iGal] = O_HIICHIM__r
-            ALL.O_O3N2_M13__rg[:, iGal] = O_O3N2_M13__r
-            ALL.O_O3N2_PP04__rg[:, iGal] = O_O3N2_PP04__r 
-            ALL.O_direct_O_23__rg[:, iGal] = O_direct_O_23__r
-            ALL.O3N2_oneHLR__g[iGal] = O3N2_oneHLR
-            ALL.O_HIICHIM_oneHLR__g[iGal] = O_HIICHIM_oneHLR
-            ALL.O_O3N2_M13_oneHLR__g[iGal] = O_O3N2_M13_oneHLR
-            ALL.O_O3N2_PP04_oneHLR__g[iGal] = O_O3N2_PP04_oneHLR
-            ALL.O_direct_O_23_oneHLR__g[iGal] = O_direct_O_23_oneHLR
-            
+                EW_Ha__r = K.zoneToRad(EW_Ha__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                EW_Hb__r = K.zoneToRad(EW_Hb__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                EW_Ha_oneHLR = K.zoneToRad(EW_Ha__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                EW_Hb_oneHLR = K.zoneToRad(EW_Hb__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+    
+                F_Ha__yx = K.zoneToYX(F_obs_Ha__z, extensive = False)
+                baseline_Ha__yx = K.zoneToYX(baseline_Ha__z, extensive = False)
+                v__r = K.radialProfile(F_Ha__yx, bin_r = Rbin__r, mode = 'sum', rad_scale = K.HLR_pix)
+                w__r = K.radialProfile(baseline_Ha__yx, bin_r = Rbin__r, mode = 'sum', rad_scale = K.HLR_pix)
+                EW_Ha_wei__r = v__r / w__r
+    
+                F_Hb__yx = K.zoneToYX(F_obs_Hb__z, extensive = False)
+                baseline_Hb__yx = K.zoneToYX(baseline_Hb__z, extensive = False)
+                v__r = K.radialProfile(F_Hb__yx, bin_r = Rbin__r, mode = 'sum', rad_scale = K.HLR_pix)
+                w__r = K.radialProfile(baseline_Hb__yx, bin_r = Rbin__r, mode = 'sum', rad_scale = K.HLR_pix)
+                EW_Hb_wei__r = v__r / w__r
+    
+                F_obs_Ha__r = K.zoneToRad(F_obs_Ha__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                F_obs_Hb__r = K.zoneToRad(F_obs_Hb__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                F_obs_O3__r = K.zoneToRad(F_obs_O3__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                F_obs_N2__r = K.zoneToRad(F_obs_N2__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                F_int_Ha__r = K.zoneToRad(F_int_Ha__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                F_int_Hb__r = K.zoneToRad(F_int_Hb__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                F_int_O3__r = K.zoneToRad(F_int_O3__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                F_int_N2__r = K.zoneToRad(F_int_N2__z, Rbin__r, rad_scale = K.HLR_pix, extensive = False)
+                F_obs_Ha_oneHLR = K.zoneToRad(F_obs_Ha__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                F_obs_Hb_oneHLR = K.zoneToRad(F_obs_Hb__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                F_obs_O3_oneHLR = K.zoneToRad(F_obs_O3__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                F_obs_N2_oneHLR = K.zoneToRad(F_obs_N2__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                F_int_Ha_oneHLR = K.zoneToRad(F_int_Ha__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                F_int_Hb_oneHLR = K.zoneToRad(F_int_Hb__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                F_int_O3_oneHLR = K.zoneToRad(F_int_O3__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                F_int_N2_oneHLR = K.zoneToRad(F_int_N2__z, Rbin_oneHLR, rad_scale = K.HLR_pix, extensive = False)
+                
+                ALL.tau_V_neb__Trg[iT, :, iGal] = tau_V_neb__r
+                ALL.logO3N2_M13__Trg[iT, :, iGal] = logO3N2_M13__r
+                ALL.EW_Ha__Trg[iT, :, iGal] = EW_Ha__r
+                ALL.EW_Hb__Trg[iT, :, iGal] = EW_Hb__r
+                ALL.EW_Ha_wei__Trg[iT, :, iGal] = EW_Ha_wei__r
+                ALL.EW_Hb_wei__Trg[iT, :, iGal] = EW_Hb_wei__r
+                ALL.F_obs_Ha__Trg[iT, :, iGal] = F_obs_Ha__r
+                ALL.F_obs_Hb__Trg[iT, :, iGal] = F_obs_Hb__r
+                ALL.F_obs_O3__Trg[iT, :, iGal] = F_obs_O3__r
+                ALL.F_obs_N2__Trg[iT, :, iGal] = F_obs_N2__r
+                ALL.F_int_Ha__Trg[iT, :, iGal] = F_int_Ha__r
+                ALL.F_int_Hb__Trg[iT, :, iGal] = F_int_Hb__r
+                ALL.F_int_O3__Trg[iT, :, iGal] = F_int_O3__r
+                ALL.F_int_N2__Trg[iT, :, iGal] = F_int_N2__r
+                ALL.aSFRSD_Ha__Trg[iT, :, iGal] = aSFRSD_Ha__r
+                ALL.tau_V_neb_oneHLR__Tg[iT, iGal] = tau_V_neb_oneHLR
+                ALL.logO3N2_M13_oneHLR__Tg[iT, iGal] = logO3N2_M13_oneHLR
+                ALL.EW_Ha_oneHLR__Tg[iT, iGal] = EW_Ha_oneHLR
+                ALL.EW_Hb_oneHLR__Tg[iT, iGal] = EW_Hb_oneHLR
+                ALL.F_obs_Ha_oneHLR__Tg[iT, iGal] = F_obs_Ha_oneHLR
+                ALL.F_obs_Hb_oneHLR__Tg[iT, iGal] = F_obs_Hb_oneHLR
+                ALL.F_obs_O3_oneHLR__Tg[iT, iGal] = F_obs_O3_oneHLR
+                ALL.F_obs_N2_oneHLR__Tg[iT, iGal] = F_obs_N2_oneHLR
+                ALL.F_int_Ha_oneHLR__Tg[iT, iGal] = F_int_Ha_oneHLR
+                ALL.F_int_Hb_oneHLR__Tg[iT, iGal] = F_int_Hb_oneHLR
+                ALL.F_int_O3_oneHLR__Tg[iT, iGal] = F_int_O3_oneHLR
+                ALL.F_int_N2_oneHLR__Tg[iT, iGal] = F_int_N2_oneHLR
+                ALL.aSFRSD_Ha_oneHLR__Tg[iT, iGal] = aSFRSD_Ha_oneHLR
         if args.gasprop:
             K.GP.close()
         K.EL.close()
