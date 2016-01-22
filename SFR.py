@@ -173,71 +173,7 @@ if __name__ == '__main__':
     Rbin_oneHLR = [1. - args.rbinstep, 1. + args.rbinstep]
     
     # Reading galaxies file,
-    # gals, _ = C.sort_gals(gals = args.gals_filename, order = 1)
-    gals = np.array(['K0195', 'K0201', 'K0272', 'K0136', 'K0197', 'K0017', 'K0708',
-                 'K0090', 'K0631', 'K0128', 'K0780', 'K0067', 'K0160', 'K0923',
-                 'K0035', 'K0098', 'K0859', 'K0816', 'K0815', 'K0092', 'K0806',
-                 'K0602', 'K0018', 'K0210', 'K0782', 'K0051', 'K0279', 'K0903',
-                 'K0127', 'K0864', 'K0846', 'K0900', 'K0341', 'K0004', 'K0044',
-                 'K0829', 'K0171', 'K0589', 'K0911', 'K0588', 'K0814', 'K0781',
-                 'K0835', 'K0881', 'K0112', 'K0387', 'K0845', 'K0076', 'K0612',
-                 'K0888', 'K0068', 'K0851', 'K0832', 'K0893', 'K0318', 'K0101',
-                 'K0840', 'K0870', 'K0705', 'K0138', 'K0139', 'K0633', 'K0037',
-                 'K0391', 'K0046', 'K0121', 'K0744', 'K0162', 'K0080', 'K0339',
-                 'K0912', 'K0047', 'K0860', 'K0908', 'K0093', 'K0844', 'K0787',
-                 'K0103', 'K0703', 'K0055', 'K0085', 'K0059', 'K0072', 'K0118',
-                 'K0173', 'K0134', 'K0916', 'K0919', 'K0050', 'K0281', 'K0917',
-                 'K0822', 'K0865', 'K0087', 'K0875', 'K0170', 'K0826', 'K0063',
-                 'K0562', 'K0096', 'K0479', 'K0099', 'K0613', 'K0778', 'K0189',
-                 'K0874', 'K0607', 'K0119', 'K0883', 'K0858', 'K0592',             
-    #gals = np.array([
-                'K0673',
-                'K0811', 'K0274', 'K0100', 'K0091', 'K0867', 'K0061', 'K0105',
-                'K0024', 'K0502', 'K0653', 'K0077', 'K0818', 'K0131', 'K0872',
-                'K0057', 'K0838', 'K0111', 'K0186', 'K0174', 'K0634', 'K0933',
-                'K0036', 'K0049', 'K0936', 'K0163', 'K0032', 'K0220', 'K0314',
-                'K0889', 'K0132', 'K0026', 'K0169', 'K0029', 'K0078', 'K0075',
-                'K0066', 'K0319', 'K0135', 'K0902', 'K0083', 'K0020', 'K0386',
-                'K0853', 'K0007', 'K0863', 'K0809', 'K0123', 'K0156', 'K0925',
-                'K0833', 'K0850', 'K0894', 'K0168', 'K0194', 'K0038', 'K0651',
-                'K0219', 'K0791', 'K0381', 'K0062', 'K0886', 'K0364', 'K0624',
-                'K0113', 'K0177', 'K0740', 'K0663', 'K0311', 'K0932', 'K0019',
-                'K0783', 'K0910', 'K0797', 'K0664', 'K0185', 'K0518', 'K0924',
-                'K0414', 'K0013', 'K0804', 'K0326', 'K0615', 'K0672', 'K0837',
-                'K0914', 'K0856', 'K0848', 'K0569', 'K0676', 'K0915', 'K0065',
-                'K0842', 'K0146', 'K0176', 'K0115', 'K0043', 'K0001', 'K0021',
-                'K0824', 'K0192', 'K0023', 'K0097', 'K0890', 'K0188', 'K0868',
-                'K0086', 'K0180', 'K0153', 'K0054', 'K0133', 'K0191', 'K0107',
-                'K0307', 'K0610', 'K0025', 'K0164', 'K0073', 'K0807', 'K0854',
-                'K0834', 'K0821', 'K0871', 'K0151', 'K0070', 'K0010', 'K0830',
-                'K0102', 'K0278', 'K0869', 'K0280', 'K0009', 'K0684', 'K0665',
-                'K0126', 'K0873', 'K0927', 'K0774', 'K0931', 'K0789', 'K0297',
-                'K0934', 'K0383', 'K0825', 'K0630', 'K0715', 'K0152', 'K0768',
-                'K0907', 'K0823', 'K0041', 'K0388', 'K0005', 'K0769', 'K0208',
-                'K0831', 'K0748', 'K0196', 'K0130', 'K0659', 'K0611', 'K0798',
-                'K0880', 'K0184', 'K0879', 'K0820', 'K0754', 'K0309', 'K0861',
-                'K0137', 'K0436', 'K0116', 'K0110', 'K0088', 'K0500', 'K0275',
-                'K0124', 'K0181', 'K0476', 'K0779', 'K0580', 'K0437', 'K0183',
-                'K0901', 'K0042', 'K0094', 'K0147', 'K0108', 'K0052', 'K0898',
-                'K0203', 'K0813', 'K0190', 'K0876', 'K0277', 'K0810', 'K0515',
-                'K0008', 'K0489', 'K0109', 'K0608', 'K0929', 'K0714', 'K0904',
-                'K0896', 'K0149', 'K0122', 'K0857', 'K0165', 'K0002', 'K0178',
-                'K0028', 'K0140', 'K0764', 'K0887', 'K0849', 'K0141', 'K0652',
-                'K0895', 'K0885', 'K0878', 'K0711', 'K0361', 'K0843', 'K0758',
-                'K0713', 'K0069', 'K0852', 'K0089', 'K0697', 'K0827', 'K0095',
-                'K0158', 'K0143', 'K0805', 'K0117', 'K0040', 'K0486', 'K0921',
-                'K0355', 'K0841', 'K0817', 'K0260', 'K0166', 'K0603', 'K0884',
-                'K0148', 'K0039', 'K0930', 'K0707', 'K0125', 'K0935', 'K0016',
-                'K0891', 'K0828', 'K0609', 'K0548', 'K0129', 'K0836', 'K0012',
-                'K0581', 'K0232', 'K0866', 'K0003', 'K0909', 'K0205', 'K0144',
-                'K0906', 'K0159', 'K0030', 'K0187', 'K0157', 'K0053', 'K0775',
-                'K0273', 'K0045', 'K0084', 'K0614', 'K0031', 'K0071', 'K0204',
-                'K0081', 'K0033', 'K0034', 'K0862', 'K0231', 'K0226', 'K0182',
-                'K0027', 'K0312', 'K0060', 'K0606', 'K0528', 'K0150', 'K0306',
-                'K0657', 'K0161', 'K0353', 'K0749', 'K0209', 'K0058', 'K0014',
-                'K0179', 'K0475', 'K0937'], 
-                dtype='|S5')  
-      
+    gals, _ = C.sort_gals(gals = args.gals_filename, order = 1)
     N_gals = len(gals)
     maxGals = None
     if args.debug:
@@ -481,8 +417,8 @@ if __name__ == '__main__':
         EW_Hb__z = np.ma.masked_array(K.EL.EW[i_Hb, :], mask = mask_lines_dict__Lz[Hb_central_wl])
         baseline_Hb__z = K.EL.baseline[i_Hb]
         baseline_Ha__z = K.EL.baseline[i_Ha]
-        integrated_baseline_Ha = np.ma.masked_array(baseline_Ha__z, mask = EW_Ha__z.mask).sum()
-        integrated_baseline_Hb = np.ma.masked_array(baseline_Hb__z, mask = EW_Hb__z.mask).sum()
+        ALL.integrated_EW_Ha__g[iGal] = K.EL.integrated_EW[i_Ha]
+        ALL.integrated_EW_Hb__g[iGal] = K.EL.integrated_EW[i_Hb]
 
         # Saving for later :D        
         ALL._EW_Ha__g.append(EW_Ha__z.data)
@@ -491,12 +427,14 @@ if __name__ == '__main__':
         ALL._EW_Hb_mask__g.append(EW_Hb__z.mask)
         ALL._baseline_Hb__g.append(K.EL.baseline[i_Hb])
         ALL._baseline_Ha__g.append(K.EL.baseline[i_Ha])
-        ALL.integrated_baseline_Ha__g[iGal] = integrated_baseline_Ha
-        ALL.integrated_baseline_Hb__g[iGal] = integrated_baseline_Hb
+        ALL.integrated_baseline_Ha__g[iGal] = K.EL.integrated_baseline[i_Ha]
+        ALL.integrated_baseline_Hb__g[iGal] = K.EL.integrated_baseline[i_Hb]
         ##########################
-
+                
         #### intrinsic Ha Lum ####
         q = redenninglaws.Cardelli_RedLaw([4861, 5007, 6563, 6583])
+        expqtau = [ np.ma.exp(qcard * tau_V_neb__z) for qcard in q ]
+        integrated_expqtau = [ np.ma.exp(qcard * K.EL.integrated_tau_V_neb) for qcard in q ]
         F_obs_Ha__z = np.ma.masked_array(K.EL.flux[i_Ha, :], mask = mask_lines_dict__Lz[Ha_central_wl])
         L_obs__Lz = K.EL._F_to_L(K.EL.flux) / L_sun
         L_obs_err__Lz = K.EL._F_to_L(K.EL.eflux) / L_sun        
@@ -506,19 +444,17 @@ if __name__ == '__main__':
         L_obs_Hb_err__z = np.ma.masked_array(L_obs_err__Lz[i_Hb, :], mask = mask_lines_dict__Lz[Hb_central_wl])
         L_obs_HaHb__z = L_obs_Ha__z / L_obs_Hb__z
         # L_int_Ha__Lz intrinsic Ha luminosity 
-        eHa = np.ma.exp(q[2] * tau_V_neb__z)
         # For the zones where I don't have values for tau_V_neb I don't correct the Lum_Ha
-        L_int_Ha__z = np.where(~mask_tau_V_neb_aux__z, L_obs_Ha__z * eHa, L_obs_Ha__z)
+        L_int_Ha__z = np.where(~mask_tau_V_neb_aux__z, L_obs_Ha__z * expqtau[2], L_obs_Ha__z)
         L_int_Ha__z = np.ma.masked_array(L_int_Ha__z, mask = mask_tau_V_neb_aux__z)
-        integrated_eHa = np.ma.exp(q[2] * K.EL.integrated_tau_V_neb)
-        integrated_L_obs_Ha = K.EL._F_to_L(F_obs_Ha__z.sum()) / L_sun
-        integrated_L_int_Ha = integrated_L_obs_Ha * integrated_eHa
         # L_int_Ha_err__Lz intrinsic Ha luminosity propagated error
         qq = q[2] / (q[0] - q[2])
         a = L_obs_Ha_err__z
         b = qq * L_obs_HaHb__z * L_obs_Hb_err__z
-        L_int_Ha_err__z = np.where(~mask_tau_V_neb_aux__z, L_obs_Ha_err__z, eHa * np.sqrt(a ** 2.0 + b ** 2.0))
+        L_int_Ha_err__z = np.where(~mask_tau_V_neb_aux__z, L_obs_Ha_err__z, expqtau[2] * np.sqrt(a ** 2.0 + b ** 2.0))
         L_int_Ha_err__z = np.ma.masked_array(L_int_Ha_err__z, mask = mask_tau_V_neb_aux__z)
+        integrated_L_obs_Ha = K.EL._F_to_L(K.EL.integrated_flux[i_Ha]) / L_sun
+        integrated_L_int_Ha = integrated_L_obs_Ha * integrated_expqtau[2]
         
         # Saving for later :D
         ALL._F_obs_Ha__g.append(F_obs_Ha__z.data)
@@ -537,13 +473,10 @@ if __name__ == '__main__':
         F_obs_Hb__z = np.ma.masked_array(K.EL.Hb_obs__z, mask = mask_lines_dict__Lz[Hb_central_wl])
         F_obs_O3__z = np.ma.masked_array(K.EL.O3_obs__z, mask = mask_lines_dict__Lz[O3_central_wl])
         F_obs_N2__z = np.ma.masked_array(K.EL.N2_obs__z, mask = mask_lines_dict__Lz[N2_central_wl])
-        eHb = np.ma.exp(q[0] * tau_V_neb__z)
-        eO3 = np.ma.exp(q[1] * tau_V_neb__z)
-        eN2 = np.ma.exp(q[3] * tau_V_neb__z)
-        F_int_Hb__z = np.where(~mask_tau_V_neb_aux__z, F_obs_Hb__z * eHb, F_obs_Hb__z)
-        F_int_O3__z = np.where(~mask_tau_V_neb_aux__z, F_obs_O3__z * eO3, F_obs_O3__z)
-        F_int_Ha__z = np.where(~mask_tau_V_neb_aux__z, F_obs_Ha__z * eHa, F_obs_Ha__z)
-        F_int_N2__z = np.where(~mask_tau_V_neb_aux__z, F_obs_N2__z * eN2, F_obs_N2__z)
+        F_int_Hb__z = np.where(~mask_tau_V_neb_aux__z, F_obs_Hb__z * expqtau[0], F_obs_Hb__z)
+        F_int_O3__z = np.where(~mask_tau_V_neb_aux__z, F_obs_O3__z * expqtau[1], F_obs_O3__z)
+        F_int_Ha__z = np.where(~mask_tau_V_neb_aux__z, F_obs_Ha__z * expqtau[2], F_obs_Ha__z)
+        F_int_N2__z = np.where(~mask_tau_V_neb_aux__z, F_obs_N2__z * expqtau[3], F_obs_N2__z)
         baseline_O3__z = K.EL.baseline[i_O3]
         baseline_N2__z = K.EL.baseline[i_N2]
         maskNone = np.zeros((K.N_zone), dtype = np.bool_)
@@ -551,23 +484,15 @@ if __name__ == '__main__':
         eF_obs_O3__z = np.ma.masked_array(K.EL.eflux[i_O3], mask = maskNone)
         eF_obs_Ha__z = np.ma.masked_array(K.EL.eflux[i_Ha], mask = maskNone)
         eF_obs_N2__z = np.ma.masked_array(K.EL.eflux[i_N2], mask = maskNone)
-        integrated_F_obs_Hb = F_obs_Hb__z.sum()
-        integrated_F_obs_O3 = F_obs_O3__z.sum()
-        integrated_F_obs_Ha = F_obs_Ha__z.sum()
-        integrated_F_obs_N2 = F_obs_N2__z.sum()
-        integrated_F_int_Hb = integrated_F_obs_Hb * np.ma.exp(q[0] * K.EL.integrated_tau_V_neb)
-        integrated_F_int_O3 = integrated_F_obs_O3 * np.ma.exp(q[1] * K.EL.integrated_tau_V_neb)
-        integrated_F_int_Ha = integrated_F_obs_Ha * integrated_eHa
-        integrated_F_int_N2 = integrated_F_obs_N2 * np.ma.exp(q[3] * K.EL.integrated_tau_V_neb)
-        integrated_baseline_O3 = baseline_O3__z.sum()
-        integrated_baseline_N2 = baseline_N2__z.sum()
+        integrated_F_obs_Hb = K.EL.integrated_flux[i_Hb]
+        integrated_F_obs_O3 = K.EL.integrated_flux[i_O3]
+        integrated_F_obs_Ha = K.EL.integrated_flux[i_Ha] 
+        integrated_F_obs_N2 = K.EL.integrated_flux[i_N2]
+        integrated_F_int_Hb = K.EL.integrated_flux[i_Hb] * integrated_expqtau[0]
+        integrated_F_int_O3 = K.EL.integrated_flux[i_O3] * integrated_expqtau[1]
+        integrated_F_int_Ha = K.EL.integrated_flux[i_Ha] * integrated_expqtau[2] 
+        integrated_F_int_N2 = K.EL.integrated_flux[i_N2] * integrated_expqtau[3]
         
-        #integrated_tau_V
-        qq = (1./(q[0] - q[2]))
-        integrated_eflux_Ha = np.ma.masked_array(K.EL.eflux[i_Ha], mask = mask_tau_V_neb_aux__z).sum()
-        integrated_eflux_Hb = np.ma.masked_array(K.EL.eflux[i_Hb], mask = mask_tau_V_neb_aux__z).sum()
-        a = integrated_eflux_Ha / integrated_F_obs_Ha
-        b = integrated_eflux_Hb / integrated_F_obs_Hb
         
         # Saving for later :D
         ALL._F_obs_Hb__g.append(F_obs_Hb__z.data)
@@ -586,34 +511,30 @@ if __name__ == '__main__':
         ALL._F_int_N2__g.append(F_int_N2__z)
         ALL._baseline_O3__g.append(K.EL.baseline[i_O3])
         ALL._baseline_N2__g.append(K.EL.baseline[i_N2])
-        ALL.integrated_F_obs_Ha__g[iGal] = integrated_F_obs_Ha
         ALL.integrated_F_obs_Hb__g[iGal] = integrated_F_obs_Hb
         ALL.integrated_F_obs_O3__g[iGal] = integrated_F_obs_O3
+        ALL.integrated_F_obs_Ha__g[iGal] = integrated_F_obs_Ha 
         ALL.integrated_F_obs_N2__g[iGal] = integrated_F_obs_N2
-        ALL.integrated_F_int_Ha__g[iGal] = integrated_F_int_Ha
         ALL.integrated_F_int_Hb__g[iGal] = integrated_F_int_Hb
         ALL.integrated_F_int_O3__g[iGal] = integrated_F_int_O3
+        ALL.integrated_F_int_Ha__g[iGal] = integrated_F_int_Ha 
         ALL.integrated_F_int_N2__g[iGal] = integrated_F_int_N2
-        ALL.integrated_tau_V_neb_resolved__g[iGal] = qq * (np.ma.log(integrated_F_obs_Ha/integrated_F_obs_Hb) - np.log(2.86))
-        ALL.integrated_tau_V_neb_err_resolved__g[iGal] = qq * (a**2. + b**2.)**0.5
-        ALL.integrated_EW_Ha__g[iGal] = F_obs_Ha__z.sum()/baseline_Ha__z.sum()
-        ALL.integrated_EW_Hb__g[iGal] = F_obs_Hb__z.sum()/baseline_Hb__z.sum()
         ##########################
 
         #### SFR and SigmaSFR ####
         # 3.13 M_sun/yr was calculated using BC03 + Padova1994 + Salpeter
-        SFR_Ha__z = np.ma.masked_array(3.13 * L_int_Ha__z.data / (1.e8), mask = L_int_Ha__z.mask)
+        k_SFR = 3.13
+        SFR_Ha__z = np.ma.masked_array(k_SFR * L_int_Ha__z.data / (1.e8), mask = L_int_Ha__z.mask)
         SFRSD_Ha__z = SFR_Ha__z / K.zoneArea_pc2
-        integrated_SFR_Ha = 3.13 * integrated_L_int_Ha / (1.e8)
-        integrated_SFRSD_Ha = integrated_SFR_Ha / K.zoneArea_pc2.sum()
+        integrated_SFR_Ha = k_SFR * integrated_L_int_Ha
 
         # Saving for later :D
-        ALL.integrated_SFR_Ha__g[iGal] = integrated_SFR_Ha
-        ALL.integrated_SFRSD_Ha__g[iGal] = integrated_SFRSD_Ha
         ALL._SFR_Ha__g.append(SFR_Ha__z.data)
         ALL._SFR_Ha_mask__g.append(SFR_Ha__z.mask)
         ALL._SFRSD_Ha__g.append(SFRSD_Ha__z.data)
         ALL._SFRSD_Ha_mask__g.append(SFRSD_Ha__z.mask)
+        ALL.integrated_SFR_Ha__g[iGal] = integrated_SFR_Ha 
+        ALL.integrated_SFRSD_Ha__g[iGal] = integrated_SFR_Ha / K.zoneArea_pc2.sum()
         ####################################################
         ####################################################
         ####################################################
@@ -628,8 +549,8 @@ if __name__ == '__main__':
         logO3N2__z[mask_Zneb_aux__z] = np.ma.masked
         ALL._logO3N2_M13__g.append(logO3N2__z.data)
         ALL._logO3N2_M13_mask__g.append(logO3N2__z.mask)
-        O3Hb = integrated_F_int_O3/integrated_F_int_Hb
-        N2Ha = integrated_F_int_N2/integrated_F_int_Ha
+        O3Hb = np.ma.log10(integrated_F_int_O3/integrated_F_int_Hb)
+        N2Ha = np.ma.log10(integrated_F_int_N2/integrated_F_int_Ha)
         ALL.integrated_logO3N2_M13__g[iGal] = 8.533 - 0.214 * (np.log10(O3Hb) - np.log10(N2Ha))
         
         minzones = 5
