@@ -493,7 +493,6 @@ if __name__ == '__main__':
         integrated_F_int_Ha = K.EL.integrated_flux[i_Ha] * integrated_expqtau[2] 
         integrated_F_int_N2 = K.EL.integrated_flux[i_N2] * integrated_expqtau[3]
         
-        
         # Saving for later :D
         ALL._F_obs_Hb__g.append(F_obs_Hb__z.data)
         ALL._F_obs_O3__g.append(F_obs_O3__z.data)
@@ -515,18 +514,23 @@ if __name__ == '__main__':
         ALL.integrated_F_obs_O3__g[iGal] = integrated_F_obs_O3
         ALL.integrated_F_obs_Ha__g[iGal] = integrated_F_obs_Ha 
         ALL.integrated_F_obs_N2__g[iGal] = integrated_F_obs_N2
+        ALL.integrated_eF_obs_Hb__g[iGal] = K.EL.integrated_eflux[i_Hb]
+        ALL.integrated_eF_obs_O3__g[iGal] = K.EL.integrated_eflux[i_O3]
+        ALL.integrated_eF_obs_Ha__g[iGal] = K.EL.integrated_eflux[i_Ha]
+        ALL.integrated_eF_obs_N2__g[iGal] = K.EL.integrated_eflux[i_N2]
         ALL.integrated_F_int_Hb__g[iGal] = integrated_F_int_Hb
         ALL.integrated_F_int_O3__g[iGal] = integrated_F_int_O3
         ALL.integrated_F_int_Ha__g[iGal] = integrated_F_int_Ha 
         ALL.integrated_F_int_N2__g[iGal] = integrated_F_int_N2
+        
         ##########################
 
         #### SFR and SigmaSFR ####
         # 3.13 M_sun/yr was calculated using BC03 + Padova1994 + Salpeter
         k_SFR = 3.13
-        SFR_Ha__z = np.ma.masked_array(k_SFR * L_int_Ha__z.data / (1.e8), mask = L_int_Ha__z.mask)
+        SFR_Ha__z = np.ma.masked_array(k_SFR * L_int_Ha__z.data / 1e8, mask = L_int_Ha__z.mask)
         SFRSD_Ha__z = SFR_Ha__z / K.zoneArea_pc2
-        integrated_SFR_Ha = k_SFR * integrated_L_int_Ha
+        integrated_SFR_Ha = k_SFR * integrated_L_int_Ha / 1e8
 
         # Saving for later :D
         ALL._SFR_Ha__g.append(SFR_Ha__z.data)
@@ -549,9 +553,7 @@ if __name__ == '__main__':
         logO3N2__z[mask_Zneb_aux__z] = np.ma.masked
         ALL._logO3N2_M13__g.append(logO3N2__z.data)
         ALL._logO3N2_M13_mask__g.append(logO3N2__z.mask)
-        O3Hb = np.ma.log10(integrated_F_int_O3/integrated_F_int_Hb)
-        N2Ha = np.ma.log10(integrated_F_int_N2/integrated_F_int_Ha)
-        ALL.integrated_logO3N2_M13__g[iGal] = 8.533 - 0.214 * (np.log10(O3Hb) - np.log10(N2Ha))
+        ALL.integrated_logO3N2_M13__g[iGal] = K.EL.integrated_Zneb_M13 
         
         minzones = 5
 
